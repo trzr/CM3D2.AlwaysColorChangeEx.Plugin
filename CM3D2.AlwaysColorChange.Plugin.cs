@@ -12,10 +12,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
     PluginFilter("CM3D2x86"),
     PluginFilter("CM3D2VRx64"),
     PluginName("CM3D2 OffScreen"),
-    PluginVersion("0.0.0.1")]
+    PluginVersion("0.0.0.2")]
     public class AlwaysColorChange : PluginBase
     {
-        public const string Version = "0.0.0.1";
+        public const string Version = "0.0.0.2";
 
         private const float GUIWidth = 0.25f;
 
@@ -58,7 +58,9 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
         private Dictionary<string, Color> slotColor;
 
-        private Dictionary<string, Dictionary<string, Dictionary<string, Shader>>> InitialShaders;
+        private Dictionary<string, Shader> InitialShaders;
+
+        private Maid maid;
 
         public AlwaysColorChange()
         {
@@ -83,7 +85,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             Slotnames.Add("ブラジャー", "bra");
             Slotnames.Add("パンツ", "panz");
             Slotnames.Add("靴下", "stkg");
-            Slotnames.Add("靴", "soes");
+            Slotnames.Add("靴", "shoes");
             Slotnames.Add("アクセ：前髪", "accKami_1_");
             Slotnames.Add("アクセ：前髪：左", "accKami_2_");
             Slotnames.Add("アクセ：前髪：右", "accKami_3_");
@@ -110,7 +112,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             Slotnames.Add("精液：顔", "seieki_face");
             Slotnames.Add("精液：胸", "seieki_mune");
             Slotnames.Add("精液：尻", "seieki_hip");
-            Slotnames.Add("精液：腕", "seieki_ud");
+            Slotnames.Add("精液：腕", "seieki_ude");
             Slotnames.Add("精液：足", "seieki_ashi");
             Slotnames.Add("手持アイテム：左", "HandItemL");
             Slotnames.Add("手持ちアイテム：右", "HandItemR");
@@ -122,25 +124,14 @@ namespace CM3D2.AlwaysColorChange.Plugin
             Slotnames.Add("チ○コ", "chinko");
         }
 
-
         private void changeColor(string slotname)
         {
-            Maid maid = GameMain.Instance.CharacterMgr.GetMaid(0);
+            maid = GameMain.Instance.CharacterMgr.GetMaid(0);
             if (maid == null)
             {
                 return;
             }
             DebugLog("target", slotname, Slotnames[slotname]);
-            Dictionary<string, Dictionary<string, Shader>> ddShaders;
-            if (InitialShaders.ContainsKey(slotname))
-            {
-                ddShaders = InitialShaders[slotname];
-            }
-            else
-            {
-                ddShaders = new Dictionary<string, Dictionary<string, Shader>>();
-                InitialShaders.Add(slotname, ddShaders);
-            }
             TBody body = maid.body0;
             List<TBodySkin> goSlot = body.goSlot;
             int index = (int)global::TBody.hashSlotName[Slotnames[slotname]];
@@ -157,29 +148,19 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 Renderer renderer = transform.renderer;
                 if (renderer != null && renderer.material != null)
                 {
-                    Dictionary<string, Shader> dShaders;
-                    if (ddShaders.ContainsKey(transform.name))
-                    {
-                        dShaders = ddShaders[transform.name];
-                    }
-                    else
-                    {
-                        dShaders = new Dictionary<string, Shader>();
-                        ddShaders.Add(transform.name, dShaders);
-                    }
                     Material[] materials = renderer.materials;
                     foreach (Material material in materials)
                     {
                         Shader shader = material.shader;
-                        if (!dShaders.ContainsKey(material.name))
+                        if (!InitialShaders.ContainsKey(material.name))
                         {
                             if (shader.name == "Hidden/InternalErrorShader")
                             {
-                                dShaders.Add(material.name, null);
+                                InitialShaders.Add(material.name, null);
                             }
                             else
                             {
-                                dShaders.Add(material.name, shader);
+                                InitialShaders.Add(material.name, shader);
                             }
                         }
 
@@ -200,7 +181,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                             }
                             else
                             {
-                                material.shader = dShaders[material.name];
+                                material.shader = InitialShaders[material.name];
                             }
                         }
                         catch (Exception e)
@@ -230,7 +211,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             }
 
             slotColor = new Dictionary<string, Color>();
-            InitialShaders = new Dictionary<string, Dictionary<string, Dictionary<string, Shader>>>();
+            InitialShaders = new Dictionary<string, Shader>();
             foreach (string slotname in Slotnames.Keys)
             {
                 slotColor.Add(slotname, new Color(1f, 1f, 1f, 1f));
@@ -242,6 +223,12 @@ namespace CM3D2.AlwaysColorChange.Plugin
         private void Update()
         {
             if (!Enum.IsDefined(typeof(TargetLevel), Application.loadedLevel))
+            {
+                return;
+            }
+
+            maid = GameMain.Instance.CharacterMgr.GetMaid(0);
+            if (maid == null)
             {
                 return;
             }
@@ -303,11 +290,11 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
         private void DoMainMenu(int winID)
         {
-            float margin = FixPx(5);
+            float margin = FixPx(4);
             float fontSize = FixPx(14);
             float itemHeight = FixPx(18);
 
-            Rect scrollRect = new Rect(margin, (itemHeight + margin) * 3, winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 2);
+            Rect scrollRect = new Rect(margin, (itemHeight + margin) * 2, winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 3);
             Rect conRect = new Rect(0, 0, scrollRect.width - 20, 0);
             Rect outRect = new Rect(0, 0, winRect.width - margin * 2, itemHeight);
             GUIStyle lStyle = "label";
@@ -332,7 +319,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             }
             outRect.y = 0;
 
-            conRect.height += (itemHeight + margin) * Slotnames.Count + margin;
+            conRect.height += (itemHeight + margin) * Slotnames.Count + margin * 2;
 
             scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
 
@@ -351,12 +338,39 @@ namespace CM3D2.AlwaysColorChange.Plugin
             GUI.DragWindow();
         }
 
+        private List<Material> GetMaterials(string slotname)
+        {
+            TBody body = maid.body0;
+            List<TBodySkin> goSlot = body.goSlot;
+            int index = (int)global::TBody.hashSlotName[Slotnames[slotname]];
+            global::TBodySkin tBodySkin = goSlot[index];
+            GameObject obj = tBodySkin.obj;
+            if (obj == null)
+            {
+                return null;
+            }
+            List<Material> materialList = new List<Material>();
+            Transform[] componentsInChildren = obj.transform.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < componentsInChildren.Length; i++)
+            {
+                Transform transform = componentsInChildren[i];
+                Renderer renderer = transform.renderer;
+                if (renderer != null && renderer.material != null && renderer.material.shader != null)
+                {
+                    materialList.AddRange(renderer.materials);
+                }
+            }
+            return materialList;
+        }
+
         private void DoColorMenu(int winID)
         {
-            float margin = FixPx(5);
+            float margin = FixPx(4);
             float fontSize = FixPx(14);
             float itemHeight = FixPx(18);
 
+            Rect scrollRect = new Rect(margin, (itemHeight + margin), winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 3);
+            Rect conRect = new Rect(0, 0, scrollRect.width - 20, 0);
             Rect outRect = new Rect(margin, 0, winRect.width - margin * 2, itemHeight);
             GUIStyle lStyle = "label";
             GUIStyle bStyle = "button";
@@ -368,28 +382,79 @@ namespace CM3D2.AlwaysColorChange.Plugin
             bStyle.normal.textColor = color;
 
             GUI.Label(outRect, "強制カラーチェンジ:" + currentSlotname, lStyle);
-            outRect.y += itemHeight + margin;
-            Color sColor = slotColor[currentSlotname];
-            sColor.r = drawModValueSlider(outRect, sColor.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", sColor.r), lStyle);
-            outRect.y += itemHeight + margin;
-            sColor.g = drawModValueSlider(outRect, sColor.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", sColor.g), lStyle);
-            outRect.y += itemHeight + margin;
-            sColor.b = drawModValueSlider(outRect, sColor.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", sColor.b), lStyle);
-            outRect.y += itemHeight + margin;
-            sColor.a = drawModValueSlider(outRect, sColor.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", sColor.a), lStyle);
-            outRect.y += itemHeight + margin;
-            slotColor[currentSlotname] = sColor;
 
-            outRect.y += margin;
-            if (GUI.Button(outRect, "適用", bStyle))
+            outRect.y = 0;
+            outRect.width -= margin;
+            List<Material> materialList = GetMaterials(currentSlotname);
+            if (materialList != null)
             {
-                changeColor(currentSlotname);
+                conRect.height += (itemHeight + margin) * materialList.Count + margin;
+
+                scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
+
+                foreach (Material material in materialList)
+                {
+                    GUI.Label(outRect, material.name, lStyle);
+                    outRect.y += itemHeight + margin;
+                    Color sColor = material.color;
+                    sColor.r = drawModValueSlider(outRect, sColor.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", sColor.r), lStyle);
+                    outRect.y += itemHeight + margin;
+                    sColor.g = drawModValueSlider(outRect, sColor.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", sColor.g), lStyle);
+                    outRect.y += itemHeight + margin;
+                    sColor.b = drawModValueSlider(outRect, sColor.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", sColor.b), lStyle);
+                    outRect.y += itemHeight + margin;
+                    sColor.a = drawModValueSlider(outRect, sColor.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", sColor.a), lStyle);
+                    outRect.y += itemHeight + margin;
+
+                    string sharderName = material.shader.name;
+                    try
+                    {
+                        Shader mShader = material.shader;
+                        if (!InitialShaders.ContainsKey(material.name))
+                        {
+                            if (mShader.name == "Hidden/InternalErrorShader")
+                            {
+                                InitialShaders.Add(material.name, null);
+                            }
+                            else
+                            {
+                                InitialShaders.Add(material.name, mShader);
+                            }
+                        }
+                        if (sColor.a < 1f)
+                        {
+                            if (sharderName.Contains("Outline"))
+                            {
+                                Shader shader = Shader.Find(sharderName.Replace("Outline", "Trans"));
+                                if (shader == null)
+                                {
+                                    shader = Shader.Find("CM3D2/Toony_Lighted_Trans");
+                                }
+                                material.shader = shader;
+                            }
+                        }
+                        else
+                        {
+                            material.shader = InitialShaders[material.name];
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        DebugLog(e.StackTrace);
+                    }
+                    material.color = sColor;
+
+                    outRect.y += margin * 2;
+                }
+                GUI.EndScrollView();
             }
             outRect.y += itemHeight + margin * 2;
+
             if (GUI.Button(outRect, "閉じる", bStyle))
             {
                 menuType = MenuType.Main;
             }
+            GUI.DragWindow();
         }
 
         private float drawModValueSlider(Rect outRect, float value, float min, float max, string label, GUIStyle lstyle)
