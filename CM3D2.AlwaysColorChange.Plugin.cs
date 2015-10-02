@@ -12,10 +12,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
     PluginFilter("CM3D2x86"),
     PluginFilter("CM3D2VRx64"),
     PluginName("CM3D2 OffScreen"),
-    PluginVersion("0.0.0.2")]
+    PluginVersion("0.0.1.0")]
     public class AlwaysColorChange : PluginBase
     {
-        public const string Version = "0.0.0.2";
+        public const string Version = "0.0.1.0";
 
         private const float GUIWidth = 0.25f;
 
@@ -41,7 +41,8 @@ namespace CM3D2.AlwaysColorChange.Plugin
         {
             None,
             Main,
-            Color
+            Color,
+            MaskChange
         }
 
         private Dictionary<string, string> Slotnames;
@@ -256,6 +257,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                     GameMain.Instance.MainCamera.SetControl(true);
                 }
             }
+
         }
 
         private void OnGUI()
@@ -278,10 +280,13 @@ namespace CM3D2.AlwaysColorChange.Plugin
             switch (menuType)
             {
                 case MenuType.Main:
-                    winRect = GUI.Window(0, winRect, DoMainMenu, AlwaysColorChange.Version, winStyle);
+                    winRect = GUI.Window(12, winRect, DoMainMenu, AlwaysColorChange.Version, winStyle);
                     break;
                 case MenuType.Color:
-                    winRect = GUI.Window(0, winRect, DoColorMenu, AlwaysColorChange.Version, winStyle);
+                    winRect = GUI.Window(12, winRect, DoColorMenu, AlwaysColorChange.Version, winStyle);
+                    break;
+                case MenuType.MaskChange:
+                    winRect = GUI.Window(12, winRect, DoMaskChangeMenu, AlwaysColorChange.Version, winStyle);
                     break;
                 default:
                     break;
@@ -294,7 +299,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             float fontSize = FixPx(14);
             float itemHeight = FixPx(18);
 
-            Rect scrollRect = new Rect(margin, (itemHeight + margin) * 2, winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 3);
+            Rect scrollRect = new Rect(margin, (itemHeight + margin) * 2 + margin, winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 3);
             Rect conRect = new Rect(0, 0, scrollRect.width - 20, 0);
             Rect outRect = new Rect(0, 0, winRect.width - margin * 2, itemHeight);
             GUIStyle lStyle = "label";
@@ -310,12 +315,9 @@ namespace CM3D2.AlwaysColorChange.Plugin
             tStyle.normal.textColor = color;
             GUI.Label(outRect, "強制カラーチェンジ", lStyle);
             outRect.y += itemHeight + margin;
-            if (GUI.Button(outRect, "適用", bStyle))
+            if (GUI.Button(outRect, "マスククリア", bStyle))
             {
-                foreach (string slotname in Slotnames.Keys)
-                {
-                    changeColor(slotname);
-                }
+                ClearMasks();
             }
             outRect.y = 0;
 
@@ -336,6 +338,63 @@ namespace CM3D2.AlwaysColorChange.Plugin
             }
             GUI.EndScrollView();
             GUI.DragWindow();
+        }
+
+        private void ClearMasks()
+        {
+            for (int i = 0; i < maid.body0.goSlot.Count; i++)
+            {
+                TBodySkin tBodySkin = maid.body0.goSlot[i];
+                tBodySkin.boVisible = true;
+                tBodySkin.listMaskSlot.Clear();
+            }
+            maid.body0.FixMaskFlag();
+            maid.body0.FixVisibleFlag(false);
+            maid.AllProcPropSeqStart();
+        }
+
+        private Dictionary<string, bool> dDelNodes;
+
+        private void FixDelNode()
+        {
+            if (dDelNodes == null)
+            {
+                return;
+            }
+            for (int i = 0; i < maid.body0.goSlot.Count; i++)
+            {
+                TBodySkin tBodySkin = maid.body0.goSlot[i];
+                tBodySkin.boVisible = true;
+                if (tBodySkin.m_dicDelNodeBody != null)
+                {
+                    List<string> keyList = new List<string>(tBodySkin.m_dicDelNodeBody.Keys);
+                    foreach (string key in keyList)
+                    {
+                        if (tBodySkin.m_dicDelNodeBody.ContainsKey(key))
+                        {
+                            tBodySkin.m_dicDelNodeBody[key] = dDelNodes[key];
+                        }
+                    }
+                }
+                if (tBodySkin.m_dicDelNodeParts != null)
+                {
+                    List<string> keyList = new List<string>(tBodySkin.m_dicDelNodeParts.Keys);
+                    foreach (string key in keyList)
+                    {
+                        if (tBodySkin.m_dicDelNodeParts.ContainsKey(key))
+                        {
+                            List<string> keyList2 = new List<string>(tBodySkin.m_dicDelNodeParts[key].Keys);
+                            foreach (string key2 in keyList2)
+                            {
+                                tBodySkin.m_dicDelNodeParts[key][key2] = dDelNodes[key];
+                            }
+                        }
+                    }
+                }
+            }
+            maid.body0.FixMaskFlag();
+            maid.body0.FixVisibleFlag(false);
+            maid.AllProcPropSeqStart();
         }
 
         private List<Material> GetMaterials(string slotname)
@@ -363,6 +422,31 @@ namespace CM3D2.AlwaysColorChange.Plugin
             return materialList;
         }
 
+        private List<Renderer> GetRenderers(string slotname)
+        {
+            TBody body = maid.body0;
+            List<TBodySkin> goSlot = body.goSlot;
+            int index = (int)global::TBody.hashSlotName[Slotnames[slotname]];
+            global::TBodySkin tBodySkin = goSlot[index];
+            GameObject obj = tBodySkin.obj;
+            if (obj == null)
+            {
+                return null;
+            }
+            List<Renderer> rendererList = new List<Renderer>();
+            Transform[] componentsInChildren = obj.transform.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < componentsInChildren.Length; i++)
+            {
+                Transform transform = componentsInChildren[i];
+                Renderer renderer = transform.renderer;
+                if (renderer != null)
+                {
+                    rendererList.Add(renderer);
+                }
+            }
+            return rendererList;
+        }
+
         private void DoColorMenu(int winID)
         {
             float margin = FixPx(4);
@@ -374,12 +458,15 @@ namespace CM3D2.AlwaysColorChange.Plugin
             Rect outRect = new Rect(margin, 0, winRect.width - margin * 2, itemHeight);
             GUIStyle lStyle = "label";
             GUIStyle bStyle = "button";
+            GUIStyle tStyle = "toggle";
 
             Color color = new Color(1f, 1f, 1f, 0.98f);
             lStyle.fontSize = FixPx(11);
             lStyle.normal.textColor = color;
             bStyle.fontSize = FixPx(11);
             bStyle.normal.textColor = color;
+            tStyle.fontSize = FixPx(11);
+            tStyle.normal.textColor = color;
 
             GUI.Label(outRect, "強制カラーチェンジ:" + currentSlotname, lStyle);
 
@@ -388,8 +475,18 @@ namespace CM3D2.AlwaysColorChange.Plugin
             List<Material> materialList = GetMaterials(currentSlotname);
             if (materialList != null)
             {
-                conRect.height += (itemHeight + margin) * materialList.Count + margin;
+                conRect.height += (itemHeight + margin * 2) * (materialList.Count * 4) + margin;
 
+                global::TBodySkin tBodySkin = null;
+                if (currentSlotname.Equals("身体"))
+                {
+                    TBody body = maid.body0;
+                    List<TBodySkin> goSlot = body.goSlot;
+                    int index = (int)global::TBody.hashSlotName[Slotnames[currentSlotname]];
+                    tBodySkin = goSlot[index];
+                    scrollRect.height = winRect.height - (itemHeight + margin * 2) * 3 + margin;
+                    conRect.height += (itemHeight + margin * 2) * (goSlot[index].m_dicDelNodeBody.Keys.Count) + margin;
+                }
                 scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
 
                 foreach (Material material in materialList)
@@ -446,14 +543,90 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
                     outRect.y += margin * 2;
                 }
+
+                if (currentSlotname.Equals("身体"))
+                {
+                    if (dDelNodes == null)
+                    {
+                        dDelNodes = new Dictionary<string, bool>(tBodySkin.m_dicDelNodeBody);
+                    }
+                    List<string> keyList = new List<string>(dDelNodes.Keys);
+                    foreach (string key in keyList)
+                    {
+                        dDelNodes[key] = GUI.Toggle(outRect, dDelNodes[key], key, tStyle);
+                        outRect.y += itemHeight + margin;
+                    }
+                }
                 GUI.EndScrollView();
             }
+            if (currentSlotname.Equals("身体"))
+            {
+                outRect.y = winRect.height - (itemHeight + margin * 2) * 2;
+                if (GUI.Button(outRect, "適用", bStyle))
+                {
+                    FixDelNode();
+                }
+            }
             outRect.y += itemHeight + margin * 2;
-
             if (GUI.Button(outRect, "閉じる", bStyle))
             {
                 menuType = MenuType.Main;
             }
+            GUI.DragWindow();
+        }
+
+        private void DoMaskChangeMenu(int winID)
+        {
+            float margin = FixPx(4);
+            float fontSize = FixPx(14);
+            float itemHeight = FixPx(18);
+
+            Rect scrollRect = new Rect(margin, (itemHeight + margin) * 2, winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 3);
+            Rect conRect = new Rect(0, 0, scrollRect.width - 20, 0);
+            Rect outRect = new Rect(0, 0, winRect.width - margin * 2, itemHeight);
+            GUIStyle lStyle = "label";
+            GUIStyle bStyle = "button";
+            GUIStyle tStyle = "toggle";
+
+            Color color = new Color(1f, 1f, 1f, 0.98f);
+            lStyle.fontSize = FixPx(11);
+            lStyle.normal.textColor = color;
+            bStyle.fontSize = FixPx(11);
+            bStyle.normal.textColor = color;
+            tStyle.fontSize = FixPx(11);
+            tStyle.normal.textColor = color;
+            GUI.Label(outRect, "マスク・消去変更", lStyle);
+            outRect.y += itemHeight + margin;
+            if (GUI.Button(outRect, "強制カラーチェンジへ", bStyle))
+            {
+                menuType = MenuType.Main;
+            }
+            outRect.y = 0;
+
+            conRect.height += (itemHeight + margin) * Slotnames.Count + margin * 2;
+
+            scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
+
+            TBody body = maid.body0;
+            List<TBodySkin> goSlot = body.goSlot;
+            foreach (string slotname in Slotnames.Keys)
+            {
+                int index = (int)global::TBody.hashSlotName[Slotnames[slotname]];
+                global::TBodySkin tBodySkin = goSlot[index];
+                GameObject obj = tBodySkin.obj;
+                if (obj == null)
+                {
+                    continue;
+                }
+                List<Renderer> rendererList = GetRenderers(slotname);
+                foreach (Renderer renderer in rendererList)
+                {
+                    renderer.enabled = GUI.Toggle(outRect, renderer.enabled, slotname, tStyle);
+                    outRect.y += itemHeight + margin;
+                }
+            }
+
+            GUI.EndScrollView();
             GUI.DragWindow();
         }
 
