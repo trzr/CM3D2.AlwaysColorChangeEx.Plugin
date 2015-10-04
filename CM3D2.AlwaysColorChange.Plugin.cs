@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using UnityEngine;
 using UnityInjector;
 using UnityInjector.Attributes;
@@ -12,10 +14,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
     PluginFilter("CM3D2x86"),
     PluginFilter("CM3D2VRx64"),
     PluginName("CM3D2 OffScreen"),
-    PluginVersion("0.0.1.0")]
+    PluginVersion("0.0.2.0")]
     public class AlwaysColorChange : PluginBase
     {
-        public const string Version = "0.0.1.0";
+        public const string Version = "0.0.2.0";
 
         private const float GUIWidth = 0.25f;
 
@@ -42,10 +44,14 @@ namespace CM3D2.AlwaysColorChange.Plugin
             None,
             Main,
             Color,
-            MaskChange
+            NodeSelect,
+            Save,
+            PresetSelect
         }
 
         private Dictionary<string, string> Slotnames;
+
+        private Dictionary<string, string> Nodenames;
 
         private MenuType menuType;
 
@@ -62,6 +68,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
         private Dictionary<string, Shader> InitialShaders;
 
         private Maid maid;
+
+        private bool bApplyChange = false;
+
+        private CCPreset targetPreset;
 
         public AlwaysColorChange()
         {
@@ -123,6 +133,94 @@ namespace CM3D2.AlwaysColorChange.Plugin
             Slotnames.Add("アナルバイブ？", "accAnl");
             Slotnames.Add("バイブ？", "accVag");
             Slotnames.Add("チ○コ", "chinko");
+            Nodenames = new Dictionary<string, string>();
+            Nodenames.Add("頭", "Bip01 Head");
+            Nodenames.Add("首", "Bip01 Neck_SCL_");
+            Nodenames.Add("左胸上", "Mune_L_sub");
+            Nodenames.Add("左胸下", "Mune_L");
+            Nodenames.Add("右胸上", "Mune_R_sub");
+            Nodenames.Add("右胸下", "Mune_R");
+            Nodenames.Add("骨盤", "Bip01 Pelvis_SCL_");
+            Nodenames.Add("脊椎", "Bip01 Spine_SCL_");
+            Nodenames.Add("腰中", "Bip01 Spine1_SCL_");
+            Nodenames.Add("腹部", "Bip01 Spine0a_SCL_");
+            Nodenames.Add("胸部", "Bip01 Spine1a_SCL_");
+            Nodenames.Add("股間", "Bip01");
+            Nodenames.Add("左尻", "Hip_L");
+            Nodenames.Add("右尻", "Hip_R");
+            Nodenames.Add("左前腿", "momotwist_L");
+            Nodenames.Add("左後腿", "momoniku_L");
+            Nodenames.Add("左前腿下部", "momotwist2_L");
+            Nodenames.Add("左ふくらはぎ", "Bip01 L Thigh_SCL_");
+            Nodenames.Add("左足首", "Bip01 L Calf_SCL_");
+            Nodenames.Add("左足小指付け根", "Bip01 L Toe0");
+            Nodenames.Add("左足小指先", "Bip01 L Toe01");
+            Nodenames.Add("左足中指付け根", "Bip01 L Toe1");
+            Nodenames.Add("左足中指先", "Bip01 L Toe11");
+            Nodenames.Add("左足親指付け根", "Bip01 L Toe2");
+            Nodenames.Add("左足親指先", "Bip01 L Toe21");
+            Nodenames.Add("右前腿", "momotwist_R");
+            Nodenames.Add("右後腿", "momoniku_R");
+            Nodenames.Add("右前腿下部", "momotwist2_R");
+            Nodenames.Add("右ふくらはぎ", "Bip01 R Thigh_SCL_");
+            Nodenames.Add("右足首", "Bip01 R Calf_SCL_");
+            Nodenames.Add("右足小指付け根", "Bip01 R Toe0");
+            Nodenames.Add("右足小指先", "Bip01 R Toe01");
+            Nodenames.Add("右足中指付け根", "Bip01 R Toe1");
+            Nodenames.Add("右足中指先", "Bip01 R Toe11");
+            Nodenames.Add("右足親指付け根", "Bip01 R Toe2");
+            Nodenames.Add("右足親指先", "Bip01 R Toe21");
+            Nodenames.Add("左鎖骨", "Bip01 L Clavicle_SCL_");
+            Nodenames.Add("左肩", "Kata_L");
+            Nodenames.Add("左肩上腕", "Kata_L_nub");
+            Nodenames.Add("左上腕A", "Uppertwist_L");
+            Nodenames.Add("左上腕B", "Uppertwist1_L");
+            Nodenames.Add("左上腕", "Bip01 L UpperArm");
+            Nodenames.Add("左肘", "Bip01 L Forearm");
+            Nodenames.Add("左前腕", "Foretwist1_L");
+            Nodenames.Add("左手首", "Foretwist_L");
+            Nodenames.Add("左手", "Bip01 L Hand");
+            Nodenames.Add("左親指付け根", "Bip01 L Finger0");
+            Nodenames.Add("左親指関節", "Bip01 L Finger01");
+            Nodenames.Add("左親指先", "Bip01 L Finger02");
+            Nodenames.Add("左人指し指付け根", "Bip01 L Finger1");
+            Nodenames.Add("左人指し指関節", "Bip01 L Finger11");
+            Nodenames.Add("左人指し指先", "Bip01 L Finger12");
+            Nodenames.Add("左中指付け根", "Bip01 L Finger2");
+            Nodenames.Add("左中指関節", "Bip01 L Finger21");
+            Nodenames.Add("左中指先", "Bip01 L Finger22");
+            Nodenames.Add("左薬指付け根", "Bip01 L Finger3");
+            Nodenames.Add("左薬指関節", "Bip01 L Finger31");
+            Nodenames.Add("左薬指先", "Bip01 L Finger32");
+            Nodenames.Add("左小指付け根", "Bip01 L Finger4");
+            Nodenames.Add("左小指関節", "Bip01 L Finger41");
+            Nodenames.Add("左小指先", "Bip01 L Finger42");
+            Nodenames.Add("右鎖骨", "Bip01 R Clavicle_SCL_");
+            Nodenames.Add("右肩", "Kata_R");
+            Nodenames.Add("右肩上腕", "Kata_R_nub");
+            Nodenames.Add("右上腕A", "Uppertwist_R");
+            Nodenames.Add("右上腕B", "Uppertwist1_R");
+            Nodenames.Add("右上腕", "Bip01 R UpperArm");
+            Nodenames.Add("右肘", "Bip01 R Forearm");
+            Nodenames.Add("右前腕", "Foretwist1_R");
+            Nodenames.Add("右手首", "Foretwist_R");
+            Nodenames.Add("右手", "Bip01 R Hand");
+            Nodenames.Add("右親指付け根", "Bip01 R Finger0");
+            Nodenames.Add("右親指関節", "Bip01 R Finger01");
+            Nodenames.Add("右親指先", "Bip01 R Finger02");
+            Nodenames.Add("右人指し指付け根", "Bip01 R Finger1");
+            Nodenames.Add("右人指し指関節", "Bip01 R Finger11");
+            Nodenames.Add("右人指し指先", "Bip01 R Finger12");
+            Nodenames.Add("右中指付け根", "Bip01 R Finger2");
+            Nodenames.Add("右中指関節", "Bip01 R Finger21");
+            Nodenames.Add("右中指先", "Bip01 R Finger22");
+            Nodenames.Add("右薬指付け根", "Bip01 R Finger3");
+            Nodenames.Add("右薬指関節", "Bip01 R Finger31");
+            Nodenames.Add("右薬指先", "Bip01 R Finger32");
+            Nodenames.Add("右小指付け根", "Bip01 R Finger4");
+            Nodenames.Add("右小指関節", "Bip01 R Finger41");
+            Nodenames.Add("右小指先", "Bip01 R Finger42");
+
         }
 
         private void changeColor(string slotname)
@@ -219,6 +317,8 @@ namespace CM3D2.AlwaysColorChange.Plugin
             }
             winRect = new Rect(Screen.width - FixPx(250), FixPx(20), FixPx(240), Screen.height - FixPx(30));
             menuType = MenuType.None;
+            LoadSettings();
+            bApplyChange = false;
         }
 
         private void Update()
@@ -258,6 +358,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 }
             }
 
+            if (bApplyChange && !maid.boAllProcPropBUSY)
+            {
+                ApplyPreset();
+            }
         }
 
         private void OnGUI()
@@ -274,7 +378,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 return;
 
             GUIStyle winStyle = "box";
-            winStyle.fontSize = FixPx(11);
+            winStyle.fontSize = FixPx(fontPx);
             winStyle.alignment = TextAnchor.UpperRight;
 
             switch (menuType)
@@ -285,21 +389,43 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 case MenuType.Color:
                     winRect = GUI.Window(12, winRect, DoColorMenu, AlwaysColorChange.Version, winStyle);
                     break;
-                case MenuType.MaskChange:
-                    winRect = GUI.Window(12, winRect, DoMaskChangeMenu, AlwaysColorChange.Version, winStyle);
+                case MenuType.NodeSelect:
+                    winRect = GUI.Window(12, winRect, DoNodeSelectMenu, AlwaysColorChange.Version, winStyle);
+                    break;
+                case MenuType.Save:
+                    winRect = GUI.Window(12, winRect, DoSaveMenu, AlwaysColorChange.Version, winStyle);
+                    break;
+                case MenuType.PresetSelect:
+                    winRect = GUI.Window(12, winRect, DoSelectPreset, AlwaysColorChange.Version, winStyle);
                     break;
                 default:
                     break;
             }
+
+            if (Input.GetKeyDown(KeyCode.Alpha0))
+            {
+                if (dDelNodes != null)
+                {
+                    List<string> keyList = new List<string>(dDelNodes.Keys);
+                    foreach (string key in keyList)
+                    {
+                        Debug.Log(key);
+                    }
+                }
+            }
         }
+
+        private int marginPx = 4;
+        private int fontPx = 14;
+        private int itemHeightPx = 18;
 
         private void DoMainMenu(int winID)
         {
-            float margin = FixPx(4);
-            float fontSize = FixPx(14);
-            float itemHeight = FixPx(18);
+            float margin = FixPx(marginPx);
+            float fontSize = FixPx(fontPx);
+            float itemHeight = FixPx(itemHeightPx);
 
-            Rect scrollRect = new Rect(margin, (itemHeight + margin) * 2 + margin, winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 3);
+            Rect scrollRect = new Rect(margin, (itemHeight + margin) * 5 + margin, winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 6);
             Rect conRect = new Rect(0, 0, scrollRect.width - 20, 0);
             Rect outRect = new Rect(0, 0, winRect.width - margin * 2, itemHeight);
             GUIStyle lStyle = "label";
@@ -307,17 +433,36 @@ namespace CM3D2.AlwaysColorChange.Plugin
             GUIStyle tStyle = "toggle";
 
             Color color = new Color(1f, 1f, 1f, 0.98f);
-            lStyle.fontSize = FixPx(11);
+            lStyle.fontSize = FixPx(fontPx);
             lStyle.normal.textColor = color;
-            bStyle.fontSize = FixPx(11);
+            bStyle.fontSize = FixPx(fontPx);
             bStyle.normal.textColor = color;
-            tStyle.fontSize = FixPx(11);
+            tStyle.fontSize = FixPx(fontPx);
             tStyle.normal.textColor = color;
             GUI.Label(outRect, "強制カラーチェンジ", lStyle);
             outRect.y += itemHeight + margin;
             if (GUI.Button(outRect, "マスククリア", bStyle))
             {
                 ClearMasks();
+            }
+            outRect.y += itemHeight + margin;
+            if (GUI.Button(outRect, "ノード表示切り替えへ", bStyle))
+            {
+                menuType = MenuType.NodeSelect;
+            }
+            outRect.y += itemHeight + margin;
+            if (GUI.Button(outRect, "保存", bStyle))
+            {
+                menuType = MenuType.Save;
+            }
+            if (presets != null && presets.Count > 0)
+            {
+                outRect.y += itemHeight + margin;
+                if (GUI.Button(outRect, "プリセット適用", bStyle))
+                {
+                    LoadSettings();
+                    menuType = MenuType.PresetSelect;
+                }
             }
             outRect.y = 0;
 
@@ -355,7 +500,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
         private Dictionary<string, bool> dDelNodes;
 
-        private void FixDelNode()
+        private void FixDelNode(bool bApply)
         {
             if (dDelNodes == null)
             {
@@ -367,8 +512,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 tBodySkin.boVisible = true;
                 if (tBodySkin.m_dicDelNodeBody != null)
                 {
-                    List<string> keyList = new List<string>(tBodySkin.m_dicDelNodeBody.Keys);
-                    foreach (string key in keyList)
+                    foreach (string key in dDelNodes.Keys)
                     {
                         if (tBodySkin.m_dicDelNodeBody.ContainsKey(key))
                         {
@@ -376,25 +520,13 @@ namespace CM3D2.AlwaysColorChange.Plugin
                         }
                     }
                 }
-                if (tBodySkin.m_dicDelNodeParts != null)
-                {
-                    List<string> keyList = new List<string>(tBodySkin.m_dicDelNodeParts.Keys);
-                    foreach (string key in keyList)
-                    {
-                        if (tBodySkin.m_dicDelNodeParts.ContainsKey(key))
-                        {
-                            List<string> keyList2 = new List<string>(tBodySkin.m_dicDelNodeParts[key].Keys);
-                            foreach (string key2 in keyList2)
-                            {
-                                tBodySkin.m_dicDelNodeParts[key][key2] = dDelNodes[key];
-                            }
-                        }
-                    }
-                }
             }
-            maid.body0.FixMaskFlag();
-            maid.body0.FixVisibleFlag(false);
-            maid.AllProcPropSeqStart();
+            if (bApply)
+            {
+                maid.body0.FixMaskFlag();
+                maid.body0.FixVisibleFlag(false);
+                maid.AllProcPropSeqStart();
+            }
         }
 
         private List<Material> GetMaterials(string slotname)
@@ -449,9 +581,9 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
         private void DoColorMenu(int winID)
         {
-            float margin = FixPx(4);
-            float fontSize = FixPx(14);
-            float itemHeight = FixPx(18);
+            float margin = FixPx(marginPx);
+            float fontSize = FixPx(fontPx);
+            float itemHeight = FixPx(itemHeightPx);
 
             Rect scrollRect = new Rect(margin, (itemHeight + margin), winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 3);
             Rect conRect = new Rect(0, 0, scrollRect.width - 20, 0);
@@ -461,11 +593,11 @@ namespace CM3D2.AlwaysColorChange.Plugin
             GUIStyle tStyle = "toggle";
 
             Color color = new Color(1f, 1f, 1f, 0.98f);
-            lStyle.fontSize = FixPx(11);
+            lStyle.fontSize = FixPx(fontPx);
             lStyle.normal.textColor = color;
-            bStyle.fontSize = FixPx(11);
+            bStyle.fontSize = FixPx(fontPx);
             bStyle.normal.textColor = color;
-            tStyle.fontSize = FixPx(11);
+            tStyle.fontSize = FixPx(fontPx);
             tStyle.normal.textColor = color;
 
             GUI.Label(outRect, "強制カラーチェンジ:" + currentSlotname, lStyle);
@@ -477,16 +609,6 @@ namespace CM3D2.AlwaysColorChange.Plugin
             {
                 conRect.height += (itemHeight + margin * 2) * (materialList.Count * 4) + margin;
 
-                global::TBodySkin tBodySkin = null;
-                if (currentSlotname.Equals("身体"))
-                {
-                    TBody body = maid.body0;
-                    List<TBodySkin> goSlot = body.goSlot;
-                    int index = (int)global::TBody.hashSlotName[Slotnames[currentSlotname]];
-                    tBodySkin = goSlot[index];
-                    scrollRect.height = winRect.height - (itemHeight + margin * 2) * 3 + margin;
-                    conRect.height += (itemHeight + margin * 2) * (goSlot[index].m_dicDelNodeBody.Keys.Count) + margin;
-                }
                 scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
 
                 foreach (Material material in materialList)
@@ -544,29 +666,9 @@ namespace CM3D2.AlwaysColorChange.Plugin
                     outRect.y += margin * 2;
                 }
 
-                if (currentSlotname.Equals("身体"))
-                {
-                    if (dDelNodes == null)
-                    {
-                        dDelNodes = new Dictionary<string, bool>(tBodySkin.m_dicDelNodeBody);
-                    }
-                    List<string> keyList = new List<string>(dDelNodes.Keys);
-                    foreach (string key in keyList)
-                    {
-                        dDelNodes[key] = GUI.Toggle(outRect, dDelNodes[key], key, tStyle);
-                        outRect.y += itemHeight + margin;
-                    }
-                }
                 GUI.EndScrollView();
             }
-            if (currentSlotname.Equals("身体"))
-            {
-                outRect.y = winRect.height - (itemHeight + margin * 2) * 2;
-                if (GUI.Button(outRect, "適用", bStyle))
-                {
-                    FixDelNode();
-                }
-            }
+
             outRect.y += itemHeight + margin * 2;
             if (GUI.Button(outRect, "閉じる", bStyle))
             {
@@ -575,13 +677,13 @@ namespace CM3D2.AlwaysColorChange.Plugin
             GUI.DragWindow();
         }
 
-        private void DoMaskChangeMenu(int winID)
+        private void DoNodeSelectMenu(int winID)
         {
-            float margin = FixPx(4);
-            float fontSize = FixPx(14);
-            float itemHeight = FixPx(18);
+            float margin = FixPx(marginPx);
+            float fontSize = FixPx(fontPx);
+            float itemHeight = FixPx(itemHeightPx);
 
-            Rect scrollRect = new Rect(margin, (itemHeight + margin) * 2, winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 3);
+            Rect scrollRect = new Rect(margin, (itemHeight + margin) * 2, winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 4);
             Rect conRect = new Rect(0, 0, scrollRect.width - 20, 0);
             Rect outRect = new Rect(0, 0, winRect.width - margin * 2, itemHeight);
             GUIStyle lStyle = "label";
@@ -589,45 +691,464 @@ namespace CM3D2.AlwaysColorChange.Plugin
             GUIStyle tStyle = "toggle";
 
             Color color = new Color(1f, 1f, 1f, 0.98f);
-            lStyle.fontSize = FixPx(11);
+            lStyle.fontSize = FixPx(fontPx);
             lStyle.normal.textColor = color;
-            bStyle.fontSize = FixPx(11);
+            bStyle.fontSize = FixPx(fontPx);
             bStyle.normal.textColor = color;
-            tStyle.fontSize = FixPx(11);
+            tStyle.fontSize = FixPx(fontPx);
             tStyle.normal.textColor = color;
-            GUI.Label(outRect, "マスク・消去変更", lStyle);
+            GUI.Label(outRect, "表示ノード選択", lStyle);
             outRect.y += itemHeight + margin;
-            if (GUI.Button(outRect, "強制カラーチェンジへ", bStyle))
+            if (GUI.Button(outRect, "すべてON", bStyle))
             {
-                menuType = MenuType.Main;
+                List<string> keyList = new List<string>(dDelNodes.Keys);
+                foreach (string key in keyList)
+                {
+                    dDelNodes[key] = true;
+                }
             }
-            outRect.y = 0;
 
-            conRect.height += (itemHeight + margin) * Slotnames.Count + margin * 2;
+            if (dDelNodes == null)
+            {
+                dDelNodes = new Dictionary<string, bool>();
+
+                TBody body = maid.body0;
+                List<TBodySkin> goSlot = body.goSlot;
+                int index = (int)global::TBody.hashSlotName[Slotnames["身体"]];
+                TBodySkin tBodySkin = goSlot[index];
+                Dictionary<string, bool> dic = tBodySkin.m_dicDelNodeBody;
+                foreach (string key in Nodenames.Keys)
+                {
+                    if (dic.ContainsKey(Nodenames[key]))
+                    {
+                        dDelNodes.Add(Nodenames[key], dic[Nodenames[key]]);
+                    }
+                }
+            }
+
+            conRect.height += (itemHeight + margin) * dDelNodes.Count + margin * 2;
+            outRect.y = 0;
+            outRect.x = margin * 2;
 
             scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
-
-            TBody body = maid.body0;
-            List<TBodySkin> goSlot = body.goSlot;
-            foreach (string slotname in Slotnames.Keys)
+            foreach (string key in Nodenames.Keys)
             {
-                int index = (int)global::TBody.hashSlotName[Slotnames[slotname]];
-                global::TBodySkin tBodySkin = goSlot[index];
-                GameObject obj = tBodySkin.obj;
-                if (obj == null)
+                if (dDelNodes.ContainsKey(Nodenames[key]))
                 {
-                    continue;
-                }
-                List<Renderer> rendererList = GetRenderers(slotname);
-                foreach (Renderer renderer in rendererList)
-                {
-                    renderer.enabled = GUI.Toggle(outRect, renderer.enabled, slotname, tStyle);
+                    dDelNodes[Nodenames[key]] = GUI.Toggle(outRect, dDelNodes[Nodenames[key]], key, tStyle);
                     outRect.y += itemHeight + margin;
                 }
             }
 
             GUI.EndScrollView();
+            outRect.y = winRect.height - (itemHeight + margin) * 2;
+            if (GUI.Button(outRect, "適用", bStyle))
+            {
+                FixDelNode(true);
+            }
+            outRect.y += itemHeight + margin;
+            if (GUI.Button(outRect, "閉じる", bStyle))
+            {
+                menuType = MenuType.Main;
+            }
             GUI.DragWindow();
+        }
+
+        private string presetName = "";
+
+        private bool bClearMaskEnable = false;
+
+        private bool bSaveBodyPreset = false;
+
+        private void DoSaveMenu(int winID)
+        {
+            float margin = FixPx(marginPx);
+            float fontSize = FixPx(fontPx);
+            float itemHeight = FixPx(itemHeightPx);
+
+            Rect outRect = new Rect(0, 0, winRect.width - margin * 2, itemHeight);
+            GUIStyle lStyle = "label";
+            GUIStyle bStyle = "button";
+            GUIStyle tStyle = "toggle";
+            GUIStyle textStyle = "textField";
+
+            Color color = new Color(1f, 1f, 1f, 0.98f);
+            lStyle.fontSize = FixPx(fontPx);
+            lStyle.normal.textColor = color;
+            bStyle.fontSize = FixPx(fontPx);
+            bStyle.normal.textColor = color;
+            tStyle.fontSize = FixPx(fontPx);
+            tStyle.normal.textColor = color;
+            textStyle.fontSize = FixPx(fontPx);
+            textStyle.normal.textColor = color;
+
+            GUI.Label(outRect, "保存", lStyle);
+            outRect.y += itemHeight + margin;
+            outRect.width = winRect.width * 0.3f - margin;
+            lStyle.fontSize = FixPx(fontPx);
+            GUI.Label(outRect, "プリセット名", lStyle);
+            outRect.x += outRect.width;
+            outRect.width = winRect.width * 0.7f - margin;
+            presetName = GUI.TextField(outRect, presetName, textStyle);
+            outRect.x = margin;
+            outRect.y += outRect.height + margin;
+            outRect.width = winRect.width - margin * 2;
+
+            bClearMaskEnable = GUI.Toggle(outRect, bClearMaskEnable, "マスククリアを有効にする", tStyle);
+            outRect.y += outRect.height + margin;
+
+            bSaveBodyPreset = GUI.Toggle(outRect, bSaveBodyPreset, "身体も保存する", tStyle);
+            outRect.y += outRect.height + margin;
+
+            if (GUI.Button(outRect, "保存", bStyle))
+            {
+                if (presetName.Equals(""))
+                {
+                    // 名無しはNG
+                    return;
+                }
+                SavePreset();
+                menuType = MenuType.Main;
+            }
+            outRect.y += outRect.height + margin;
+            if (GUI.Button(outRect, "閉じる", bStyle))
+            {
+                menuType = MenuType.Main;
+            }
+
+            GUI.DragWindow();
+
+        }
+
+        private void DoSelectPreset(int winId)
+        {
+            float margin = FixPx(marginPx);
+            float fontSize = FixPx(fontPx);
+            float itemHeight = FixPx(itemHeightPx);
+
+            Rect scrollRect = new Rect(margin, (itemHeight + margin) * 2, winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 4);
+            Rect conRect = new Rect(0, 0, scrollRect.width - 20, 0);
+            Rect outRect = new Rect(0, 0, winRect.width - margin * 2, itemHeight);
+            GUIStyle lStyle = "label";
+            GUIStyle bStyle = "button";
+            GUIStyle tStyle = "toggle";
+
+            Color color = new Color(1f, 1f, 1f, 0.98f);
+            lStyle.fontSize = FixPx(fontPx);
+            lStyle.normal.textColor = color;
+            bStyle.fontSize = FixPx(fontPx);
+            bStyle.normal.textColor = color;
+            tStyle.fontSize = FixPx(fontPx);
+            tStyle.normal.textColor = color;
+            GUI.Label(outRect, "プリセット適用", lStyle);
+            outRect.y += itemHeight + margin;
+
+            conRect.height += (itemHeight + margin) * presets.Count + margin * 2;
+            outRect.y = 0;
+            outRect.x = margin * 2;
+
+            scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
+            foreach (var preset in presets)
+            {
+                if (GUI.Button(outRect, preset.Key, bStyle))
+                {
+                    targetPreset = preset.Value;
+                    ApplyMpns();
+                    menuType = MenuType.Main;
+                }
+                outRect.y += itemHeight + margin;
+            }
+
+            GUI.EndScrollView();
+            outRect.y = winRect.height - (itemHeight + margin) + margin;
+            if (GUI.Button(outRect, "閉じる", bStyle))
+            {
+                menuType = MenuType.Main;
+            }
+            GUI.DragWindow();
+        }
+
+        private void ApplyMpns()
+        {
+            if (targetPreset == null)
+            {
+                return;
+            }
+
+            if (targetPreset.mpns == null || targetPreset.mpns.Count == 0)
+            {
+                ApplyPreset();
+            }
+            else
+            {
+
+                // 衣装チェンジ
+                foreach (string key in targetPreset.mpns.Keys)
+                {
+                    if (targetPreset.mpns[key].EndsWith("_del.menu"))
+                    {
+                        continue;
+                    }
+                    if (targetPreset.mpns[key].EndsWith(".mod"))
+                    {
+                        string sFilePath = Path.GetFullPath(".\\") + "Mod\\" + targetPreset.mpns[key];
+                        if (!File.Exists(sFilePath))
+                        {
+                            continue;
+                        }
+                    }
+                    maid.SetProp(key, targetPreset.mpns[key], targetPreset.mpns[key].ToLower().GetHashCode(), false);
+                }
+                maid.body0.FixMaskFlag();
+                maid.body0.FixVisibleFlag(false);
+                maid.AllProcPropSeqStart();
+                bApplyChange = true;
+            }
+        }
+
+        private void ApplyPreset()
+        {
+            dDelNodes = targetPreset.delNodes;
+            FixDelNode(false);
+
+            foreach (var slot in targetPreset.slots.Values)
+            {
+                if (!Slotnames.ContainsKey(slot.name))
+                {
+                    continue;
+                }
+                List<Material> materials = GetMaterials(slot.name);
+                if (materials != null)
+                {
+                    foreach (var material in materials)
+                    {
+                        if (slot.materials.ContainsKey(material.name))
+                        {
+                            material.shader = Shader.Find(slot.materials[material.name].shader);
+                            material.color = slot.materials[material.name].color;
+                        }
+                    }
+                }
+            }
+
+            if (targetPreset.clearMask)
+            {
+                ClearMasks();
+            }
+            maid.body0.FixMaskFlag();
+            maid.body0.FixVisibleFlag(false);
+            maid.AllProcPropSeqStart();
+            bApplyChange = false;
+        }
+
+        private string SaveFileName = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + @"\Config\AlwaysColorChange.xml";
+
+        private void SavePreset()
+        {
+            if (!File.Exists(SaveFileName))
+            {
+                var xml = new XDocument(
+                    new XDeclaration("1.0", "utf-8", "true"),
+                    new XElement("ColorChange",
+                        new XAttribute("toggleKey", toggleKey)
+                        )
+                    );
+                xml.Save(SaveFileName);
+            }
+            else
+            {
+                RemovePreset(presetName);
+            }
+
+            var xdoc = XDocument.Load(SaveFileName);
+
+            var preset = new XElement("preset",
+                new XAttribute("name", presetName),
+                new XAttribute("clearMask", bClearMaskEnable)
+                );
+            var slots = new XElement("slots");
+            foreach (string slotname in Slotnames.Keys)
+            {
+                List<Material> materialList = GetMaterials(slotname);
+                if (materialList != null)
+                {
+                    var slot = new XElement("slot",
+                        new XAttribute("slotname", slotname)
+                        );
+                    foreach (Material material in materialList)
+                    {
+                        Color color = material.color;
+                        var materialNode = new XElement("material",
+                            new XElement("name", material.name),
+                            new XElement("shader", material.shader.name),
+                            new XElement("color",
+                                new XAttribute("R", color.r),
+                                new XAttribute("G", color.g),
+                                new XAttribute("B", color.b),
+                                new XAttribute("A", color.a))
+                        );
+                        slot.Add(materialNode);
+                    }
+                    slots.Add(slot);
+
+                }
+            }
+            preset.Add(slots);
+
+            var mpns = new XElement("mpns");
+            if (bSaveBodyPreset)
+            {
+                for (int i = (int)MPN_TYPE_RANGE.BODY_START; i <= (int)MPN_TYPE_RANGE.BODY_END; i++)
+                {
+                    var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
+                    MaidProp mp = maid.GetProp(mpn);
+                    if (!String.IsNullOrEmpty(mp.strFileName))
+                    {
+                        var mpnNode = new XElement("mpn",
+                            new XAttribute("name", Enum.GetName(typeof(MPN), mpn)),
+                            mp.strFileName);
+                        mpns.Add(mpnNode);
+                    }
+                }
+            }
+
+            for (int i = (int)MPN_TYPE_RANGE.WEAR_START; i <= (int)MPN_TYPE_RANGE.WEAR_END; i++)
+            {
+                var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
+                MaidProp mp = maid.GetProp(mpn);
+                if (!String.IsNullOrEmpty(mp.strFileName))
+                {
+                    var mpnNode = new XElement("mpn",
+                        new XAttribute("name", Enum.GetName(typeof(MPN), mpn)),
+                        mp.strFileName);
+                    mpns.Add(mpnNode);
+                }
+            }
+            preset.Add(mpns);
+
+            var delNodes = new XElement("nodes");
+            foreach (string key in Nodenames.Keys)
+            {
+                bool b = true;
+                if (dDelNodes != null && dDelNodes.ContainsKey(Nodenames[key]))
+                {
+                    b = dDelNodes[Nodenames[key]];
+                }
+                var node = new XElement("node",
+                    new XAttribute("name", key),
+                    new XAttribute("visible", b));
+                delNodes.Add(node);
+            }
+            preset.Add(delNodes);
+
+            var presetNodes = xdoc.Descendants("preset");
+            if (presetNodes.Count() == 0)
+            {
+                xdoc.Root.AddFirst(preset);
+            }
+            else
+            {
+                presetNodes.Last().AddAfterSelf(preset);
+            }
+            xdoc.Save(SaveFileName);
+        }
+
+        private void RemovePreset(string presetName)
+        {
+            var xdoc = XDocument.Load(SaveFileName);
+            IEnumerable<XElement> removeTarget =
+                from el in xdoc.Descendants("preset")
+                where (string)el.Attribute("name") == presetName
+                select el;
+
+            if (removeTarget.Count() > 0)
+            {
+                foreach (var elem in removeTarget.ToList())
+                {
+                    DebugLog("remove preset", elem.ToString());
+                    elem.Remove();
+                }
+                xdoc.Save(SaveFileName);
+            }
+        }
+
+        private Dictionary<string, CCPreset> presets;
+
+        private void LoadSettings()
+        {
+            if (!File.Exists(SaveFileName))
+            {
+                return;
+            }
+            var xdoc = XDocument.Load(SaveFileName);
+            var toggleKey = xdoc.Root.Attribute("toggleKey");
+            if (toggleKey != null && !String.IsNullOrEmpty(toggleKey.Value))
+            {
+                foreach (string keyName in Enum.GetNames(typeof(KeyCode)))
+                {
+                    if (toggleKey.Value.Equals(keyName))
+                    {
+                        this.toggleKey = (KeyCode)Enum.Parse(typeof(KeyCode), toggleKey.Value);
+                    }
+                }
+            }
+            var presetNodes = xdoc.Descendants("preset");
+            if (presetNodes.Count() == 0)
+            {
+                return;
+            }
+            presets = new Dictionary<string, CCPreset>();
+            foreach (var presetNode in presetNodes)
+            {
+                CCPreset preset = new CCPreset();
+                preset.name = presetNode.Attribute("name").Value;
+                var clearMask = presetNode.Attribute("clearMask");
+                if (clearMask != null && !String.IsNullOrEmpty(clearMask.Value))
+                {
+                    preset.clearMask = (bool)clearMask;
+                }
+
+                preset.slots = new Dictionary<string, CCSlot>();
+                var slotNodes = presetNode.Element("slots").Elements("slot");
+                foreach (var slotNode in slotNodes)
+                {
+                    var slot = new CCSlot();
+                    slot.name = slotNode.Attribute("slotname").Value;
+                    slot.materials = new Dictionary<string, CCMaterial>();
+                    var materialNodes = slotNode.Elements("material");
+                    foreach (var materialNode in materialNodes)
+                    {
+                        var material = new CCMaterial();
+                        material.name = materialNode.Element("name").Value;
+                        material.shader = materialNode.Element("shader").Value;
+                        var colorNode = materialNode.Element("color");
+                        var r = (float)colorNode.Attribute("R");
+                        var g = (float)colorNode.Attribute("G");
+                        var b = (float)colorNode.Attribute("B");
+                        var a = (float)colorNode.Attribute("A");
+                        material.color = new Color(r, g, b, a);
+                        slot.materials.Add(material.name, material);
+                    }
+                    preset.slots.Add(slot.name, slot);
+                }
+
+                preset.mpns = new Dictionary<string, string>();
+                var mpnNodes = presetNode.Element("mpns").Elements("mpn");
+                foreach (var mpnNode in mpnNodes)
+                {
+                    preset.mpns.Add(mpnNode.Attribute("name").Value, mpnNode.Value);
+                }
+
+                preset.delNodes = new Dictionary<string, bool>();
+                var nodes = presetNode.Element("nodes").Elements("node");
+                foreach (var node in nodes)
+                {
+                    string key = Nodenames[node.Attribute("name").Value];
+                    preset.delNodes.Add(key, (bool)node.Attribute("visible"));
+                }
+
+                presets.Add(preset.name, preset);
+            }
         }
 
         private float drawModValueSlider(Rect outRect, float value, float min, float max, string label, GUIStyle lstyle)
@@ -682,6 +1203,32 @@ namespace CM3D2.AlwaysColorChange.Plugin
             Debug.LogError(sb.ToString());
         }
 
+        class CCPreset
+        {
+            public string name;
+
+            public bool clearMask = false;
+
+            public Dictionary<string, CCSlot> slots;
+
+            public Dictionary<string, string> mpns;
+
+            public Dictionary<string, bool> delNodes;
+        }
+        class CCSlot
+        {
+            public string name;
+
+            public bool enabled = false;
+
+            public Dictionary<string, CCMaterial> materials;
+        }
+        class CCMaterial
+        {
+            public string name;
+            public string shader;
+            public Color color;
+        }
 
     }
 }
