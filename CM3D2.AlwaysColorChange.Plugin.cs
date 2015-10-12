@@ -14,10 +14,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
     PluginFilter("CM3D2x86"),
     PluginFilter("CM3D2VRx64"),
     PluginName("CM3D2 OffScreen"),
-    PluginVersion("0.0.2.0")]
+    PluginVersion("0.0.2.5")]
     public class AlwaysColorChange : PluginBase
     {
-        public const string Version = "0.0.2.0";
+        public const string Version = "0.0.2.5";
 
         private const float GUIWidth = 0.25f;
 
@@ -63,7 +63,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
         private string currentSlotname;
 
-        private Dictionary<string, Color> slotColor;
+        private Dictionary<string, CCMaterial> dMaterial;
 
         private Dictionary<string, Shader> InitialShaders;
 
@@ -266,7 +266,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                         string sharderName = shader.name;
                         try
                         {
-                            if (slotColor[slotname].a < 1f)
+                            if (dMaterial[slotname].color.a < 1f)
                             {
                                 if (sharderName.Contains("Outline"))
                                 {
@@ -291,7 +291,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                         {
                             DebugLog(transform.name, material.name, material.shader.name);
                         }
-                        material.color = slotColor[slotname];
+                        material.color = dMaterial[slotname].color;
 
                     }
                 }
@@ -309,11 +309,11 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 return;
             }
 
-            slotColor = new Dictionary<string, Color>();
+            dMaterial = new Dictionary<string, CCMaterial>();
             InitialShaders = new Dictionary<string, Shader>();
             foreach (string slotname in Slotnames.Keys)
             {
-                slotColor.Add(slotname, new Color(1f, 1f, 1f, 1f));
+                dMaterial.Add(slotname, new CCMaterial());
             }
             winRect = new Rect(Screen.width - FixPx(250), FixPx(20), FixPx(240), Screen.height - FixPx(30));
             menuType = MenuType.None;
@@ -603,19 +603,23 @@ namespace CM3D2.AlwaysColorChange.Plugin
             GUI.Label(outRect, "強制カラーチェンジ:" + currentSlotname, lStyle);
 
             outRect.y = 0;
-            outRect.width -= margin;
+            outRect.width -= margin * 2 + 20;
             List<Material> materialList = GetMaterials(currentSlotname);
             if (materialList != null)
             {
-                conRect.height += (itemHeight + margin * 2) * (materialList.Count * 4) + margin;
+                conRect.height += (itemHeight + margin) * materialList.Count * 30 + margin;
 
                 scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
 
                 foreach (Material material in materialList)
                 {
+                    outRect.x = margin;
                     GUI.Label(outRect, material.name, lStyle);
                     outRect.y += itemHeight + margin;
-                    Color sColor = material.color;
+                    outRect.x += margin;
+                    GUI.Label(outRect, "Color", lStyle);
+                    outRect.y += itemHeight + margin;
+                    Color sColor = material.GetColor("_Color");
                     sColor.r = drawModValueSlider(outRect, sColor.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", sColor.r), lStyle);
                     outRect.y += itemHeight + margin;
                     sColor.g = drawModValueSlider(outRect, sColor.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", sColor.g), lStyle);
@@ -624,6 +628,82 @@ namespace CM3D2.AlwaysColorChange.Plugin
                     outRect.y += itemHeight + margin;
                     sColor.a = drawModValueSlider(outRect, sColor.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", sColor.a), lStyle);
                     outRect.y += itemHeight + margin;
+
+                    Color shadowColor = material.GetColor("_ShadowColor");
+                    if (shadowColor != null)
+                    {
+                        GUI.Label(outRect, "Shadow Color", lStyle);
+                        outRect.y += itemHeight + margin;
+                        shadowColor.r = drawModValueSlider(outRect, shadowColor.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", shadowColor.r), lStyle);
+                        outRect.y += itemHeight + margin;
+                        shadowColor.g = drawModValueSlider(outRect, shadowColor.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", shadowColor.g), lStyle);
+                        outRect.y += itemHeight + margin;
+                        shadowColor.b = drawModValueSlider(outRect, shadowColor.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", shadowColor.b), lStyle);
+                        outRect.y += itemHeight + margin;
+                        shadowColor.a = drawModValueSlider(outRect, shadowColor.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", shadowColor.a), lStyle);
+                        outRect.y += itemHeight + margin;
+                    }
+                    Color outlineColor = material.GetColor("_OutlineColor");
+                    if (outlineColor != null)
+                    {
+                        GUI.Label(outRect, "Outline Color", lStyle);
+                        outRect.y += itemHeight + margin;
+                        outlineColor.r = drawModValueSlider(outRect, outlineColor.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", outlineColor.r), lStyle);
+                        outRect.y += itemHeight + margin;
+                        outlineColor.g = drawModValueSlider(outRect, outlineColor.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", outlineColor.g), lStyle);
+                        outRect.y += itemHeight + margin;
+                        outlineColor.b = drawModValueSlider(outRect, outlineColor.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", outlineColor.b), lStyle);
+                        outRect.y += itemHeight + margin;
+                        outlineColor.a = drawModValueSlider(outRect, outlineColor.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", outlineColor.a), lStyle);
+                        outRect.y += itemHeight + margin;
+                    }
+                    Color rimColor = material.GetColor("_RimColor");
+                    if (rimColor != null)
+                    {
+                        GUI.Label(outRect, "Rim Color", lStyle);
+                        outRect.y += itemHeight + margin;
+                        rimColor.r = drawModValueSlider(outRect, rimColor.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", rimColor.r), lStyle);
+                        outRect.y += itemHeight + margin;
+                        rimColor.g = drawModValueSlider(outRect, rimColor.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", rimColor.g), lStyle);
+                        outRect.y += itemHeight + margin;
+                        rimColor.b = drawModValueSlider(outRect, rimColor.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", rimColor.b), lStyle);
+                        outRect.y += itemHeight + margin;
+                        rimColor.a = drawModValueSlider(outRect, rimColor.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", rimColor.a), lStyle);
+                        outRect.y += itemHeight + margin;
+                    }
+                    float? shininess = material.GetFloat("_Shininess");
+                    if (shininess != null)
+                    {
+                        GUI.Label(outRect, "Shininess", lStyle);
+                        outRect.y += itemHeight + margin;
+                        shininess = drawModValueSlider(outRect, (float)shininess, 0f, 10f, String.Format("  {0:F2}", (float)shininess), lStyle);
+                        outRect.y += itemHeight + margin;
+                    }
+                    float? outlineWidth = material.GetFloat("_OutlineWidth");
+                    if (outlineWidth != null)
+                    {
+                        GUI.Label(outRect, "OutlineWidth", lStyle);
+                        outRect.y += itemHeight + margin;
+                        outlineWidth = drawModValueSlider(outRect, (float)outlineWidth, 0f, 0.1f, String.Format("  {0:F5}", (float)outlineWidth), lStyle);
+                        outRect.y += itemHeight + margin;
+                    }
+                    float? rimPower = material.GetFloat("_RimPower");
+                    if (rimPower != null)
+                    {
+                        GUI.Label(outRect, "RimPower", lStyle);
+                        outRect.y += itemHeight + margin;
+                        rimPower = drawModValueSlider(outRect, (float)rimPower, 0f, 100f, String.Format("  {0:F2}", (float)rimPower), lStyle);
+                        outRect.y += itemHeight + margin;
+                    }
+                    float? rimShift = material.GetFloat("_RimShift");
+                    if (rimShift != null)
+                    {
+                        GUI.Label(outRect, "RimShift", lStyle);
+                        outRect.y += itemHeight + margin;
+                        rimShift = drawModValueSlider(outRect, (float)rimShift, 0f, 5f, String.Format("  {0:F2}", (float)rimShift), lStyle);
+                        outRect.y += itemHeight + margin;
+                    }
+
 
                     string sharderName = material.shader.name;
                     try
@@ -661,15 +741,31 @@ namespace CM3D2.AlwaysColorChange.Plugin
                     {
                         DebugLog(e.StackTrace);
                     }
-                    material.color = sColor;
+                    material.SetColor("_Color", sColor);
+                    if (shadowColor != null)
+                    material.SetColor("_ShadowColor", shadowColor);
+                    if (outlineColor != null)
+                        material.SetColor("_OutlineColor", outlineColor);
+                    if (rimColor != null)
+                        material.SetColor("_RimColor", rimColor);
+                    if (shininess != null)
+                        material.SetFloat("_Shininess", (float)shininess);
+                    if (outlineWidth != null)
+                        material.SetFloat("_OutlineWidth", (float)outlineWidth);
+                    if (rimPower != null)
+                        material.SetFloat("_RimPower", (float)rimPower);
+                    if (rimShift != null)
+                        material.SetFloat("_RimShift", (float)rimShift);
 
-                    outRect.y += margin * 2;
+                    outRect.y += margin * 3;
                 }
 
                 GUI.EndScrollView();
             }
 
-            outRect.y += itemHeight + margin * 2;
+            outRect.x = margin;
+            outRect.y = winRect.height - itemHeight - margin;
+            outRect.width = winRect.width - margin * 2;
             if (GUI.Button(outRect, "閉じる", bStyle))
             {
                 menuType = MenuType.Main;
@@ -977,7 +1073,14 @@ namespace CM3D2.AlwaysColorChange.Plugin
                         );
                     foreach (Material material in materialList)
                     {
-                        Color color = material.color;
+                        Color color = material.GetColor("_Color");
+                        Color shadowColor = material.GetColor("_ShadowColor");
+                        Color rimColor = material.GetColor("_RimColor");
+                        Color outlineColor = material.GetColor("_OutlineColor");
+                        float shininess = material.GetFloat("_Shininess");
+                        float outlineWidth = material.GetFloat("_OutlineWidth");
+                        float rimPower = material.GetFloat("_RimPower");
+                        float rimShift = material.GetFloat("_RimShift");
                         var materialNode = new XElement("material",
                             new XElement("name", material.name),
                             new XElement("shader", material.shader.name),
@@ -985,7 +1088,26 @@ namespace CM3D2.AlwaysColorChange.Plugin
                                 new XAttribute("R", color.r),
                                 new XAttribute("G", color.g),
                                 new XAttribute("B", color.b),
-                                new XAttribute("A", color.a))
+                                new XAttribute("A", color.a)),
+                            new XElement("shadowColor",
+                                new XAttribute("R", shadowColor.r),
+                                new XAttribute("G", shadowColor.g),
+                                new XAttribute("B", shadowColor.b),
+                                new XAttribute("A", shadowColor.a)),
+                            new XElement("rimColor",
+                                new XAttribute("R", rimColor.r),
+                                new XAttribute("G", rimColor.g),
+                                new XAttribute("B", rimColor.b),
+                                new XAttribute("A", rimColor.a)),
+                            new XElement("outlineColor",
+                                new XAttribute("R", outlineColor.r),
+                                new XAttribute("G", outlineColor.g),
+                                new XAttribute("B", outlineColor.b),
+                                new XAttribute("A", outlineColor.a)),
+                            new XElement("shininess", shininess),
+                            new XElement("outlineWidth", outlineWidth),
+                            new XElement("rimPower", rimPower),
+                            new XElement("rimShift", rimShift)
                         );
                         slot.Add(materialNode);
                     }
@@ -1127,6 +1249,54 @@ namespace CM3D2.AlwaysColorChange.Plugin
                         var b = (float)colorNode.Attribute("B");
                         var a = (float)colorNode.Attribute("A");
                         material.color = new Color(r, g, b, a);
+                        colorNode = materialNode.Element("shadowColor");
+                        if (colorNode != null)
+                        {
+                            r = (float)colorNode.Attribute("R");
+                            g = (float)colorNode.Attribute("G");
+                            b = (float)colorNode.Attribute("B");
+                            a = (float)colorNode.Attribute("A");
+                        }
+                        material.shadowColor = new Color(r, g, b, a);
+                        colorNode = materialNode.Element("rimColor");
+                        if (colorNode != null)
+                        {
+                            r = (float)colorNode.Attribute("R");
+                            g = (float)colorNode.Attribute("G");
+                            b = (float)colorNode.Attribute("B");
+                            a = (float)colorNode.Attribute("A");
+                        }
+                        material.rimColor = new Color(r, g, b, a);
+                        colorNode = materialNode.Element("outlineColor");
+                        if (colorNode != null)
+                        {
+                            r = (float)colorNode.Attribute("R");
+                            g = (float)colorNode.Attribute("G");
+                            b = (float)colorNode.Attribute("B");
+                            a = (float)colorNode.Attribute("A");
+                        }
+                        material.outlineColor = new Color(r, g, b, a);
+
+                        var f = materialNode.Element("shininess");
+                        if (f != null)
+                        {
+                            material.shininess = (float)f;
+                        }
+                        f = materialNode.Element("outlineWidth");
+                        if (f != null)
+                        {
+                            material.outlineWidth = (float)f;
+                        }
+                        f = materialNode.Element("rimPower");
+                        if (f != null)
+                        {
+                            material.rimPower = (float)f;
+                        }
+                        f = materialNode.Element("rimShift");
+                        if (f != null)
+                        {
+                            material.rimShift = (float)f;
+                        }
                         slot.materials.Add(material.name, material);
                     }
                     preset.slots.Add(slot.name, slot);
@@ -1227,8 +1397,15 @@ namespace CM3D2.AlwaysColorChange.Plugin
         {
             public string name;
             public string shader;
-            public Color color;
+            public Color color = new Color(1,1,1,1);
+            public Color shadowColor = new Color(1, 1, 1, 1);
+            public Color rimColor = new Color(1, 1, 1, 1);
+            public Color outlineColor = new Color(0, 0, 0, 1);
+            public float shininess = 0;
+            public float outlineWidth = 0;
+            public float rimPower = 0;
+            public float rimShift = 0;
         }
-
+        
     }
 }
