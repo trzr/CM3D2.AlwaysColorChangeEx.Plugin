@@ -14,10 +14,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
     PluginFilter("CM3D2x86"),
     PluginFilter("CM3D2VRx64"),
     PluginName("CM3D2 OffScreen"),
-    PluginVersion("0.0.3.1")]
+    PluginVersion("0.0.3.2")]
     public class AlwaysColorChange : PluginBase
     {
-        public const string Version = "0.0.3.1";
+        public const string Version = "0.0.3.2";
 
         private const float GUIWidth = 0.25f;
 
@@ -407,7 +407,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
             if (showSaveDialog)
             {
-                modalRect = new Rect(Screen.width / 2 - FixPx(300), Screen.height / 2 - FixPx(200), FixPx(600), FixPx(400));
+                modalRect = new Rect(Screen.width / 2 - FixPx(300), Screen.height / 2 - FixPx(300), FixPx(600), FixPx(600));
                 GUI.ModalWindow(13, modalRect, DoSaveModDialog, "保存");
             }
 
@@ -1436,6 +1436,28 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 targetMenuInfo.materials[i][2] = GUI.TextField(outRect, targetMenuInfo.materials[i][2], textStyle);
                 outRect.y += outRect.height + margin;
             }
+            /*
+            for (int i = 0; i < targetMenuInfo.resources.Count(); i++)
+            {
+                outRect.x = margin;
+                outRect.width = modalRect.width * 0.2f - margin;
+                GUI.Label(outRect, targetMenuInfo.resources[i][0], lStyle);
+                outRect.x += outRect.width;
+                outRect.width = modalRect.width * 0.8f - margin;
+                targetMenuInfo.resources[i][1] = GUI.TextField(outRect, targetMenuInfo.resources[i][1], textStyle);
+                outRect.y += outRect.height + margin;
+            }
+            */
+            for (int i = 0; i < targetMenuInfo.addItems.Count(); i++)
+            {
+                outRect.x = margin;
+                outRect.width = modalRect.width * 0.2f - margin;
+                GUI.Label(outRect, "addItem:" + targetMenuInfo.addItems[i][1], lStyle);
+                outRect.x += outRect.width;
+                outRect.width = modalRect.width * 0.8f - margin;
+                targetMenuInfo.addItems[i][0] = GUI.TextField(outRect, targetMenuInfo.addItems[i][0], textStyle);
+                outRect.y += outRect.height + margin;
+            }
             outRect.x = margin;
             outRect.y += outRect.height + margin;
             outRect.width = modalRect.width / 2 - margin * 2;
@@ -1523,14 +1545,30 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 return;
             }
 
-            for (int i = 0; i < targetMenuInfo.baseMaterials.Count();i++)
+            for (int i = 0; i < targetMenuInfo.baseMaterials.Count(); i++)
             {
                 MateWrite(path, targetMenuInfo.baseMaterials[i][2], targetMenuInfo.materials[i][2], materialList);
             }
 
-            if (targetMenuInfo.baseIcons != targetMenuInfo.icons)
+            for (int i = 0; i < targetMenuInfo.baseAddItems.Count(); i++)
             {
-                // アイコンファイルコピー
+                if (!FileExists(targetMenuInfo.addItems[i][0] + MenuInfo.EXT_MODEL))
+                {
+                    ModelWrite(path, targetMenuInfo.baseAddItems[i][0], targetMenuInfo.addItems[i][0]);
+                }
+            }
+            /*
+            for (int i = 0; i < targetMenuInfo.baseResources.Count(); i++)
+            {
+                if (!FileExists(targetMenuInfo.baseResources[i][1] + MenuInfo.EXT_MODEL))
+                {
+                    ModelWrite(path, targetMenuInfo.baseResources[i][1], targetMenuInfo.resources[i][1]);
+                }
+            }
+            */
+            // アイコンファイルコピー
+            if (!FileExists(targetMenuInfo.icons + MenuInfo.EXT_TEXTURE))
+            {
                 TexWrite(path, targetMenuInfo.baseIcons, targetMenuInfo.icons);
             }
         }
@@ -1639,6 +1677,12 @@ namespace CM3D2.AlwaysColorChange.Plugin
             public List<string[]> baseMaterials
             { get; set; }
 
+            public List<string[]> baseAddItems
+            { get; set; }
+
+            public List<string[]> baseResources
+            { get; set; }
+
             public string outputPath
             { get; set; }
 
@@ -1708,9 +1752,14 @@ namespace CM3D2.AlwaysColorChange.Plugin
             public List<string[]> showPartsNodes
             { get; set; }
 
+            public List<string[]> resources
+            { get; set; }
+
             public MenuInfo()
             {
                 baseMaterials = new List<string[]>();
+                baseAddItems = new List<string[]>();
+                baseResources = new List<string[]>();
                 itemParam = new string[3];
                 items = new List<string>();
                 addItems = new List<string[]>();
@@ -1720,7 +1769,9 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 showNodes = new List<string>();
                 delPartsNodes = new List<string[]>();
                 showPartsNodes = new List<string[]>();
+                resources = new List<string[]>();
             }
+
             public bool LoadMenufile(string filename)
             {
                 this.baseFilename = Path.GetFileNameWithoutExtension(filename);
@@ -1814,8 +1865,12 @@ namespace CM3D2.AlwaysColorChange.Plugin
                                     break;
                                 case "additem":
                                     string[] ai = new string[2];
-                                    ai[0] = param[1];
-                                    ai[1] = Path.GetFileNameWithoutExtension(param[2]);
+                                    ai[0] = Path.GetFileNameWithoutExtension(param[1]);
+                                    ai[1] = param[2];
+                                    baseAddItems.Add(ai);
+                                    ai = new string[2];
+                                    ai[0] = Path.GetFileNameWithoutExtension(param[1]);
+                                    ai[1] = param[2];
                                     addItems.Add(ai);
                                     break;
                                 case "maskitem":
@@ -1850,6 +1905,16 @@ namespace CM3D2.AlwaysColorChange.Plugin
                                     sp[0] = param[1];
                                     sp[1] = param[2];
                                     showPartsNodes.Add(sp);
+                                    break;
+                                case "リソース参照":
+                                    string[] rs = new string[2];
+                                    rs[0] = param[1];
+                                    rs[1] = Path.GetFileNameWithoutExtension(param[2]);
+                                    baseResources.Add(rs);
+                                    rs = new string[2];
+                                    rs[0] = param[1];
+                                    rs[1] = Path.GetFileNameWithoutExtension(param[2]);
+                                    resources.Add(rs);
                                     break;
                             }
                         }
@@ -2024,6 +2089,31 @@ namespace CM3D2.AlwaysColorChange.Plugin
             catch (Exception ex2)
             {
                 ErrorLog("テクスチャファイルが読み込めませんでした。", filename, ex2.Message);
+            }
+        }
+
+        private void ModelWrite(string path, string infile, string outname)
+        {
+            string filename = infile + MenuInfo.EXT_MODEL;
+            try
+            {
+                using (AFileBase aFileBase = global::GameUty.FileOpen(filename))
+                {
+                    if (!aFileBase.IsValid())
+                    {
+                        ErrorLog("Modelファイルが見つかりません。", filename);
+                        return;
+                    }
+                    byte[] cd = aFileBase.ReadAll();
+                    using (BinaryWriter writer = new BinaryWriter(File.OpenWrite(Path.Combine(path, outname + MenuInfo.EXT_MODEL))))
+                    {
+                        writer.Write(cd);
+                    }
+                }
+            }
+            catch (Exception ex2)
+            {
+                ErrorLog("Modelファイルが読み込めませんでした。", filename, ex2.Message);
             }
         }
 
