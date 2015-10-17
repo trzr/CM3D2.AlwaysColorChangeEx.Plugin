@@ -14,10 +14,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
     PluginFilter("CM3D2x86"),
     PluginFilter("CM3D2VRx64"),
     PluginName("CM3D2 OffScreen"),
-    PluginVersion("0.0.2.5")]
+    PluginVersion("0.0.3.0")]
     public class AlwaysColorChange : PluginBase
     {
-        public const string Version = "0.0.2.5";
+        public const string Version = "0.0.3.0";
 
         private const float GUIWidth = 0.25f;
 
@@ -585,7 +585,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             float fontSize = FixPx(fontPx);
             float itemHeight = FixPx(itemHeightPx);
 
-            Rect scrollRect = new Rect(margin, (itemHeight + margin), winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 3);
+            Rect scrollRect = new Rect(margin, (itemHeight + margin), winRect.width - margin * 3, winRect.height - (itemHeight + margin) * 3);
             Rect conRect = new Rect(0, 0, scrollRect.width - 20, 0);
             Rect outRect = new Rect(margin, 0, winRect.width - margin * 2, itemHeight);
             GUIStyle lStyle = "label";
@@ -743,7 +743,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                     }
                     material.SetColor("_Color", sColor);
                     if (shadowColor != null)
-                    material.SetColor("_ShadowColor", shadowColor);
+                        material.SetColor("_ShadowColor", shadowColor);
                     if (outlineColor != null)
                         material.SetColor("_OutlineColor", outlineColor);
                     if (rimColor != null)
@@ -764,8 +764,13 @@ namespace CM3D2.AlwaysColorChange.Plugin
             }
 
             outRect.x = margin;
-            outRect.y = winRect.height - itemHeight - margin;
+            outRect.y = winRect.height - (itemHeight + margin) * 2;
             outRect.width = winRect.width - margin * 2;
+            if (GUI.Button(outRect, "menu/mate保存", bStyle))
+            {
+                SaveMod(currentSlotname);
+            }
+            outRect.y += itemHeight + margin;
             if (GUI.Button(outRect, "閉じる", bStyle))
             {
                 menuType = MenuType.Main;
@@ -1321,6 +1326,77 @@ namespace CM3D2.AlwaysColorChange.Plugin
             }
         }
 
+        private void SaveMod(string slotname)
+        {
+            TBody body = maid.body0;
+            List<TBodySkin> goSlot = body.goSlot;
+            int index = (int)global::TBody.hashSlotName[Slotnames[slotname]];
+            global::TBodySkin tBodySkin = goSlot[index];
+            GameObject obj = tBodySkin.obj;
+            if (obj == null)
+            {
+                return;
+            }
+            MaidProp prop = maid.GetProp(Slotnames[slotname].ToLower());
+
+            // 出力先
+            String filename = prop.strFileName;
+            string fullPath = Path.GetFullPath(".\\");
+            string path = Path.Combine(fullPath, "Mod");
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+            path = Path.Combine(path, "ACC");
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+            string outputFilename = String.Empty;
+            string prefix = "mod";
+            for (int i = 0; i < 100; i++)
+            {
+                string buf = Path.Combine(path, prefix + i.ToString("000") + "_" + Path.GetFileNameWithoutExtension(filename));
+                if (!Directory.Exists(buf))
+                {
+                    path = buf;
+                    Directory.CreateDirectory(path);
+                    prefix = prefix + i.ToString("000") + "_";
+                    outputFilename = prefix + filename;
+                    break;
+                }
+            }
+            DebugLog("output path", path);
+
+            List<string> materials = MenuWrite(prefix, path, filename);
+            if (materials == null || materials.Count() == 0)
+            {
+                return;
+            }
+
+            List<Material> materialList = new List<Material>();
+            Transform[] componentsInChildren = obj.transform.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < componentsInChildren.Length; i++)
+            {
+                Transform transform = componentsInChildren[i];
+                Renderer renderer = transform.renderer;
+                if (renderer != null && renderer.material != null && renderer.material.shader != null)
+                {
+                    materialList.AddRange(renderer.materials);
+                }
+            }
+
+            if (materialList.Count() == 0)
+            {
+                return;
+            }
+
+            foreach (string matename in materials)
+            {
+                MateWrite(prefix, path, matename, materialList);
+            }
+        }
+
         private float drawModValueSlider(Rect outRect, float value, float min, float max, string label, GUIStyle lstyle)
         {
             float conWidth = outRect.width;
@@ -1397,7 +1473,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
         {
             public string name;
             public string shader;
-            public Color color = new Color(1,1,1,1);
+            public Color color = new Color(1, 1, 1, 1);
             public Color shadowColor = new Color(1, 1, 1, 1);
             public Color rimColor = new Color(1, 1, 1, 1);
             public Color outlineColor = new Color(0, 0, 0, 1);
@@ -1406,6 +1482,287 @@ namespace CM3D2.AlwaysColorChange.Plugin
             public float rimPower = 0;
             public float rimShift = 0;
         }
-        
+
+        private List<string> MenuWrite(string prefix, string path, string filename)
+        {
+            byte[] cd = null;
+            List<string> materials = new List<string>();
+            try
+            {
+                using (AFileBase aFileBase = global::GameUty.FileOpen(filename))
+                {
+                    if (!aFileBase.IsValid())
+                    {
+                        ErrorLog("アイテムメニューファイルが見つかりません。", filename);
+                        return null;
+                    }
+                    cd = aFileBase.ReadAll();
+                }
+            }
+            catch (Exception ex2)
+            {
+                ErrorLog("アイテムメニューファイルが読み込めませんでした。", filename, ex2.Message);
+                return null;
+            }
+            try
+            {
+                //.menuの保存
+                using (MemoryStream headerMs = new MemoryStream())
+                using (MemoryStream dataMs = new MemoryStream())
+                using (BinaryWriter headerWriter = new BinaryWriter(headerMs))
+                using (BinaryWriter dataWriter = new BinaryWriter(dataMs))
+                {
+                    using (BinaryReader binaryReader = new BinaryReader(new MemoryStream(cd), Encoding.UTF8))
+                    {
+                        string text = binaryReader.ReadString();
+                        if (text != "CM3D2_MENU")
+                        {
+                            ErrorLog("例外: ヘッダーファイルが不正です。" + text);
+                            return null;
+                        }
+                        headerWriter.Write(text);
+                        int num = binaryReader.ReadInt32();
+                        headerWriter.Write(num);
+                        string txtpath = binaryReader.ReadString();
+                        int pos = txtpath.LastIndexOf("/");
+                        if (pos >= 0)
+                        {
+                            txtpath = txtpath.Substring(0, pos + 1) + prefix + Path.GetFileNameWithoutExtension(filename) + ".txt";
+                        }
+                        headerWriter.Write(txtpath);
+                        string name = binaryReader.ReadString();
+                        headerWriter.Write(name);
+                        string category = binaryReader.ReadString();
+                        headerWriter.Write(category);
+                        string comment = binaryReader.ReadString();
+                        headerWriter.Write(comment);
+                        int num2 = (int)binaryReader.ReadInt32();
+                        while (true)
+                        {
+                            byte b = binaryReader.ReadByte();
+                            int size = (int)b;
+                            if (size == 0)
+                            {
+                                dataWriter.Write((char)0);
+                                break;
+                            }
+                            string[] param = new string[size];
+                            for (int i = 0; i < size; i++)
+                            {
+                                param[i] = binaryReader.ReadString();
+                            }
+                            if (param[0] == "name")
+                            {
+                                param[1] = prefix + param[1];
+                            }
+                            else if (param[0] == "setumei")
+                            {
+                                param[1] = prefix + param[1];
+                            }
+                            else if (param[0] == "priority")
+                            {
+                                param[1] = "9999";
+                            }
+                            else if (param[0] == "マテリアル変更")
+                            {
+                                materials.Add(param[size - 1]);
+                                param[size - 1] = prefix + param[size - 1];
+                            }
+                            dataWriter.Write(b);
+                            for (int i = 0; i < size; i++)
+                            {
+                                dataWriter.Write(param[i]);
+                            }
+                        }
+                    }
+                    if (materials.Count() == 0)
+                    {
+                        return null;
+                    }
+                    using (BinaryWriter writer = new BinaryWriter(File.OpenWrite(Path.Combine(path, prefix + filename))))
+                    {
+                        writer.Write(headerMs.ToArray());
+                        writer.Write((int)dataMs.Length);
+                        writer.Write(dataMs.ToArray());
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e);
+                return null;
+            }
+            return materials;
+        }
+
+        private void MateWrite(string prefix, string path, string filename, List<Material> materialList)
+        {
+            byte[] cd = null;
+            try
+            {
+                using (AFileBase aFileBase = global::GameUty.FileOpen(filename))
+                {
+                    if (!aFileBase.IsValid())
+                    {
+                        ErrorLog("マテリアルファイルが見つかりません。", filename);
+                        return;
+                    }
+                    cd = aFileBase.ReadAll();
+                }
+            }
+            catch (Exception ex2)
+            {
+                ErrorLog("マテリアルファイルが読み込めませんでした。", filename, ex2.Message);
+            }
+            try
+            {
+                //.menuの保存
+                using (MemoryStream headerMs = new MemoryStream())
+                using (MemoryStream dataMs = new MemoryStream())
+                using (BinaryWriter headerWriter = new BinaryWriter(headerMs))
+                using (BinaryWriter dataWriter = new BinaryWriter(dataMs))
+                {
+                    using (BinaryReader binaryReader = new BinaryReader(new MemoryStream(cd), Encoding.UTF8))
+                    {
+                        string text = binaryReader.ReadString();
+                        if (text != "CM3D2_MATERIAL")
+                        {
+                            ErrorLog("例外: ヘッダーファイルが不正です。" + text);
+                            return;
+                        }
+                        headerWriter.Write(text);
+                        int num = binaryReader.ReadInt32();
+                        headerWriter.Write(num);
+                        string name = binaryReader.ReadString();
+                        headerWriter.Write(prefix + name);
+                        Material material = null;
+                        foreach (Material mat in materialList)
+                        {
+                            if (name.ToLower() == mat.name.ToLower())
+                            {
+                                material = mat;
+                                break;
+                            }
+                        }
+                        if (material == null)
+                        {
+                            return;
+                        }
+
+                        string name2 = binaryReader.ReadString();
+                        headerWriter.Write(prefix + name2);
+                        string renderer1 = binaryReader.ReadString();
+                        headerWriter.Write(renderer1);
+                        string renderer2 = binaryReader.ReadString();
+                        headerWriter.Write(renderer2);
+
+                        while (true)
+                        {
+                            string key = binaryReader.ReadString();
+                            dataWriter.Write(key);
+                            if (key == "end")
+                            {
+                                break;
+                            }
+
+                            string propertyName = binaryReader.ReadString();
+                            dataWriter.Write(propertyName);
+                            if (key == "tex")
+                            {
+                                string a2 = binaryReader.ReadString();
+                                dataWriter.Write(a2);
+                                if (a2 == "null")
+                                {
+                                }
+                                else if (a2 == "tex2d")
+                                {
+                                    string tex = binaryReader.ReadString();
+                                    dataWriter.Write(tex);
+                                    string asset = binaryReader.ReadString();
+                                    dataWriter.Write(asset);
+
+                                    Vector2 offset;
+                                    offset.x = binaryReader.ReadSingle();
+                                    offset.y = binaryReader.ReadSingle();
+                                    dataWriter.Write(offset.x);
+                                    dataWriter.Write(offset.y);
+
+                                    Vector2 scale;
+                                    scale.x = binaryReader.ReadSingle();
+                                    scale.y = binaryReader.ReadSingle();
+                                    dataWriter.Write(scale.x);
+                                    dataWriter.Write(scale.y);
+
+                                }
+                                else if (a2 == "texRT")
+                                {
+                                    string text7 = binaryReader.ReadString();
+                                    dataWriter.Write(text7);
+                                    string text8 = binaryReader.ReadString();
+                                    dataWriter.Write(text8);
+                                }
+                            }
+                            else if (key == "col")
+                            {
+                                Color color;
+                                color.r = binaryReader.ReadSingle();
+                                color.g = binaryReader.ReadSingle();
+                                color.b = binaryReader.ReadSingle();
+                                color.a = binaryReader.ReadSingle();
+
+                                Color mColor = material.GetColor(propertyName);
+                                if (mColor != null)
+                                {
+                                    dataWriter.Write(mColor.r);
+                                    dataWriter.Write(mColor.g);
+                                    dataWriter.Write(mColor.b);
+                                    dataWriter.Write(mColor.a);
+                                }
+                                else
+                                {
+                                    dataWriter.Write(color.r);
+                                    dataWriter.Write(color.g);
+                                    dataWriter.Write(color.b);
+                                    dataWriter.Write(color.a);
+                                }
+                            }
+                            else if (key == "vec")
+                            {
+                                Vector4 vector;
+                                vector.x = binaryReader.ReadSingle();
+                                vector.y = binaryReader.ReadSingle();
+                                vector.z = binaryReader.ReadSingle();
+                                vector.w = binaryReader.ReadSingle();
+                                dataWriter.Write(vector.x);
+                                dataWriter.Write(vector.y);
+                                dataWriter.Write(vector.z);
+                                dataWriter.Write(vector.w);
+                            }
+                            else if (key == "f")
+                            {
+                                float value2 = binaryReader.ReadSingle();
+                                float val = material.GetFloat(propertyName);
+                                dataWriter.Write(val);
+                            }
+                            else
+                            {
+                                ErrorLog("マテリアルが読み込めません。不正なマテリアルプロパティ型です ", key);
+                            }
+
+                        }
+                    }
+                    using (BinaryWriter writer = new BinaryWriter(File.OpenWrite(Path.Combine(path, prefix + filename))))
+                    {
+                        writer.Write(headerMs.ToArray());
+                        writer.Write(dataMs.ToArray());
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e);
+                return;
+            }
+        }
     }
 }
