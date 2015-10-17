@@ -14,10 +14,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
     PluginFilter("CM3D2x86"),
     PluginFilter("CM3D2VRx64"),
     PluginName("CM3D2 OffScreen"),
-    PluginVersion("0.0.3.2")]
+    PluginVersion("0.0.3.4")]
     public class AlwaysColorChange : PluginBase
     {
-        public const string Version = "0.0.3.2";
+        public const string Version = "0.0.3.4";
 
         private const float GUIWidth = 0.25f;
 
@@ -1881,6 +1881,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                                     mat[0] = param[1];
                                     mat[1] = param[2];
                                     mat[2] = Path.GetFileNameWithoutExtension(param[3]);
+                                    DebugLog(mat[0], mat[1], mat[2]);
                                     baseMaterials.Add(mat);
                                     mat = new string[3];
                                     mat[0] = param[1];
@@ -1997,6 +1998,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                         int num2 = (int)binaryReader.ReadInt32();
 
                         bool materialWrited = false;
+                        bool addItemWrited = false;
 
                         while (true)
                         {
@@ -2040,6 +2042,21 @@ namespace CM3D2.AlwaysColorChange.Plugin
                                         dataWriter.Write(mat[0]);
                                         dataWriter.Write(mat[1]);
                                         dataWriter.Write(mat[2] + MenuInfo.EXT_MATERIAL);
+                                    }
+                                }
+                                continue;
+                            }
+                            else if (param[0] == "additem")
+                            {
+                                if (!addItemWrited)
+                                {
+                                    addItemWrited = true;
+                                    foreach (var mat in menu.addItems)
+                                    {
+                                        dataWriter.Write(b);
+                                        dataWriter.Write("additem");
+                                        dataWriter.Write(mat[0] + MenuInfo.EXT_MODEL);
+                                        dataWriter.Write(mat[1]);
                                     }
                                 }
                                 continue;
