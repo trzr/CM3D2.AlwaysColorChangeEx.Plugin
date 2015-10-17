@@ -14,10 +14,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
     PluginFilter("CM3D2x86"),
     PluginFilter("CM3D2VRx64"),
     PluginName("CM3D2 OffScreen"),
-    PluginVersion("0.0.3.0")]
+    PluginVersion("0.0.3.1")]
     public class AlwaysColorChange : PluginBase
     {
-        public const string Version = "0.0.3.0";
+        public const string Version = "0.0.3.1";
 
         private const float GUIWidth = 0.25f;
 
@@ -48,6 +48,8 @@ namespace CM3D2.AlwaysColorChange.Plugin
             Save,
             PresetSelect
         }
+
+        private bool showSaveDialog = false;
 
         private Dictionary<string, string> Slotnames;
 
@@ -304,6 +306,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
         private void OnLevelWasLoaded(int level)
         {
+            var a = GameUty.MenuFiles;
             if (!Enum.IsDefined(typeof(TargetLevel), level))
             {
                 return;
@@ -315,7 +318,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             {
                 dMaterial.Add(slotname, new CCMaterial());
             }
-            winRect = new Rect(Screen.width - FixPx(250), FixPx(20), FixPx(240), Screen.height - FixPx(30));
+            winRect = new Rect(Screen.width - FixPx(290), FixPx(20), FixPx(280), Screen.height - FixPx(30));
             menuType = MenuType.None;
             LoadSettings();
             bApplyChange = false;
@@ -402,6 +405,12 @@ namespace CM3D2.AlwaysColorChange.Plugin
                     break;
             }
 
+            if (showSaveDialog)
+            {
+                modalRect = new Rect(Screen.width / 2 - FixPx(300), Screen.height / 2 - FixPx(200), FixPx(600), FixPx(400));
+                GUI.ModalWindow(13, modalRect, DoSaveModDialog, "保存");
+            }
+
             if (Input.GetKeyDown(KeyCode.Alpha0))
             {
                 if (dDelNodes != null)
@@ -417,7 +426,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
         private int marginPx = 4;
         private int fontPx = 14;
-        private int itemHeightPx = 18;
+        private int itemHeightPx = 24;
 
         private void DoMainMenu(int winID)
         {
@@ -768,7 +777,24 @@ namespace CM3D2.AlwaysColorChange.Plugin
             outRect.width = winRect.width - margin * 2;
             if (GUI.Button(outRect, "menu/mate保存", bStyle))
             {
-                SaveMod(currentSlotname);
+                TBody body = maid.body0;
+                List<TBodySkin> goSlot = body.goSlot;
+                int index = (int)global::TBody.hashSlotName[Slotnames[currentSlotname]];
+                global::TBodySkin tBodySkin = goSlot[index];
+                GameObject obj = tBodySkin.obj;
+                if (obj == null)
+                {
+                    return;
+                }
+                MaidProp prop = maid.GetProp(Slotnames[currentSlotname].ToLower());
+                if (prop != null)
+                {
+                    targetMenuInfo = new MenuInfo();
+                    if (targetMenuInfo.LoadMenufile(prop.strFileName))
+                    {
+                        showSaveDialog = true;
+                    }
+                }
             }
             outRect.y += itemHeight + margin;
             if (GUI.Button(outRect, "閉じる", bStyle))
@@ -1326,6 +1352,121 @@ namespace CM3D2.AlwaysColorChange.Plugin
             }
         }
 
+        private MenuInfo targetMenuInfo;
+        private Rect modalRect;
+
+        private void DoSaveModDialog(int winId)
+        {
+            if (targetMenuInfo == null)
+            {
+                showSaveDialog = false;
+                return;
+            }
+            if (targetMenuInfo.materials == null || targetMenuInfo.materials.Count() == 0)
+            {
+                showSaveDialog = false;
+                return;
+            }
+            float margin = FixPx(marginPx);
+            float fontSize = FixPx(fontPx);
+            float itemHeight = FixPx(itemHeightPx);
+
+            Rect outRect = new Rect(0, 0, modalRect.width - margin * 2, itemHeight);
+            GUIStyle lStyle = "label";
+            GUIStyle bStyle = "button";
+            GUIStyle tStyle = "toggle";
+            GUIStyle textStyle = "textField";
+            GUIStyle textAreaStyle = "textArea";
+
+            Color color = new Color(1f, 1f, 1f, 0.98f);
+            lStyle.fontSize = FixPx(fontPx);
+            lStyle.normal.textColor = color;
+            bStyle.fontSize = FixPx(fontPx);
+            bStyle.normal.textColor = color;
+            tStyle.fontSize = FixPx(fontPx);
+            tStyle.normal.textColor = color;
+            textStyle.fontSize = FixPx(fontPx);
+            textStyle.normal.textColor = color;
+            textAreaStyle.fontSize = FixPx(fontPx);
+            textAreaStyle.normal.textColor = color;
+
+            outRect.x = margin;
+            outRect.y = itemHeight + margin;
+            outRect.width = modalRect.width * 0.2f - margin;
+            lStyle.fontSize = FixPx(fontPx);
+            GUI.Label(outRect, "メニュー", lStyle);
+            outRect.x += outRect.width;
+            outRect.width = modalRect.width * 0.8f - margin;
+            targetMenuInfo.filename = GUI.TextField(outRect, targetMenuInfo.filename, textStyle);
+
+            outRect.x = margin;
+            outRect.y += outRect.height + margin;
+            outRect.width = modalRect.width * 0.2f - margin;
+            GUI.Label(outRect, "アイコン", lStyle);
+            outRect.x += outRect.width;
+            outRect.width = modalRect.width * 0.8f - margin;
+            targetMenuInfo.icons = GUI.TextField(outRect, targetMenuInfo.icons, textStyle);
+
+            outRect.x = margin;
+            outRect.y += outRect.height + margin;
+            outRect.width = modalRect.width * 0.2f - margin;
+            GUI.Label(outRect, "名前", lStyle);
+            outRect.x += outRect.width;
+            outRect.width = modalRect.width * 0.8f - margin;
+            targetMenuInfo.name = GUI.TextField(outRect, targetMenuInfo.name, textStyle);
+
+            outRect.x = margin;
+            outRect.y += outRect.height + margin;
+            outRect.width = modalRect.width * 0.2f - margin;
+            GUI.Label(outRect, "説明", lStyle);
+            outRect.x += outRect.width;
+            outRect.width = modalRect.width * 0.8f - margin;
+            outRect.height = itemHeight * 4;
+            targetMenuInfo.setumei = GUI.TextArea(outRect, targetMenuInfo.setumei, textAreaStyle);
+
+            outRect.y += outRect.height + margin;
+            outRect.height = itemHeight;
+            for (int i = 0; i < targetMenuInfo.materials.Count(); i++)
+            {
+                outRect.x = margin;
+                outRect.width = modalRect.width * 0.2f - margin;
+                GUI.Label(outRect, "マテリアル" + targetMenuInfo.materials[i][1], lStyle);
+                outRect.x += outRect.width;
+                outRect.width = modalRect.width * 0.8f - margin;
+                targetMenuInfo.materials[i][2] = GUI.TextField(outRect, targetMenuInfo.materials[i][2], textStyle);
+                outRect.y += outRect.height + margin;
+            }
+            outRect.x = margin;
+            outRect.y += outRect.height + margin;
+            outRect.width = modalRect.width / 2 - margin * 2;
+
+            if (GUI.Button(outRect, "保存", bStyle))
+            {
+                if (FileExists(targetMenuInfo.filename + MenuInfo.EXT_MENU))
+                {
+                    NUty.WinMessageBox(NUty.GetWindowHandle(), "メニューファイル[" + targetMenuInfo.filename + MenuInfo.EXT_MENU + "]が既に存在します", "エラー", 0);
+                    return;
+                }
+                foreach (var mat in targetMenuInfo.materials)
+                {
+                    if (FileExists(mat[2] + MenuInfo.EXT_MATERIAL))
+                    {
+                        NUty.WinMessageBox(NUty.GetWindowHandle(), "マテリアルファイル[" + mat[2] + MenuInfo.EXT_MATERIAL + "]が既に存在します", "エラー", 0);
+                        return;
+                    }
+                }
+                SaveMod(currentSlotname);
+                showSaveDialog = false;
+            }
+            outRect.x += outRect.width + margin;
+            if (GUI.Button(outRect, "閉じる", bStyle))
+            {
+                showSaveDialog = false;
+            }
+
+            GUI.DragWindow();
+        }
+
         private void SaveMod(string slotname)
         {
             TBody body = maid.body0;
@@ -1352,24 +1493,15 @@ namespace CM3D2.AlwaysColorChange.Plugin
             {
                 Directory.CreateDirectory(path);
             }
-            string outputFilename = String.Empty;
-            string prefix = "mod";
-            for (int i = 0; i < 100; i++)
+            path = Path.Combine(path, targetMenuInfo.filename);
+
+            if (!Directory.Exists(path))
             {
-                string buf = Path.Combine(path, prefix + i.ToString("000") + "_" + Path.GetFileNameWithoutExtension(filename));
-                if (!Directory.Exists(buf))
-                {
-                    path = buf;
-                    Directory.CreateDirectory(path);
-                    prefix = prefix + i.ToString("000") + "_";
-                    outputFilename = prefix + filename;
-                    break;
-                }
+                Directory.CreateDirectory(path);
             }
             DebugLog("output path", path);
 
-            List<string> materials = MenuWrite(prefix, path, filename);
-            if (materials == null || materials.Count() == 0)
+            if (!MenuWrite(path, filename, targetMenuInfo))
             {
                 return;
             }
@@ -1391,9 +1523,15 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 return;
             }
 
-            foreach (string matename in materials)
+            for (int i = 0; i < targetMenuInfo.baseMaterials.Count();i++)
             {
-                MateWrite(prefix, path, matename, materialList);
+                MateWrite(path, targetMenuInfo.baseMaterials[i][2], targetMenuInfo.materials[i][2], materialList);
+            }
+
+            if (targetMenuInfo.baseIcons != targetMenuInfo.icons)
+            {
+                // アイコンファイルコピー
+                TexWrite(path, targetMenuInfo.baseIcons, targetMenuInfo.icons);
             }
         }
 
@@ -1483,10 +1621,265 @@ namespace CM3D2.AlwaysColorChange.Plugin
             public float rimShift = 0;
         }
 
-        private List<string> MenuWrite(string prefix, string path, string filename)
+        class MenuInfo
+        {
+            public const string HEAD = "CM3D2_MENU";
+            public const string RET = "《改行》";
+            public const string EXT_MENU = ".menu";
+            public const string EXT_MATERIAL = ".mate";
+            public const string EXT_MODEL = ".model";
+            public const string EXT_TEXTURE = ".tex";
+
+            public string baseFilename
+            { get; set; }
+
+            public string baseIcons
+            { get; set; }
+
+            public List<string[]> baseMaterials
+            { get; set; }
+
+            public string outputPath
+            { get; set; }
+
+            public string filename
+            { get; set; }
+
+            public int version
+            { get; set; }
+
+            public string txtpath
+            { get; set; }
+
+            public string headerName
+            { get; set; }
+
+            public string headerCategory
+            { get; set; }
+
+            public string headerSetumei
+            { get; set; }
+
+            public string menuFolder
+            { get; set; }
+
+            public string category
+            { get; set; }
+
+            public string catno
+            { get; set; }
+
+            public string priority
+            { get; set; }
+
+            public string name
+            { get; set; }
+
+            public string setumei
+            { get; set; }
+
+            public string icons
+            { get; set; }
+
+            public string[] itemParam
+            { get; set; }
+
+            public List<string> items
+            { get; set; }
+
+            public List<string[]> addItems
+            { get; set; }
+
+            public List<string> maskItems
+            { get; set; }
+
+            public List<string[]> materials
+            { get; set; }
+
+            public List<string> delNodes
+            { get; set; }
+
+            public List<string> showNodes
+            { get; set; }
+
+            public List<string[]> delPartsNodes
+            { get; set; }
+
+            public List<string[]> showPartsNodes
+            { get; set; }
+
+            public MenuInfo()
+            {
+                baseMaterials = new List<string[]>();
+                itemParam = new string[3];
+                items = new List<string>();
+                addItems = new List<string[]>();
+                maskItems = new List<string>();
+                materials = new List<string[]>();
+                delNodes = new List<string>();
+                showNodes = new List<string>();
+                delPartsNodes = new List<string[]>();
+                showPartsNodes = new List<string[]>();
+            }
+            public bool LoadMenufile(string filename)
+            {
+                this.baseFilename = Path.GetFileNameWithoutExtension(filename);
+                this.filename = this.baseFilename;
+                byte[] cd = null;
+                try
+                {
+                    using (AFileBase aFileBase = global::GameUty.FileOpen(filename))
+                    {
+                        if (!aFileBase.IsValid())
+                        {
+                            ErrorLog("アイテムメニューファイルが見つかりません。", filename);
+                            return false;
+                        }
+                        cd = aFileBase.ReadAll();
+                    }
+                }
+                catch (Exception ex2)
+                {
+                    ErrorLog("アイテムメニューファイルが読み込めませんでした。", filename, ex2.Message);
+                    return false;
+                }
+                try
+                {
+                    using (BinaryReader binaryReader = new BinaryReader(new MemoryStream(cd), Encoding.UTF8))
+                    {
+                        string text = binaryReader.ReadString();
+                        if (text != HEAD)
+                        {
+                            ErrorLog("例外: ヘッダーファイルが不正です。" + text);
+                            return false;
+                        }
+                        version = binaryReader.ReadInt32();
+
+                        txtpath = binaryReader.ReadString();
+
+                        headerName = binaryReader.ReadString();
+
+                        headerCategory = binaryReader.ReadString();
+
+                        headerSetumei = binaryReader.ReadString().Replace(RET, "\n");
+
+                        int num2 = (int)binaryReader.ReadInt32();
+                        while (true)
+                        {
+                            byte b = binaryReader.ReadByte();
+                            int size = (int)b;
+                            if (size == 0)
+                            {
+                                break;
+                            }
+                            string[] param = new string[size];
+                            for (int i = 0; i < size; i++)
+                            {
+                                param[i] = binaryReader.ReadString();
+                            }
+                            switch (param[0])
+                            {
+                                case "メニューフォルダ":
+                                    menuFolder = param[1];
+                                    break;
+                                case "category":
+                                    category = param[1];
+                                    break;
+                                case "catno":
+                                    catno = param[1];
+                                    break;
+                                case "属性追加":
+                                    break;
+                                case "priority":
+                                    priority = param[1];
+                                    break;
+                                case "name":
+                                    name = param[1];
+                                    break;
+                                case "setumei":
+                                    setumei = param[1].Replace(RET, "\n");
+                                    break;
+                                case "icons":
+                                    baseIcons = Path.GetFileNameWithoutExtension(param[1]);
+                                    icons = baseIcons;
+                                    break;
+                                case "アイテムパラメータ":
+                                    itemParam = new String[3];
+                                    itemParam[0] = param[1];
+                                    itemParam[1] = param[2];
+                                    itemParam[2] = param[3];
+                                    break;
+                                case "アイテム":
+                                    items.Add(Path.GetFileNameWithoutExtension(param[1]));
+                                    break;
+                                case "additem":
+                                    string[] ai = new string[2];
+                                    ai[0] = param[1];
+                                    ai[1] = Path.GetFileNameWithoutExtension(param[2]);
+                                    addItems.Add(ai);
+                                    break;
+                                case "maskitem":
+                                    maskItems.Add(param[1]);
+                                    break;
+                                case "マテリアル変更":
+                                    string[] mat = new string[3];
+                                    mat[0] = param[1];
+                                    mat[1] = param[2];
+                                    mat[2] = Path.GetFileNameWithoutExtension(param[3]);
+                                    baseMaterials.Add(mat);
+                                    mat = new string[3];
+                                    mat[0] = param[1];
+                                    mat[1] = param[2];
+                                    mat[2] = Path.GetFileNameWithoutExtension(param[3]);
+                                    materials.Add(mat);
+                                    break;
+                                case "node消去":
+                                    delNodes.Add(param[1]);
+                                    break;
+                                case "node表示":
+                                    showNodes.Add(param[1]);
+                                    break;
+                                case "パーツnode消去":
+                                    string[] dp = new string[2];
+                                    dp[0] = param[1];
+                                    dp[1] = param[2];
+                                    delPartsNodes.Add(dp);
+                                    break;
+                                case "パーツnode表示":
+                                    string[] sp = new string[2];
+                                    sp[0] = param[1];
+                                    sp[1] = param[2];
+                                    showPartsNodes.Add(sp);
+                                    break;
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.Log(e);
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        private bool FileExists(string filename)
+        {
+            using (AFileBase aFileBase = global::GameUty.FileOpen(filename))
+            {
+                if (!aFileBase.IsValid())
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private bool MenuWrite(string path, string filename, MenuInfo menu)
         {
             byte[] cd = null;
-            List<string> materials = new List<string>();
+            Dictionary<string, string> materials = new Dictionary<string, string>();
             try
             {
                 using (AFileBase aFileBase = global::GameUty.FileOpen(filename))
@@ -1494,7 +1887,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                     if (!aFileBase.IsValid())
                     {
                         ErrorLog("アイテムメニューファイルが見つかりません。", filename);
-                        return null;
+                        return false;
                     }
                     cd = aFileBase.ReadAll();
                 }
@@ -1502,7 +1895,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             catch (Exception ex2)
             {
                 ErrorLog("アイテムメニューファイルが読み込めませんでした。", filename, ex2.Message);
-                return null;
+                return false;
             }
             try
             {
@@ -1518,7 +1911,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                         if (text != "CM3D2_MENU")
                         {
                             ErrorLog("例外: ヘッダーファイルが不正です。" + text);
-                            return null;
+                            return false;
                         }
                         headerWriter.Write(text);
                         int num = binaryReader.ReadInt32();
@@ -1527,16 +1920,19 @@ namespace CM3D2.AlwaysColorChange.Plugin
                         int pos = txtpath.LastIndexOf("/");
                         if (pos >= 0)
                         {
-                            txtpath = txtpath.Substring(0, pos + 1) + prefix + Path.GetFileNameWithoutExtension(filename) + ".txt";
+                            txtpath = txtpath.Substring(0, pos + 1) + Path.GetFileNameWithoutExtension(filename) + ".txt";
                         }
                         headerWriter.Write(txtpath);
                         string name = binaryReader.ReadString();
-                        headerWriter.Write(name);
+                        headerWriter.Write(menu.name);
                         string category = binaryReader.ReadString();
                         headerWriter.Write(category);
                         string comment = binaryReader.ReadString();
-                        headerWriter.Write(comment);
+                        headerWriter.Write(menu.setumei.Replace("\n", MenuInfo.RET));
                         int num2 = (int)binaryReader.ReadInt32();
+
+                        bool materialWrited = false;
+
                         while (true)
                         {
                             byte b = binaryReader.ReadByte();
@@ -1553,20 +1949,35 @@ namespace CM3D2.AlwaysColorChange.Plugin
                             }
                             if (param[0] == "name")
                             {
-                                param[1] = prefix + param[1];
+                                param[1] = menu.name;
                             }
                             else if (param[0] == "setumei")
                             {
-                                param[1] = prefix + param[1];
+                                param[1] = menu.setumei.Replace("\n", MenuInfo.RET);
                             }
                             else if (param[0] == "priority")
                             {
                                 param[1] = "9999";
                             }
+                            else if (param[0] == "icons")
+                            {
+                                param[1] = menu.icons + MenuInfo.EXT_TEXTURE;
+                            }
                             else if (param[0] == "マテリアル変更")
                             {
-                                materials.Add(param[size - 1]);
-                                param[size - 1] = prefix + param[size - 1];
+                                if (!materialWrited)
+                                {
+                                    materialWrited = true;
+                                    foreach (var mat in menu.materials)
+                                    {
+                                        dataWriter.Write(b);
+                                        dataWriter.Write("マテリアル変更");
+                                        dataWriter.Write(mat[0]);
+                                        dataWriter.Write(mat[1]);
+                                        dataWriter.Write(mat[2] + MenuInfo.EXT_MATERIAL);
+                                    }
+                                }
+                                continue;
                             }
                             dataWriter.Write(b);
                             for (int i = 0; i < size; i++)
@@ -1575,11 +1986,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                             }
                         }
                     }
-                    if (materials.Count() == 0)
-                    {
-                        return null;
-                    }
-                    using (BinaryWriter writer = new BinaryWriter(File.OpenWrite(Path.Combine(path, prefix + filename))))
+                    using (BinaryWriter writer = new BinaryWriter(File.OpenWrite(Path.Combine(path, menu.filename + MenuInfo.EXT_MENU))))
                     {
                         writer.Write(headerMs.ToArray());
                         writer.Write((int)dataMs.Length);
@@ -1590,14 +1997,40 @@ namespace CM3D2.AlwaysColorChange.Plugin
             catch (Exception e)
             {
                 Debug.Log(e);
-                return null;
+                return false;
             }
-            return materials;
+            return true;
         }
 
-        private void MateWrite(string prefix, string path, string filename, List<Material> materialList)
+        private void TexWrite(string path, string infile, string outname)
+        {
+            string filename = infile + MenuInfo.EXT_TEXTURE;
+            try
+            {
+                using (AFileBase aFileBase = global::GameUty.FileOpen(filename))
+                {
+                    if (!aFileBase.IsValid())
+                    {
+                        ErrorLog("テクスチャファイルが見つかりません。", filename);
+                        return;
+                    }
+                    byte[] cd = aFileBase.ReadAll();
+                    using (BinaryWriter writer = new BinaryWriter(File.OpenWrite(Path.Combine(path, outname + MenuInfo.EXT_TEXTURE))))
+                    {
+                        writer.Write(cd);
+                    }
+                }
+            }
+            catch (Exception ex2)
+            {
+                ErrorLog("テクスチャファイルが読み込めませんでした。", filename, ex2.Message);
+            }
+        }
+
+        private void MateWrite(string path, string infile, string outname, List<Material> materialList)
         {
             byte[] cd = null;
+            string filename = infile + MenuInfo.EXT_MATERIAL;
             try
             {
                 using (AFileBase aFileBase = global::GameUty.FileOpen(filename))
@@ -1616,7 +2049,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             }
             try
             {
-                //.menuの保存
+                //.mateの保存
                 using (MemoryStream headerMs = new MemoryStream())
                 using (MemoryStream dataMs = new MemoryStream())
                 using (BinaryWriter headerWriter = new BinaryWriter(headerMs))
@@ -1634,7 +2067,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                         int num = binaryReader.ReadInt32();
                         headerWriter.Write(num);
                         string name = binaryReader.ReadString();
-                        headerWriter.Write(prefix + name);
+                        headerWriter.Write(outname);
                         Material material = null;
                         foreach (Material mat in materialList)
                         {
@@ -1650,7 +2083,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                         }
 
                         string name2 = binaryReader.ReadString();
-                        headerWriter.Write(prefix + name2);
+                        headerWriter.Write(outname);
                         string renderer1 = binaryReader.ReadString();
                         headerWriter.Write(renderer1);
                         string renderer2 = binaryReader.ReadString();
@@ -1751,7 +2184,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
                         }
                     }
-                    using (BinaryWriter writer = new BinaryWriter(File.OpenWrite(Path.Combine(path, prefix + filename))))
+                    using (BinaryWriter writer = new BinaryWriter(File.OpenWrite(Path.Combine(path, outname + MenuInfo.EXT_MATERIAL))))
                     {
                         writer.Write(headerMs.ToArray());
                         writer.Write(dataMs.ToArray());
