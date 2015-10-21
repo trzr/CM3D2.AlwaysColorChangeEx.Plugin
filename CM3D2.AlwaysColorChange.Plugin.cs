@@ -14,10 +14,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
     PluginFilter("CM3D2x86"),
     PluginFilter("CM3D2VRx64"),
     PluginName("CM3D2 OffScreen"),
-    PluginVersion("0.0.3.4")]
+    PluginVersion("0.0.3.5")]
     public class AlwaysColorChange : PluginBase
     {
-        public const string Version = "0.0.3.4";
+        public const string Version = "0.0.3.5";
 
         private const float GUIWidth = 0.25f;
 
@@ -46,7 +46,8 @@ namespace CM3D2.AlwaysColorChange.Plugin
             Color,
             NodeSelect,
             Save,
-            PresetSelect
+            PresetSelect,
+            Texture
         }
 
         private bool showSaveDialog = false;
@@ -306,7 +307,6 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
         private void OnLevelWasLoaded(int level)
         {
-            var a = GameUty.MenuFiles;
             if (!Enum.IsDefined(typeof(TargetLevel), level))
             {
                 return;
@@ -319,6 +319,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 dMaterial.Add(slotname, new CCMaterial());
             }
             winRect = new Rect(Screen.width - FixPx(290), FixPx(20), FixPx(280), Screen.height - FixPx(30));
+            fileBrowserRect = new Rect(Screen.width - FixPx(620), FixPx(100), FixPx(600), FixPx(600));
             menuType = MenuType.None;
             LoadSettings();
             bApplyChange = false;
@@ -384,31 +385,40 @@ namespace CM3D2.AlwaysColorChange.Plugin
             winStyle.fontSize = FixPx(fontPx);
             winStyle.alignment = TextAnchor.UpperRight;
 
-            switch (menuType)
+            if (fileBrowser != null)
             {
-                case MenuType.Main:
-                    winRect = GUI.Window(12, winRect, DoMainMenu, AlwaysColorChange.Version, winStyle);
-                    break;
-                case MenuType.Color:
-                    winRect = GUI.Window(12, winRect, DoColorMenu, AlwaysColorChange.Version, winStyle);
-                    break;
-                case MenuType.NodeSelect:
-                    winRect = GUI.Window(12, winRect, DoNodeSelectMenu, AlwaysColorChange.Version, winStyle);
-                    break;
-                case MenuType.Save:
-                    winRect = GUI.Window(12, winRect, DoSaveMenu, AlwaysColorChange.Version, winStyle);
-                    break;
-                case MenuType.PresetSelect:
-                    winRect = GUI.Window(12, winRect, DoSelectPreset, AlwaysColorChange.Version, winStyle);
-                    break;
-                default:
-                    break;
+                fileBrowserRect = GUI.Window(14, fileBrowserRect, DoFileBrowser, AlwaysColorChange.Version, winStyle);
             }
-
+            else
+            {
+                switch (menuType)
+                {
+                    case MenuType.Main:
+                        winRect = GUI.Window(12, winRect, DoMainMenu, AlwaysColorChange.Version, winStyle);
+                        break;
+                    case MenuType.Color:
+                        winRect = GUI.Window(12, winRect, DoColorMenu, AlwaysColorChange.Version, winStyle);
+                        break;
+                    case MenuType.NodeSelect:
+                        winRect = GUI.Window(12, winRect, DoNodeSelectMenu, AlwaysColorChange.Version, winStyle);
+                        break;
+                    case MenuType.Save:
+                        winRect = GUI.Window(12, winRect, DoSaveMenu, AlwaysColorChange.Version, winStyle);
+                        break;
+                    case MenuType.PresetSelect:
+                        winRect = GUI.Window(12, winRect, DoSelectPreset, AlwaysColorChange.Version, winStyle);
+                        break;
+                    case MenuType.Texture:
+                        winRect = GUI.Window(12, winRect, DoSelectTexture, AlwaysColorChange.Version, winStyle);
+                        break;
+                    default:
+                        break;
+                }
+            }
             if (showSaveDialog)
             {
                 modalRect = new Rect(Screen.width / 2 - FixPx(300), Screen.height / 2 - FixPx(300), FixPx(600), FixPx(600));
-                GUI.ModalWindow(13, modalRect, DoSaveModDialog, "保存");
+                modalRect = GUI.ModalWindow(13, modalRect, DoSaveModDialog, "保存");
             }
 
             if (Input.GetKeyDown(KeyCode.Alpha0))
@@ -422,6 +432,94 @@ namespace CM3D2.AlwaysColorChange.Plugin
                     }
                 }
             }
+        }
+
+//        string[] propNames = new string[] { "_MainTex", "_ShadowTex", "_ToonRamp", "_ShadowRateToon", "Alpha", "Multiply", "InfinityColor", "TexTo8bitTex", "Max" };
+        string[] propNames = new string[] { "_MainTex", "_ShadowTex", "_ToonRamp", "_ShadowRateToon" };
+        private void DoSelectTexture(int winId)
+        {
+            float margin = FixPx(marginPx);
+            float fontSize = FixPx(fontPx);
+            float itemHeight = FixPx(itemHeightPx);
+
+            Rect scrollRect = new Rect(margin, (itemHeight + margin), winRect.width - margin * 2, winRect.height - (itemHeight + margin) * 2);
+            Rect conRect = new Rect(0, 0, scrollRect.width - 20, 0);
+            Rect outRect = new Rect(0, 0, winRect.width - margin * 2, itemHeight);
+            GUIStyle lStyle = "label";
+            GUIStyle bStyle = "button";
+            GUIStyle tStyle = "toggle";
+            GUIStyle textStyle = "textField";
+            textStyle.fontSize = FixPx(fontPx);
+
+            GUI.Label(outRect, "テクスチャ変更", lStyle);
+
+            var materials = GetMaterials(currentSlotname);
+
+            conRect.height += (itemHeight + margin) * (materials.Count() * (propNames.Count() * 2 + 2)) + margin * 2;
+
+            scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
+            outRect.y = 0;
+            for (int i = 0; i < materials.Count(); i++)
+            {
+                outRect.x = margin;
+                outRect.width = scrollRect.width;
+                GUI.Label(outRect, materials[i].name, lStyle);
+                outRect.y += itemHeight + margin;
+                foreach (string propName in propNames)
+                {
+                    outRect.x = margin;
+                    outRect.width = scrollRect.width;
+                    GUI.Label(outRect, propName, lStyle);
+                    outRect.y += itemHeight + margin;
+                    outRect.width = conRect.width * 0.8f - margin * 2;
+                    textureFile[i][propName] = GUI.TextField(outRect, textureFile[i][propName], textStyle);
+                    outRect.x += outRect.width + margin;
+                    outRect.width = conRect.width * 0.1f;
+                    if (GUI.Button(outRect, "適", bStyle))
+                    {
+                        targetMatno = i;
+                        targetPropName = propName;
+                        ChangeTex(texturePath, textureFile[targetMatno][targetPropName]);
+                    }
+                    outRect.x += outRect.width + margin;
+                    if (GUI.Button(outRect, "...", bStyle))
+                    {
+                        OpenFileBrowser(i, propName);
+                    }
+                    outRect.y += itemHeight + margin;
+                }
+            }
+            GUI.EndScrollView();
+            outRect.width = winRect.width - margin * 2;
+            outRect.x = margin;
+            outRect.y = winRect.height - itemHeight - margin;
+            if (GUI.Button(outRect, "閉じる", bStyle))
+            {
+                menuType = MenuType.Color;
+            }
+            GUI.DragWindow();
+        }
+
+        private void OpenFileBrowser(int matno, string propName)
+        {
+            targetMatno = matno;
+            targetPropName = propName;
+            fileBrowser = new FileBrowser(
+                new Rect(0, 0, fileBrowserRect.width, fileBrowserRect.height),
+                "テクスチャファイル選択",
+                FileSelectedCallback
+            );
+            fileBrowser.SelectionPatterns = new string[] { "*.tex", "*.png" };
+            if (String.IsNullOrEmpty(texturePath))
+            {
+                fileBrowser.CurrentDirectory = texturePath;
+            }
+        }
+
+        private void DoFileBrowser(int winId)
+        {
+            fileBrowser.OnGUI();
+            GUI.DragWindow();
         }
 
         private int marginPx = 4;
@@ -588,13 +686,84 @@ namespace CM3D2.AlwaysColorChange.Plugin
             return rendererList;
         }
 
+        private int targetMatno;
+        private string texturePath;
+        private string targetPropName;
+        private Dictionary<int, Dictionary<string, string>> textureFile;
+        private FileBrowser fileBrowser;
+        private Rect fileBrowserRect;
+
+        protected void FileSelectedCallback(string path)
+        {
+            fileBrowser = null;
+            if (path == null)
+            {
+                return;
+            }
+            texturePath = Path.GetDirectoryName(path);
+            textureFile[targetMatno][targetPropName] = Path.GetFileName(path);
+            ChangeTex(texturePath, textureFile[targetMatno][targetPropName]);
+        }
+
+        private void ChangeTex(string path, string filename)
+        {
+            if (targetPropName.StartsWith("_"))
+            {
+                if (Path.GetExtension(filename).ToLower() == ".tex")
+                {
+                    maid.body0.ChangeTex(Slotnames[currentSlotname], targetMatno, targetPropName, textureFile[targetMatno][targetPropName], null, MaidParts.PARTS_COLOR.NONE);
+                }
+                else
+                {
+                    var materials = GetMaterials(currentSlotname);
+                    byte[] img = UTY.LoadImage(Path.Combine(path, filename));
+                    var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                    tex.LoadImage(img);
+                    materials[targetMatno].SetTexture(targetPropName, tex);
+                }
+            }
+            else
+            {
+                GameUty.SystemMaterial mat = GameUty.SystemMaterial.Alpha;
+                switch (targetPropName)
+                {
+                    case "Alpha":
+                        mat = GameUty.SystemMaterial.Alpha;
+                        break;
+                    case "Multiply":
+                        mat = GameUty.SystemMaterial.Multiply;
+                        break;
+                    case "InfinityColor":
+                        mat = GameUty.SystemMaterial.InfinityColor;
+                        break;
+                    case "TexTo8bitTex":
+                        mat = GameUty.SystemMaterial.TexTo8bitTex;
+                        break;
+                    case "Max":
+                        mat = GameUty.SystemMaterial.Max;
+                        break;
+                }
+                // 合成
+                if (Path.GetExtension(filename).ToLower() == ".tex")
+                {
+                    maid.body0.MulTexSet(Slotnames[currentSlotname], targetMatno, "_MainTex", 1, textureFile[targetMatno][targetPropName], mat, false, 0, 0, 0, 0);
+                    maid.body0.MulTexSet(Slotnames[currentSlotname], targetMatno, "_ShadowTex", 1, textureFile[targetMatno][targetPropName], mat, false, 0, 0, 0, 0);
+                }
+                else
+                {
+                    //TODO
+                }
+
+            }
+        }
+
         private void DoColorMenu(int winID)
         {
             float margin = FixPx(marginPx);
             float fontSize = FixPx(fontPx);
             float itemHeight = FixPx(itemHeightPx);
 
-            Rect scrollRect = new Rect(margin, (itemHeight + margin), winRect.width - margin * 3, winRect.height - (itemHeight + margin) * 3);
+            Rect scrollRect = new Rect(margin, (itemHeight + margin) * 2, winRect.width - margin * 3, winRect.height - (itemHeight + margin) * 4);
             Rect conRect = new Rect(0, 0, scrollRect.width - 20, 0);
             Rect outRect = new Rect(margin, 0, winRect.width - margin * 2, itemHeight);
             GUIStyle lStyle = "label";
@@ -610,22 +779,38 @@ namespace CM3D2.AlwaysColorChange.Plugin
             tStyle.normal.textColor = color;
 
             GUI.Label(outRect, "強制カラーチェンジ:" + currentSlotname, lStyle);
+            outRect.y += itemHeight + margin;
+            List<Material> materialList = GetMaterials(currentSlotname);
+            if (GUI.Button(outRect, "テクスチャ変更", bStyle))
+            {
+                textureFile = new Dictionary<int, Dictionary<string, string>>();
+                for (int i = 0; i < materialList.Count(); i++)
+                {
+                    textureFile.Add(i, new Dictionary<string, string>());
+                    foreach (string propName in propNames)
+                    {
+                        textureFile[i].Add(propName, "");
+                    }
+                }
+                menuType = MenuType.Texture;
+            }
 
             outRect.y = 0;
             outRect.width -= margin * 2 + 20;
-            List<Material> materialList = GetMaterials(currentSlotname);
             if (materialList != null)
             {
                 conRect.height += (itemHeight + margin) * materialList.Count * 30 + margin;
 
                 scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
 
-                foreach (Material material in materialList)
+                for (int i = 0; i < materialList.Count(); i++)
                 {
+                    Material material = materialList[i];
                     outRect.x = margin;
                     GUI.Label(outRect, material.name, lStyle);
-                    outRect.y += itemHeight + margin;
                     outRect.x += margin;
+                    outRect.width = conRect.width - margin * 3;
+                    outRect.y += itemHeight + margin;
                     GUI.Label(outRect, "Color", lStyle);
                     outRect.y += itemHeight + margin;
                     Color sColor = material.GetColor("_Color");
