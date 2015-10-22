@@ -224,6 +224,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             Nodenames.Add("右小指関節", "Bip01 R Finger41");
             Nodenames.Add("右小指先", "Bip01 R Finger42");
 
+            SaveFileName = Path.Combine(DataPath, "AlwaysColorChange.xml");
         }
 
         private void changeColor(string slotname)
@@ -1254,6 +1255,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
         }
 
         private string SaveFileName = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + @"\Config\AlwaysColorChange.xml";
+        private string SaveFileName;
 
         private void SavePreset()
         {
