@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -75,6 +75,8 @@ namespace CM3D2.AlwaysColorChange.Plugin
         private bool bApplyChange = false;
 
         private CCPreset targetPreset;
+
+        private TextureModifier textureModifier;
 
         public AlwaysColorChange()
         {
@@ -224,6 +226,8 @@ namespace CM3D2.AlwaysColorChange.Plugin
             Nodenames.Add("右小指関節", "Bip01 R Finger41");
             Nodenames.Add("右小指先", "Bip01 R Finger42");
 
+            SaveFileName = Path.Combine(DataPath, "AlwaysColorChange.xml");
+            textureModifier = new TextureModifier();
         }
 
         private void changeColor(string slotname)
@@ -325,6 +329,12 @@ namespace CM3D2.AlwaysColorChange.Plugin
             bApplyChange = false;
         }
 
+        void OnDestroy()
+        {
+            // テクスチャキャッシュを開放する
+            textureModifier.Clear();
+        }
+
         private void Update()
         {
             if (!Enum.IsDefined(typeof(TargetLevel), Application.loadedLevel))
@@ -365,6 +375,50 @@ namespace CM3D2.AlwaysColorChange.Plugin
             if (bApplyChange && !maid.boAllProcPropBUSY)
             {
                 ApplyPreset();
+            }
+
+            // テクスチャエディットの反映
+            if (menuType != MenuType.Texture)
+            {
+                // テクスチャモードでなければ、テクスチャ変更対象を消す
+                textureEdit.Clear();
+            }
+            else
+            {
+                // 各スロットのマテリアルの列挙
+                var slotMaterials = new Dictionary<string, List<Material>>();
+                foreach (string slotName in Slotnames.Keys)
+                {
+                    slotMaterials[slotName] = GetMaterials(slotName);
+                }
+
+                // マテリアルで使用されている全テクスチャの列挙
+                var textures = new List<Texture2D>();
+                foreach (List<Material> materials in slotMaterials.Values)
+                {
+                    if (materials == null)
+                    {
+                        continue;
+                    }
+                    foreach (Material material in materials)
+                    {
+                        foreach (string propName in propNames)
+                        {
+                            var texture2d = material.GetTexture(propName) as Texture2D;
+                            if (texture2d != null)
+                            {
+                                textures.Add(texture2d);
+                            }
+                        }
+                    }
+                }
+                textureModifier.Update(
+                    maid,
+                    slotMaterials,
+                    textures,
+                    textureEdit.slotName,
+                    textureEdit.materialIndex,
+                    textureEdit.propName);
             }
         }
 
@@ -436,6 +490,28 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
 //        string[] propNames = new string[] { "_MainTex", "_ShadowTex", "_ToonRamp", "_ShadowRateToon", "Alpha", "Multiply", "InfinityColor", "TexTo8bitTex", "Max" };
         string[] propNames = new string[] { "_MainTex", "_ShadowTex", "_ToonRamp", "_ShadowRateToon" };
+
+        class TextureEdit
+        {
+            public string slotName;
+            public int materialIndex;
+            public string propName;
+
+            public TextureEdit()
+            {
+                Clear();
+            }
+
+            // テクスチャエディット対象を無効にする
+            public void Clear()
+            {
+                slotName = string.Empty;
+                materialIndex = -1;
+                propName = string.Empty;
+            }
+        }
+        TextureEdit textureEdit = new TextureEdit();
+
         private void DoSelectTexture(int winId)
         {
             float margin = FixPx(marginPx);
@@ -450,43 +526,84 @@ namespace CM3D2.AlwaysColorChange.Plugin
             GUIStyle tStyle = "toggle";
             GUIStyle textStyle = "textField";
             textStyle.fontSize = FixPx(fontPx);
+            GUILayoutOption buttonWidth = GUILayout.Width(conRect.width * 0.1f);
+            GUILayoutOption buttonWidth2 = GUILayout.Width(conRect.width * 0.2f);
 
             GUI.Label(outRect, "テクスチャ変更", lStyle);
+            scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
+
+            // materials には null チェックが必要。例えば以下の操作を行う
+            // (1) ゲーム側でワンピースを選択
+            // (2) AlwaysColorChange側でワンピース→テクスチャ変更を選択
+            // (3) ゲーム側でボトムスから衣装を選択
+            // この時点でcurrentSlotnameが指すmaterialsが無くなるため、nullとなる
 
             var materials = GetMaterials(currentSlotname);
-
-            conRect.height += (itemHeight + margin) * (materials.Count() * (propNames.Count() * 2 + 2)) + margin * 2;
-
-            scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
-            outRect.y = 0;
-            for (int i = 0; i < materials.Count(); i++)
+            if (materials != null)
             {
-                outRect.x = margin;
-                outRect.width = scrollRect.width;
-                GUI.Label(outRect, materials[i].name, lStyle);
-                outRect.y += itemHeight + margin;
-                foreach (string propName in propNames)
+                conRect.height += (itemHeight + margin) * (materials.Count() * (propNames.Count() * 2 + 2)) + margin * 2;
+                for (int i = 0; i < materials.Count(); i++)
                 {
-                    outRect.x = margin;
-                    outRect.width = scrollRect.width;
-                    GUI.Label(outRect, propName, lStyle);
-                    outRect.y += itemHeight + margin;
-                    outRect.width = conRect.width * 0.8f - margin * 2;
-                    textureFile[i][propName] = GUI.TextField(outRect, textureFile[i][propName], textStyle);
-                    outRect.x += outRect.width + margin;
-                    outRect.width = conRect.width * 0.1f;
-                    if (GUI.Button(outRect, "適", bStyle))
+                    GUILayout.Label(materials[i].name, lStyle);
+                    foreach (string propName in propNames)
                     {
-                        targetMatno = i;
-                        targetPropName = propName;
-                        ChangeTex(texturePath, textureFile[targetMatno][targetPropName]);
+                        bool bTargetElement = (i == textureEdit.materialIndex && propName == textureEdit.propName);
+                        GUILayout.BeginHorizontal();
+                        {
+                            // エディット用スライダーの開閉
+                            if (!textureModifier.IsValidTarget(maid, currentSlotname, materials[i], propName))
+                            {
+                                // 参照先が Texture2D が取れなかった (例 : RenderTexture だった) 場合はとりあえず
+                                // あきらめて何もしない。無理やり書いても良いのかもしれないけど……
+                                var tmp = GUI.enabled;
+                                GUI.enabled = false;
+                                GUILayout.Button("+変更", bStyle, buttonWidth2);
+                                GUI.enabled = tmp;
+                            }
+                            else if (bTargetElement)
+                            {
+                                // エディット中のテクスチャの場合
+                                if (GUILayout.Button("-変更", bStyle, buttonWidth2))
+                                {
+                                    textureEdit.Clear();
+                                }
+                            }
+                            else
+                            {
+                                // エディット中以外のテクスチャの場合
+                                if (GUILayout.Button("+変更", bStyle, buttonWidth2))
+                                {
+                                    textureEdit.slotName = currentSlotname;
+                                    textureEdit.materialIndex = i;
+                                    textureEdit.propName = propName;
+                                }
+                            }
+                            GUILayout.Label(propName, lStyle);
+                        }
+                        GUILayout.EndHorizontal();
+
+                        // テクスチャエディット用スライダー
+                        if (bTargetElement)
+                        {
+                            textureModifier.ProcGUI(maid, currentSlotname, materials[i], propName, margin, fontSize, itemHeight);
+                        }
+
+                        GUILayout.BeginHorizontal();
+                        {
+                            textureFile[i][propName] = GUILayout.TextField(textureFile[i][propName], textStyle);
+                            if (GUILayout.Button("適", bStyle, buttonWidth))
+                            {
+                                targetMatno = i;
+                                targetPropName = propName;
+                                ChangeTex(texturePath, textureFile[targetMatno][targetPropName]);
+                            }
+                            if (GUILayout.Button("...", bStyle, buttonWidth))
+                            {
+                                OpenFileBrowser(i, propName);
+                            }
+                        }
+                        GUILayout.EndHorizontal();
                     }
-                    outRect.x += outRect.width + margin;
-                    if (GUI.Button(outRect, "...", bStyle))
-                    {
-                        OpenFileBrowser(i, propName);
-                    }
-                    outRect.y += itemHeight + margin;
                 }
             }
             GUI.EndScrollView();
@@ -1253,7 +1370,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             bApplyChange = false;
         }
 
-        private string SaveFileName = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + @"\Config\AlwaysColorChange.xml";
+        private string SaveFileName;
 
         private void SavePreset()
         {
