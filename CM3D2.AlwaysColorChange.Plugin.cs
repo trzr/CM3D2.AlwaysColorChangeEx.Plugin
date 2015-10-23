@@ -14,10 +14,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
     PluginFilter("CM3D2x86"),
     PluginFilter("CM3D2VRx64"),
     PluginName("CM3D2 OffScreen"),
-    PluginVersion("0.0.3.5")]
+    PluginVersion("0.0.4.0")]
     public class AlwaysColorChange : PluginBase
     {
-        public const string Version = "0.0.3.5";
+        public const string Version = "0.0.4.0";
 
         private const float GUIWidth = 0.25f;
 
@@ -916,7 +916,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             outRect.width -= margin * 2 + 20;
             if (materialList != null)
             {
-                conRect.height += (itemHeight + margin) * materialList.Count * 30 + margin;
+                conRect.height += (itemHeight + margin) * materialList.Count * 31 + margin;
 
                 scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
 
@@ -927,6 +927,11 @@ namespace CM3D2.AlwaysColorChange.Plugin
                     GUI.Label(outRect, material.name, lStyle);
                     outRect.x += margin;
                     outRect.width = conRect.width - margin * 3;
+                    outRect.y += itemHeight + margin;
+                    int renderQueue = material.renderQueue;
+                    renderQueue = (int)drawModValueSlider(outRect, renderQueue, 0, 5000, String.Format("{0}:{1}", "RQ", material.renderQueue), lStyle);
+                    material.SetFloat("_SetManualRenderQueue", renderQueue);
+                    material.renderQueue = renderQueue;
                     outRect.y += itemHeight + margin;
                     GUI.Label(outRect, "Color", lStyle);
                     outRect.y += itemHeight + margin;
