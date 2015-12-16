@@ -50,6 +50,8 @@ namespace CM3D2.AlwaysColorChange.Plugin
             Texture
         }
 
+        private bool cmrCtrlChanged = false;  
+
         private bool showSaveDialog = false;
 
         private Dictionary<string, string> Slotnames;
@@ -360,18 +362,34 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 }
             }
 
+            bool isEnableControl = false;
             if (menuType != MenuType.None)
             {
-                if (winRect.Contains(Input.mousePosition))
+                Vector2 cursor = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+                isEnableControl = winRect.Contains(cursor);
+            }
+
+            // カメラコントロールの有効化/無効化 (Windowの範囲外では、自身がコントロールを変更したケース以外は更新しない)
+            if (isEnableControl) 
+            {
+                if (GameMain.Instance.MainCamera.GetControl()) 
                 {
                     GameMain.Instance.MainCamera.SetControl(false);
+                    UICamera.InputEnable = false;
+                    cmrCtrlChanged = true;
                 }
-                else
+            }
+            else 
+            {
+                if (cmrCtrlChanged) 
                 {
                     GameMain.Instance.MainCamera.SetControl(true);
+                    UICamera.InputEnable = true;
+                    cmrCtrlChanged = false;
                 }
             }
 
+            
             if (bApplyChange && !maid.boAllProcPropBUSY)
             {
                 ApplyPreset();
