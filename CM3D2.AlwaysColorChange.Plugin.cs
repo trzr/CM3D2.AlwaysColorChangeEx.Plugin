@@ -645,7 +645,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 FileSelectedCallback
             );
             fileBrowser.SelectionPatterns = new string[] { "*.tex", "*.png" };
-            if (String.IsNullOrEmpty(texturePath))
+            if (!String.IsNullOrEmpty(texturePath))
             {
                 fileBrowser.CurrentDirectory = texturePath;
             }
