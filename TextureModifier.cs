@@ -52,16 +52,16 @@ namespace CM3D2.AlwaysColorChange.Plugin
             {
                 return null;
             }
-            Texture2D tex2d = material.GetTexture(propName) as Texture2D;
+            var tex2d = material.GetTexture(propName) as Texture2D;
             if (tex2d == null || string.IsNullOrEmpty(tex2d.name))
             {
                 return null;
             }
             return string.Format("{0}/{1}/{2}/{3}"
-                                 , maid.Param.status.guid
-                                 , slotName
-                                 , material.name
-                                 , tex2d.name);
+                , maid.Param.status.guid
+                , slotName
+                , material.name
+                , tex2d.name);
         }
 
         private FilterParam Get(Maid maid, string slotName, Material material, string propName)
@@ -114,29 +114,29 @@ namespace CM3D2.AlwaysColorChange.Plugin
             float lightness = filterParam.Lightness / 100f;
 
             Filter(texture, originalTextureCache.GetOriginalTexture(texture), (color) =>
-            {
-                Color c = color;
+                {
+                    Color c = color;
 
-                c.r = Mathf.Clamp01(c.r * inputScale + inputBase);
-                c.g = Mathf.Clamp01(c.g * inputScale + inputBase);
-                c.b = Mathf.Clamp01(c.b * inputScale + inputBase);
+                    c.r = Mathf.Clamp01(c.r * inputScale + inputBase);
+                    c.g = Mathf.Clamp01(c.g * inputScale + inputBase);
+                    c.b = Mathf.Clamp01(c.b * inputScale + inputBase);
 
-                c.r = Mathf.Pow(c.r, inputExp);
-                c.g = Mathf.Pow(c.g, inputExp);
-                c.b = Mathf.Pow(c.b, inputExp);
+                    c.r = Mathf.Pow(c.r, inputExp);
+                    c.g = Mathf.Pow(c.g, inputExp);
+                    c.b = Mathf.Pow(c.b, inputExp);
 
-                Vector4 hsl = ColorUtil.ColorToHsl(c);
-                hsl.x = (hsl.x + hue) % 1f;
-                hsl.y *= saturation;
-                hsl.z *= lightness;
-                c = ColorUtil.HslToColor(hsl);
+                    Vector4 hsl = ColorUtil.ColorToHsl(c);
+                    hsl.x = (hsl.x + hue) % 1f;
+                    hsl.y *= saturation;
+                    hsl.z *= lightness;
+                    c = ColorUtil.HslToColor(hsl);
 
-                c.r = c.r * outputScale + outputBase;
-                c.g = c.g * outputScale + outputBase;
-                c.b = c.b * outputScale + outputBase;
+                    c.r = c.r * outputScale + outputBase;
+                    c.g = c.g * outputScale + outputBase;
+                    c.b = c.b * outputScale + outputBase;
 
-                return c;
-            });
+                    return c;
+                });
         }
 
         private void Filter(Texture2D dstTexture, Texture2D srcTexture, Func<Color32, Color32> mapFunc)

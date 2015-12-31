@@ -4,7 +4,7 @@ using System.IO;
 using System.Collections.Generic;
 
 /*
-	File browser for selecting files or folders at runtime.
+    File browser for selecting files or folders at runtime.
  */
 
 public enum FileBrowserType
@@ -185,7 +185,7 @@ public class FileBrowser
                         string[] generation = Directory.GetDirectories(
                             directoryName,
                             pattern
-                            );
+                        );
                         m_currentDirectoryMatches = Array.IndexOf(generation, m_currentDirectory) >= 0;
                         if (m_currentDirectoryMatches)
                         {
@@ -398,11 +398,11 @@ public class FileBrowser
             else
             {
                 GUI.enabled = m_selectedDirectory > -1 ||
-                                (
-                                    m_currentDirectoryMatches &&
-                                    m_selectedNonMatchingDirectory == -1 &&
-                                    m_selectedFile == -1
-                                );
+                    (
+                        m_currentDirectoryMatches &&
+                        m_selectedNonMatchingDirectory == -1 &&
+                        m_selectedFile == -1
+                    );
             }
         }
         if (GUILayout.Button("選択", GUILayout.Width(120)))
