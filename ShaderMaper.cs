@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
 using UnityEngine;
-
+#pragma warning disable 0168
 namespace CM3D2.AlwaysColorChange.Plugin
 {
     /// <summary>

@@ -13,39 +13,16 @@ using CM3D2.AlwaysColorChange.Plugin.Util;
 
 // 以下の AssemblyVersion は削除しないこと
 [assembly: AssemblyVersion("1.0.*")]
-
 namespace CM3D2.AlwaysColorChange.Plugin {
 [PluginFilter("CM3D2x64"),
  PluginFilter("CM3D2x86"),
  PluginFilter("CM3D2VRx64"),
  PluginName("CM3D2 AlwaysColorChangeMod"),
- PluginVersion("0.0.4.3")]
+ PluginVersion("0.0.4.4")]
 class AlwaysColorChange : UnityInjector.PluginBase
 {
-#if DYNAMIC_PLUGIN
-    public DynAlwaysColorChange()
-    {
-        Console.WriteLine("{0} : ctor()", GetType().Name);
-    }
-
-    public override void OnPluginLoad()
-    {
-        Console.WriteLine("{0} : OnPluginLoad()", GetType().Name);
-        Awake();
-    }
-
-    public override void OnPluginUnload()
-    {
-        Console.WriteLine("{0} : OnPluginUnload()", GetType().Name);
-//        if (goMainPanel != null) {
-//            goMainPanel.SetActive(false);
-//        }
-        OnDestroy();
-    }
-#endif
-
     #region Constants
-    public const string Version = "0.0.4.3";
+    public const string Version = "0.0.4.4";
     public const string PlugiName = "AlwaysColorChangeMod";
 
     private const float GUIWidth = 0.25f;
@@ -111,9 +88,8 @@ class AlwaysColorChange : UnityInjector.PluginBase
     private bool bClearMaskEnable = false;
     private bool bSaveBodyPreset  = false;
 
-    private int targetMatno;
     private string texturePath;
-    private string targetPropName;
+    // TODO 配列化 (matNoは配列のindexとして扱えるはず)
     private Dictionary<int, Dictionary<string, string>> textureFile;
     private FileBrowser fileBrowser;
 
@@ -126,7 +102,8 @@ class AlwaysColorChange : UnityInjector.PluginBase
     #endregion
 
     #region MonoBehaviour methods
-    public void Awake() {
+    public void Awake() 
+    {
         settings.configPath = DataPath;
         base.ReloadConfig();
         settings.Load((key) => {
@@ -140,12 +117,16 @@ class AlwaysColorChange : UnityInjector.PluginBase
         LoadPresets();
     }
 
-    public void OnDestroy() {
+    public void OnDestroy() 
+    {
         dispose();
+        if (presets != null) {
+            presets.Clear();
+        }
     }
 
-    public void OnLevelWasLoaded(int level) {
-
+    public void OnLevelWasLoaded(int level) 
+    {
         fPassedTimeOnLevel = 0f;
         if (!Enum.IsDefined(typeof(TargetLevel), level)) {
             // active -> disactive 
@@ -260,7 +241,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
         } else {
             // 各スロットのマテリアルの列挙
-            var slotMaterials = new Dictionary<string, List<Material>>();
+            var slotMaterials = new Dictionary<string, List<Material>>(ACConstants.SlotNames.Count);
             foreach (SlotInfo slot in ACConstants.SlotNames.Values) {
                 slotMaterials[slot.Name] = holder.GetMaterials(slot);
             }
@@ -294,7 +275,8 @@ class AlwaysColorChange : UnityInjector.PluginBase
     #endregion
 
     #region Private methods
-    private void dispose() {
+    private void dispose() 
+    {
 //        goMainPanel = null;
 //        visible = false;
 
@@ -302,14 +284,12 @@ class AlwaysColorChange : UnityInjector.PluginBase
         textureModifier.Clear();
         changeShaders.Clear();
         dDelNodes.Clear();
-        if (presets != null) {
-            presets.Clear();
-        }
 
         initialized = false;
     }
 
-    private bool initialize() {
+    private bool initialize() 
+    {
         LogUtil.DebugLog("Initialize ",  Application.loadedLevel);
 
         holder.maid = GameMain.Instance.CharacterMgr.GetMaid(0);
@@ -328,7 +308,8 @@ class AlwaysColorChange : UnityInjector.PluginBase
         return initModsSliderNGUI();
     }
 
-    private bool initModsSliderNGUI() {
+    private bool initModsSliderNGUI() 
+    {
         return true;
     }
     #endregion
@@ -354,17 +335,46 @@ class AlwaysColorChange : UnityInjector.PluginBase
         }
     }
 
+    private string targetModelFile;
+    // テクスチャ変更のためのオブジェクトを初期化
+    // 対象のスロットのアイテムが変更された場合も呼び出す必要がある
+    void InitTexChange(List<Material> materialList, TBodySkin slot) {
+        textureFile = new Dictionary<int, Dictionary<string, string>>();
+        int i=0;
+        foreach (Material m in materialList) {
+            string shaderName = m.shader.name;
+            ShaderMapper.MaterialFlag mate = ShaderMapper.resolve(shaderName);
+
+            // 未対応のシェーダはスキップ
+            if (mate == null) {
+                LogUtil.Log("未知のシェーダが指定されていました", shaderName);
+                textureFile.Add(i, new Dictionary<string, string>());
+            } else {
+                textureFile.Add(i, new Dictionary<string, string>(mate.propNames.Length));
+                foreach (string propName in mate.propNames) {
+                    textureFile[i].Add(propName, "");
+                }
+            }
+            i++;
+        }
+        if (slot == null) {
+            slot = holder.maid.body0.GetSlot(currentSlot.Name);
+        }
+        targetModelFile = slot.m_strModelFileName;
+    }
+
     private void DoSelectTexture(int winId)
     {
-        var scrollRect = new Rect(uiParams.margin, uiParams.unitHeight, uiParams.winRect.width - uiParams.margin * 2, uiParams.winRect.height - uiParams.unitHeight * 2);
+        var scrollRect = uiParams.textureRect;
         var conRect = new Rect(0, 0, scrollRect.width - 20, 0);
-        var outRect = new Rect(0, 0, uiParams.winRect.width - uiParams.margin * 2, uiParams.itemHeight);
         GUILayoutOption buttonWidth  = GUILayout.Width(conRect.width * 0.1f);
         GUILayoutOption buttonWidth2 = GUILayout.Width(conRect.width * 0.2f);
 
+        var outRect = uiParams.subRect;
         GUI.Label(outRect, "テクスチャ変更", uiParams.lStyle);
-        scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
 
+        
+        scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
         try {
             // materials には null チェックが必要。例えば以下の操作を行う
             // (1) ゲーム側でワンピースを選択
@@ -373,11 +383,19 @@ class AlwaysColorChange : UnityInjector.PluginBase
             // この時点でcurrentSlotnameが指すmaterialsが無くなるため、nullとなる
             // ->GetMaterials内で空要素を返すようにする
     
-            var materials = holder.GetMaterials(currentSlot);
-            
+            // スロットが置き換わっているか確認(modelファイルが同一であればマテリアル数は同一
+            TBodySkin slot = holder.maid.body0.GetSlot(currentSlot.Name);
+
+            var materials = holder.GetMaterials(slot);
+            string model = slot.m_strModelFileName;
+            if (targetModelFile != model) {
+                InitTexChange(materials, slot);
+                targetModelFile = model;
+            }
+
     //            conRect.height += uiParams.unitHeight * (materials.Count() * (PropNames.Count() * 2 + 2)) + uiParams.margin * 2;
             conRect.height += uiParams.unitHeight*2 + uiParams.margin * 2;
-            int i = 0;
+            int matNo = 0;
             foreach (Material material in materials) {
                 string shaderName = material.shader.name;
                 ShaderMapper.MaterialFlag mate = ShaderMapper.resolve(shaderName);
@@ -387,12 +405,17 @@ class AlwaysColorChange : UnityInjector.PluginBase
     
                 GUILayout.Label(material.name, uiParams.lStyle);
                 foreach (string propName in mate.propNames) {
-                    bool bTargetElement = (i == textureEdit.materialIndex && propName == textureEdit.propName);
-                    
+                    bool bTargetElement = (matNo == textureEdit.materialIndex && propName == textureEdit.propName);
+
+                    var dic = textureFile[matNo];
+
+                    // modelが同一の場合であれば、shaderが同じためテクスチャ数も同じ(発生しないはずだが、一応チェック)
+                    if (!dic.ContainsKey(propName)) continue;
+
                     GUILayout.BeginHorizontal();
                     try {
                         // エディット用スライダーの開閉
-                        if (!textureModifier.IsValidTarget(holder.maid, currentSlot.DisplayName, material, propName)) {
+                        if (!textureModifier.IsValidTarget(holder.maid, currentSlot.Name, material, propName)) {
                             // 参照先が Texture2D が取れなかった (例 : RenderTexture だった) 場合はとりあえず
                             // あきらめて何もしない。無理やり書いても良いのかもしれないけど……
                             var tmp = GUI.enabled;
@@ -407,8 +430,8 @@ class AlwaysColorChange : UnityInjector.PluginBase
                         } else {
                             // エディット中以外のテクスチャの場合
                             if (GUILayout.Button("+変更", uiParams.bStyle, buttonWidth2)) {
-                                textureEdit.slotName = currentSlot.DisplayName;
-                                textureEdit.materialIndex = i;
+                                textureEdit.slotName = currentSlot.Name;
+                                textureEdit.materialIndex = matNo;
                                 textureEdit.propName = propName;
                             }
                         }
@@ -419,25 +442,24 @@ class AlwaysColorChange : UnityInjector.PluginBase
     
                     // テクスチャエディット用スライダー
                     if (bTargetElement) {
-                        textureModifier.ProcGUI(holder.maid, currentSlot.DisplayName, materials[i], propName, uiParams.margin, uiParams.fontSize, uiParams.itemHeight);
+                        textureModifier.ProcGUI(holder.maid, currentSlot.Name, materials[matNo], propName, 
+                                                uiParams.margin, uiParams.fontSize, uiParams.itemHeight);
                     }
         
                     GUILayout.BeginHorizontal();
                     try {
-                        textureFile[i][propName] = GUILayout.TextField(textureFile[i][propName], uiParams.textStyle);
+                        dic[propName] = GUILayout.TextField(dic[propName], uiParams.textStyle);
                         if (GUILayout.Button("適", uiParams.bStyle, buttonWidth)) {
-                            targetMatno = i;
-                            targetPropName = propName;
-                            ChangeTex(texturePath, textureFile[targetMatno][targetPropName]);
+                            ChangeTex(texturePath, dic[propName], matNo, propName);
                         }
                         if (GUILayout.Button("...", uiParams.bStyle, buttonWidth)) {
-                            OpenFileBrowser(i, propName);
+                            OpenFileBrowser(matNo, propName);
                         }
                     } finally {
                         GUILayout.EndHorizontal();
                     }
                 }
-                i++;
+                matNo++;
             }
         } finally {
             GUI.EndScrollView();
@@ -451,15 +473,21 @@ class AlwaysColorChange : UnityInjector.PluginBase
         GUI.DragWindow();
     }
 
-    private void OpenFileBrowser(int matno, string propName)
+    private void OpenFileBrowser(int matNo, string propName)
     {
-        targetMatno = matno;
-        targetPropName = propName;
         fileBrowser = new FileBrowser(
             new Rect(0, 0, uiParams.fileBrowserRect.width, uiParams.fileBrowserRect.height),
             "テクスチャファイル選択",
-            FileSelectedCallback
-        );
+            (path) => 
+            {
+                fileBrowser = null;
+                if (path == null) return;
+
+                texturePath = Path.GetDirectoryName(path);
+                textureFile[matNo][propName] = Path.GetFileName(path);
+                ChangeTex(texturePath, textureFile[matNo][propName], matNo, propName);
+
+            });
         fileBrowser.SelectionPatterns = new string[] { "*.tex", "*.png" };
         if (!String.IsNullOrEmpty(texturePath)) {
             fileBrowser.CurrentDirectory = texturePath;
@@ -490,9 +518,17 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
         public readonly Color textColor = new Color(1f, 1f, 1f, 0.98f);
 
-        public Rect winRect = new Rect();
+        public Rect winRect         = new Rect();
         public Rect fileBrowserRect = new Rect();
-        public Rect modalRect = new Rect();
+        public Rect modalRect       = new Rect();
+
+        public Rect mainRect         = new Rect();
+        public Rect colorRect        = new Rect();
+        public Rect nodeSelectRect   = new Rect();
+        public Rect presetSelectRect = new Rect();
+        public Rect textureRect       = new Rect();
+        public Rect subRect         = new Rect();
+
         public GUIStyle winStyle = "box";
         public UIParams() {
             Update();
@@ -541,7 +577,15 @@ class AlwaysColorChange : UnityInjector.PluginBase
             InitWinRect();
             InitFBRect();
             InitModalRect();
+
+            // sub
+            mainRect.Set(      margin, unitHeight * 5 + margin, winRect.width - margin * 2, winRect.height - unitHeight * 6);
+            textureRect.Set(   margin, unitHeight,     winRect.width - margin * 2, winRect.height - unitHeight * 2);
+            nodeSelectRect.Set(margin, unitHeight * 2, winRect.width - margin * 2, winRect.height - unitHeight * 4);
+            colorRect.Set(     margin, unitHeight * 2, winRect.width - margin * 3, winRect.height - unitHeight * 4);
+            subRect.Set(       0,      0,              winRect.width - margin * 2, itemHeight);
         }
+
         public void InitWinRect() {
             winRect.Set(        width - FixPx(290),     FixPx(20),               FixPx(280), height - FixPx(120));
         }
@@ -551,27 +595,6 @@ class AlwaysColorChange : UnityInjector.PluginBase
         public void InitModalRect() {
             modalRect.Set(      width / 2 - FixPx(300), height / 2 - FixPx(300), FixPx(600), FixPx(600));                
         }
-        public Rect CreateMainRect() {
-            check();
-            return new Rect(margin, (unitHeight) * 5 + margin, winRect.width - margin * 2, winRect.height - (unitHeight) * 6);
-        }
-        public Rect CreateSelTexRect() {
-            check();
-            return new Rect(margin, unitHeight, winRect.width - margin * 2, winRect.height - unitHeight * 2);
-        }
-        public Rect CreateRect() {
-            check();
-            return new Rect(margin, unitHeight * 2, winRect.width - margin * 2, winRect.height - unitHeight * 4);
-        }
-        public Rect CreateColorRect() {
-            check();
-             return new Rect(margin, unitHeight * 2, winRect.width - margin * 3, winRect.height - unitHeight * 4);
-        }
-        private void check() {
-            if(margin == 0) {
-                Update();
-            }
-        }
         public int FixPx(int px) {
             return (int)(ratio * px);
         }
@@ -579,14 +602,13 @@ class AlwaysColorChange : UnityInjector.PluginBase
     private bool displayed = false;
     private void DoMainMenu(int winID)
     {
-        var scrollRect = uiParams.CreateMainRect();
+        var scrollRect = uiParams.mainRect;
         if (!displayed) {
-            // 
             displayed = true;
             LogUtil.DebugLog("MainRect", scrollRect.xMin, scrollRect.yMin, scrollRect.width, scrollRect.height);
         }
 
-        var outRect = new Rect(0, 0, uiParams.winRect.width - uiParams.margin * 2, uiParams.itemHeight);
+        var outRect = uiParams.subRect;
         GUI.Label(outRect, "強制カラーチェンジ", uiParams.lStyle);
         outRect.y += uiParams.unitHeight;
         if (GUI.Button(outRect, "マスククリア", uiParams.bStyle)) {
@@ -639,8 +661,6 @@ class AlwaysColorChange : UnityInjector.PluginBase
         GUI.DragWindow();
     }
 
-
-
     private void FixDelNode(bool bApply)
     {
         if (!dDelNodes.Any()) return;
@@ -656,37 +676,24 @@ class AlwaysColorChange : UnityInjector.PluginBase
                 }
             }
         }
-        if (bApply) {
-            holder.FixFlag();
-        }
+        if (bApply) holder.FixFlag();
     }
 
-
-    protected void FileSelectedCallback(string path)
+    private void ChangeTex(string path, string filename, int matNo, string propName)
     {
-        fileBrowser = null;
-        if (path == null) return;
-
-        texturePath = Path.GetDirectoryName(path);
-        textureFile[targetMatno][targetPropName] = Path.GetFileName(path);
-        ChangeTex(texturePath, textureFile[targetMatno][targetPropName]);
-    }
-
-    private void ChangeTex(string path, string filename)
-    {
-        if (targetPropName.StartsWith("_")) {
+        if (propName.StartsWith("_")) {
             if (Path.GetExtension(filename).ToLower() == ".tex") {
-                holder.maid.body0.ChangeTex(currentSlot.Name, targetMatno, targetPropName, textureFile[targetMatno][targetPropName], null, MaidParts.PARTS_COLOR.NONE);
+                holder.maid.body0.ChangeTex(currentSlot.Name, matNo, propName, textureFile[matNo][propName], null, MaidParts.PARTS_COLOR.NONE);
             } else {
                 var materials = holder.GetMaterials(currentSlot);
                 byte[] img = UTY.LoadImage(Path.Combine(path, filename));
                 var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
                 tex.LoadImage(img);
-                materials[targetMatno].SetTexture(targetPropName, tex);
+                materials[matNo].SetTexture(propName, tex);
             }
         } else {
             GameUty.SystemMaterial mat = GameUty.SystemMaterial.Alpha;
-            switch (targetPropName) {
+            switch (propName) {
                 case "Alpha":
                     mat = GameUty.SystemMaterial.Alpha;
                     break;
@@ -703,10 +710,11 @@ class AlwaysColorChange : UnityInjector.PluginBase
                     mat = GameUty.SystemMaterial.Max;
                     break;
             }
+
             // 合成
             if (Path.GetExtension(filename).ToLower() == ".tex") {
-                holder.maid.body0.MulTexSet(currentSlot.Name, targetMatno, "_MainTex", 1, textureFile[targetMatno][targetPropName], mat, false, 0, 0, 0, 0);
-                holder.maid.body0.MulTexSet(currentSlot.Name, targetMatno, "_ShadowTex", 1, textureFile[targetMatno][targetPropName], mat, false, 0, 0, 0, 0);
+                holder.maid.body0.MulTexSet(currentSlot.Name, matNo, "_MainTex", 1, textureFile[matNo][propName], mat, false, 0, 0, 0, 0);
+                holder.maid.body0.MulTexSet(currentSlot.Name, matNo, "_ShadowTex", 1, textureFile[matNo][propName], mat, false, 0, 0, 0, 0);
                 // TODO 合成したtexを保存できないか？
             } else {
                 //TODO
@@ -716,27 +724,16 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
     private void DoColorMenu(int winID)
     {
-        var scrollRect = uiParams.CreateColorRect();
+        var scrollRect = uiParams.colorRect;
         var outRect = new Rect(uiParams.margin, 0, uiParams.winRect.width - uiParams.margin * 2, uiParams.itemHeight);
 
         GUI.Label(outRect, "強制カラーチェンジ:" + currentSlot.DisplayName, uiParams.lStyle);
         outRect.y += uiParams.unitHeight;
 
-        List<Material> materialList = holder.GetMaterials(currentSlot);
+        TBodySkin slot = holder.maid.body0.GetSlot(currentSlot.Name);
+        List<Material> materialList = holder.GetMaterials(slot);
         if ( GUI.Button(outRect, "テクスチャ変更", uiParams.bStyle) ) {
-            textureFile = new Dictionary<int, Dictionary<string, string>>();
-            int i=0;
-            foreach (Material m in materialList) {
-                string shaderName = m.shader.name;
-                ShaderMapper.MaterialFlag mate = ShaderMapper.resolve(shaderName);
-
-                if (mate == null) continue;
-                textureFile.Add(i, new Dictionary<string, string>(mate.propNames.Length));
-                foreach (string propName in mate.propNames) {
-                    textureFile[i].Add(propName, "");
-                }
-                i++;
-            }
+            InitTexChange(materialList, slot);
             menuType = MenuType.Texture;
         }
 
@@ -868,8 +865,8 @@ class AlwaysColorChange : UnityInjector.PluginBase
                         if (shininess != null) {
                             GUI.Label(outRect, "Shininess", uiParams.lStyle);
                             outRect.y += uiParams.unitHeight;
-    //                            shininess = drawModValueSlider(outRect, (float)shininess, -10f, 10f, String.Format("  {0:F2}", (float)shininess));
-                            shininess = drawModValueSlider(outRect, (float)shininess, -20f, 20f, String.Format("  {0:F2}", (float)shininess));
+                            shininess = drawModValueSlider(outRect, (float)shininess, settings.shininessMin, settings.shininessMax, 
+                                                           String.Format("  {0:F2}", (float)shininess));
                             outRect.y += uiParams.unitHeight;
                         }
                     }
@@ -878,7 +875,8 @@ class AlwaysColorChange : UnityInjector.PluginBase
                         if (outlineWidth != null) {
                             GUI.Label(outRect, "OutlineWidth", uiParams.lStyle);
                             outRect.y += uiParams.unitHeight;
-                            outlineWidth = drawModValueSlider(outRect, (float)outlineWidth, 0f, 0.1f, String.Format("  {0:F5}", (float)outlineWidth));
+                            outlineWidth = drawModValueSlider(outRect, (float)outlineWidth, settings.outlineWidthMin, settings.outlineWidthMax,
+                                                              String.Format("  {0:F5}", (float)outlineWidth));
                             outRect.y += uiParams.unitHeight;
                         }
                     }
@@ -887,14 +885,16 @@ class AlwaysColorChange : UnityInjector.PluginBase
                         if (rimPower != null) {
                             GUI.Label(outRect, "RimPower", uiParams.lStyle);
                             outRect.y += uiParams.unitHeight;
-                            rimPower = drawModValueSlider(outRect, (float)rimPower, 0f, 100f, String.Format("  {0:F2}", (float)rimPower));
+                            rimPower = drawModValueSlider(outRect, (float)rimPower, settings.rimPowerMin, settings.rimPowerMax,
+                                                          String.Format("  {0:F2}", (float)rimPower));
                             outRect.y += uiParams.unitHeight;
                         }
                         rimShift = material.GetFloat("_RimShift");
                         if (rimShift != null) {
                             GUI.Label(outRect, "RimShift", uiParams.lStyle);
                             outRect.y += uiParams.unitHeight;
-                            rimShift = drawModValueSlider(outRect, (float)rimShift, -5f, 5f, String.Format("  {0:F2}", (float)rimShift));
+                            rimShift = drawModValueSlider(outRect, (float)rimShift, settings.rimShiftMin, settings.rimShiftMax,
+                                                          String.Format("  {0:F2}", (float)rimShift));
                             outRect.y += uiParams.unitHeight;
                         }
                     }
@@ -903,14 +903,16 @@ class AlwaysColorChange : UnityInjector.PluginBase
                         if (hiRate != null) {
                             GUI.Label(outRect, "HiRate", uiParams.lStyle);
                             outRect.y += uiParams.unitHeight;
-                            hiRate = drawModValueSlider(outRect, (float)hiRate, 0f, 1f, String.Format("  {0:F2}", (float)hiRate) );
+                            hiRate = drawModValueSlider(outRect, (float)hiRate, settings.hiRateMin, settings.hiRateMax,
+                                                        String.Format("  {0:F2}", (float)hiRate) );
                             outRect.y += uiParams.unitHeight;
                         }
                         hiPow = material.GetFloat("_HiPow");
                         if (hiPow != null) {
                             GUI.Label(outRect, "HiPow", uiParams.lStyle);
                             outRect.y += uiParams.unitHeight;
-                            hiPow = drawModValueSlider(outRect, (float)hiPow, 0.001f, 50f, String.Format("  {0:F4}", (float)hiPow));
+                            hiPow = drawModValueSlider(outRect, (float)hiPow, settings.hiPowMin, settings.hiPowMax,
+                                                       String.Format("  {0:F4}", (float)hiPow));
                             outRect.y += uiParams.unitHeight;
                         }                        
                     }
@@ -937,7 +939,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
                                     try {
                                         // 上書きしない 
                                         changeShaders.Add(material.GetInstanceID(), mShader);
-                                    } catch(ArgumentException ignoree) {}
+                                    } catch(ArgumentException ignore) {}
                                 }
                             }
     
@@ -991,19 +993,29 @@ class AlwaysColorChange : UnityInjector.PluginBase
         outRect.width = uiParams.winRect.width - uiParams.margin * 2;
         if (GUI.Button(outRect, "menu/mate保存", uiParams.bStyle)) {
             TBody body = holder.maid.body0;
-            List<TBodySkin> goSlot = body.goSlot;
-            int index = (int)global::TBody.hashSlotName[currentSlot.Name];
-            global::TBodySkin tBodySkin = goSlot[index];
+//            List<TBodySkin> goSlot = body.goSlot;
+//            int index = (int)global::TBody.hashSlotName[currentSlot.Name];
+            global::TBodySkin tBodySkin = body.GetSlot(currentSlot.Name);
             GameObject obj = tBodySkin.obj;
             if (obj == null) return;
 
             MaidProp prop = holder.maid.GetProp(currentSlot.Name.ToLower());
             if (prop != null) {
-                targetMenuInfo = new MenuInfo();
-                bool loaded = targetMenuInfo.LoadMenufile(prop.strFileName);
-                // 変更可能なマテリアルがない場合はダイアログを表示しない（TODO 表示できない旨通知)
-                if (targetMenuInfo.materials.Any()) {
-                    showSaveDialog |= loaded;
+                if (prop.strFileName.EndsWith(MenuInfo.EXT_MOD, StringComparison.CurrentCulture)) {
+                    var msg = "modファイルの変更は未対応です " + prop.strFileName;
+                    NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
+                } else {
+                    targetMenuInfo = new MenuInfo();
+                    bool loaded = targetMenuInfo.LoadMenufile(prop.strFileName);
+                    // 変更可能なmenuファイルがない場合は保存画面へ遷移しない
+                    if (!loaded) {
+                        var msg = "変更可能なmenuファイルがありません " + prop.strFileName;
+                        NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
+                    }
+
+                    if (targetMenuInfo.materials.Any()) {
+                        showSaveDialog |= loaded;
+                    }
                 }
             }
         }
@@ -1035,9 +1047,9 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
     private void DoNodeSelectMenu(int winID)
     {
-        var scrollRect = uiParams.CreateRect();
+        var scrollRect = uiParams.nodeSelectRect;
         var conRect = new Rect(0, 0, scrollRect.width - 20, 0);
-        var outRect = new Rect(0, 0, uiParams.winRect.width - uiParams.margin * 2, uiParams.itemHeight);
+        var outRect = uiParams.subRect;
 
         GUI.Label(outRect, "表示ノード選択", uiParams.lStyle);
         outRect.y += uiParams.unitHeight;
@@ -1082,7 +1094,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
     private void DoSaveMenu(int winID)
     {
-        var outRect = new Rect(0, 0, uiParams.winRect.width - uiParams.margin * 2, uiParams.itemHeight);
+        var outRect = uiParams.subRect;
 
         GUI.Label(outRect, "保存", uiParams.lStyle);
         outRect.y += uiParams.unitHeight;
@@ -1124,15 +1136,13 @@ class AlwaysColorChange : UnityInjector.PluginBase
         }
 
         GUI.DragWindow();
-
     }
 
     private void DoSelectPreset(int winId)
     {
-
-        var scrollRect = uiParams.CreateRect();
+        var scrollRect = uiParams.nodeSelectRect;
         var conRect = new Rect(0, 0, scrollRect.width - 20, 0);
-        var outRect = new Rect(0, 0, uiParams.winRect.width - uiParams.margin * 2, uiParams.itemHeight);
+        var outRect = uiParams.subRect;
 
         GUI.Label(outRect, "プリセット適用", uiParams.lStyle);
         outRect.y += uiParams.unitHeight;
@@ -1163,14 +1173,12 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
     private void ApplyMpns()
     {
-        if (targetPreset == null) {
-            return;
-        }
+        if (targetPreset == null) return;
 
         if (targetPreset.mpns == null || targetPreset.mpns.Count == 0) {
             ApplyPreset();
-        } else {
 
+        } else {
             // 衣装チェンジ
             foreach (string key in targetPreset.mpns.Keys) {
                 if (targetPreset.mpns[key].EndsWith("_del.menu")) {
@@ -1189,8 +1197,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
         }
     }
 
-    private void ApplyPreset()
-    {
+    private void ApplyPreset() {
         dDelNodes = targetPreset.delNodes;
         FixDelNode(false);
 
@@ -1207,14 +1214,29 @@ class AlwaysColorChange : UnityInjector.PluginBase
                 }
             }
 
+            // スロット上のマテリアル番号での判断に変更
             List<Material> materials = holder.GetMaterials(slotName);
-            foreach (var material in materials) {
-                if (ccslot.materials.ContainsKey(material.name)) {
-                    // 同名のマテリアルに、シェーダとカラーを適用
-                    material.shader = Shader.Find(ccslot.materials[material.name].shader);
-                    material.color = ccslot.materials[material.name].color;
+            int i=0;
+            foreach (CCMaterial mat in ccslot.materials.Values) {
+                if (i < materials.Count) {
+                    Shader sh = Shader.Find(mat.shader);
+                    if (sh != null) {
+                        materials[i].shader = sh;
+                        materials[i].color  = mat.color;
+                    }
+                } else {
+                    LogUtil.Log("マテリアル番号に対する、一致するマテリアルが見つかりません。", slotName, i);
+                    break;
                 }
+                i++;
             }
+//            foreach (var material in materials) {
+//                if (ccslot.materials.ContainsKey(material.name)) {
+//                    // 同名のマテリアルに、シェーダとカラーを適用
+//                    material.shader = Shader.Find(ccslot.materials[material.name].shader);
+//                    material.color = ccslot.materials[material.name].color;
+//                }
+//            }
         }
 
         if (targetPreset.clearMask) {
@@ -1225,22 +1247,19 @@ class AlwaysColorChange : UnityInjector.PluginBase
         bApplyChange = false;
     }
 
-    private void LoadPresets()
-    {
+    private void LoadPresets() {
         if (!File.Exists(SaveFileName)) return;
         presets = presetMgr.Load(SaveFileName);
     }
 
-
-    private void DoSaveModDialog(int winId)
-    {
+    private void DoSaveModDialog(int winId) {
         if (targetMenuInfo == null || !targetMenuInfo.materials.Any()) {
             LogUtil.DebugLog("target menu ('s material) is empty. Save dialog cannot be displayed.");
             showSaveDialog = false;
             return;
         }
 
-        var outRect = new Rect(0, 0, uiParams.modalRect.width - uiParams.margin * 2, uiParams.itemHeight);
+        var outRect = uiParams.subRect;
 
         outRect.x = uiParams.margin;
         outRect.y = uiParams.unitHeight;
@@ -1315,12 +1334,12 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
         if (GUI.Button(outRect, "保存", uiParams.bStyle)) {
             if (FileExists(targetMenuInfo.filename + MenuInfo.EXT_MENU)) {
-                NUty.WinMessageBox(NUty.GetWindowHandle(), "メニューファイル[" + targetMenuInfo.filename + MenuInfo.EXT_MENU + "]が既に存在します", "エラー", 0);
+                NUty.WinMessageBox(NUty.GetWindowHandle(), "メニューファイル[" + targetMenuInfo.filename + MenuInfo.EXT_MENU + "]が既に存在します", "エラー", NUty.MSGBOX.MB_OK);
                 return;
             }
             foreach (var mat in targetMenuInfo.materials) {
                 if (FileExists(mat[2] + MenuInfo.EXT_MATERIAL)) {
-                    NUty.WinMessageBox(NUty.GetWindowHandle(), "マテリアルファイル[" + mat[2] + MenuInfo.EXT_MATERIAL + "]が既に存在します", "エラー", 0);
+                    NUty.WinMessageBox(NUty.GetWindowHandle(), "マテリアルファイル[" + mat[2] + MenuInfo.EXT_MATERIAL + "]が既に存在します", "エラー", NUty.MSGBOX.MB_OK);
                     return;
                 }
             }

@@ -248,11 +248,14 @@ namespace CM3D2.AlwaysColorChange.Plugin
             {
                 float val = dirtyValue.Value;
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(dirtyValue.Name, GUILayout.Width(64));
-                GUILayout.Label(string.Format("{0:F0}", val), GUILayout.Width(32));
-                val = GUILayout.HorizontalSlider(val, dirtyValue.Min, dirtyValue.Max);
-                GUILayout.Space(margin * 2f);
-                GUILayout.EndHorizontal();
+                try {
+                    GUILayout.Label(dirtyValue.Name, GUILayout.Width(64));
+                    GUILayout.Label(string.Format("{0:F0}", val), GUILayout.Width(32));
+                    val = GUILayout.HorizontalSlider(val, dirtyValue.Min, dirtyValue.Max);
+                    GUILayout.Space(margin * 2f);
+                } finally {
+                    GUILayout.EndHorizontal();
+                }
                 dirtyValue.Value = val;
             }
         }

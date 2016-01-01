@@ -18,6 +18,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
         public const string HEAD = "CM3D2_MENU";
         public const string HEAD_MOD = "CM3D2_MOD";
         public const string RET = "《改行》";
+        public const string EXT_MOD     = ".mod";
         public const string EXT_MENU     = ".menu";
         public const string EXT_MATERIAL = ".mate";
         public const string EXT_MODEL    = ".model";
@@ -131,8 +132,8 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
         public bool LoadMenufile(string filename)
         {
             LogUtil.DebugLog("loading menu file", filename);
-            this.baseFilename = Path.GetFileNameWithoutExtension(filename);
-            this.filename = this.baseFilename;
+            this.baseFilename = filename;
+            this.filename = Path.GetFileNameWithoutExtension(filename);
             byte[] cd = null;
             try {
                 using (AFileBase aFileBase = global::GameUty.FileOpen(filename)) {
