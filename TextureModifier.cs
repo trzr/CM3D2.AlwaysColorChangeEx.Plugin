@@ -2,30 +2,49 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEngine;
+using CM3D2.AlwaysColorChange.Plugin.Util;
 
 namespace CM3D2.AlwaysColorChange.Plugin
 {
     internal class TextureModifier
     {
         private FilterParams filterParams = new FilterParams();
-        private OriginalTextureCache originalTextureCache = new OriginalTextureCache();
+        private OriginalTextureCache originalTexCache = new OriginalTextureCache();
 
         public void Clear()
         {
-            originalTextureCache.Clear();
+            originalTexCache.Clear();
+            filterParams.Clear();
         }
 
         public bool IsValidTarget(Maid maid, string slotName, Material material, string propName)
         {
             return GetKey(maid, slotName, material, propName) != null;
         }
+//        public bool IsDirty(Material material, TextureEdit texEdit) {
+//
+//            var tex2d = material.GetTexture(texEdit.propName) as Texture2D;
+//            if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) {
+//                return false;
+//            }
+//            var key = new StringBuilder("");
+//            key.Append(texEdit.slotName).Append('/').Append(material.name).Append('/').Append(tex2d.name);
+//            FilterParam filterParam = filterParams.GetOrAdd(key.ToString());
+//            return filterParam.Dirty.Value;
+//        }
 
         public void ProcGUI(Maid maid, string slotName, Material material, string propName, float margin, float fontSize, float itemHeight)
         {
-            FilterParam fp = Get(maid, slotName, material, propName);
-            if (fp != null)
-            {
+            // material 抽出 => texture 抽出
+            var tex2d = material.GetTexture(propName) as Texture2D;
+            if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) return ;
+
+            var key = CreateKey(slotName, material.name, tex2d.name);
+            FilterParam fp = filterParams.GetOrAdd(key.ToString());
+            if (fp != null) {
                 fp.ProcGUI(margin, fontSize, itemHeight);
             }
         }
@@ -34,27 +53,52 @@ namespace CM3D2.AlwaysColorChange.Plugin
             Maid maid,
             Dictionary<string, List<Material>> slotMaterials,
             List<Texture2D> textures,
-            string slotName, int materialIndex, string propName
-        )
+            TextureEdit texEdit )
         {
-            originalTextureCache.Refresh(textures.ToArray());
+            originalTexCache.Refresh(textures.ToArray());
 
             // マウスボタンが離されたタイミングでフィルターを適用する
-            if (Input.GetMouseButtonUp(0))
-            {
-                FilterTexture(slotMaterials, textures, maid, slotName, materialIndex, propName);
+            if (Input.GetMouseButtonUp(0)) {
+                FilterTexture(slotMaterials, textures, maid, texEdit);
+            }
+        }
+
+        private StringBuilder CreateKey(string slotName, string materialName, string texName) {
+            var key = new StringBuilder();
+            // wear/Dress_cmo_004_z2/Dress_cmo_004_z2_wear_2
+            key.Append(slotName).Append('/').Append(materialName).Append('/').Append(texName);
+            return key;
+        }
+
+        public void UpdateSlot(Maid maid, List<Material> slotMaterials, TextureEdit texEdit )
+        {
+            // material 抽出 => texture 抽出
+            if (slotMaterials.Count <=  texEdit.matNo) return;
+            Material mat = slotMaterials[texEdit.matNo];
+
+            var tex2d = mat.GetTexture(texEdit.propName) as Texture2D;
+            if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) return ;
+
+            var key = CreateKey(texEdit.slotName, mat.name, tex2d.name);
+            FilterParam filterParam = filterParams.GetOrAdd(key.ToString());
+
+            // スライダー変更がなければ何もしない
+            if (!filterParam.IsDirty) return;
+
+            // マウスボタンが離されたタイミングでフィルターを適用する
+            if (Input.GetMouseButtonUp(0)) {
+                FilterTexture(mat, tex2d, filterParam, texEdit);
             }
         }
 
         private string GetKey(Maid maid, string slotName, Material material, string propName)
         {
-            if (maid == null || material == null || string.IsNullOrEmpty(propName))
-            {
+            if (maid == null || material == null || string.IsNullOrEmpty(propName)) {
                 return null;
             }
+
             var tex2d = material.GetTexture(propName) as Texture2D;
-            if (tex2d == null || string.IsNullOrEmpty(tex2d.name))
-            {
+            if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) {
                 return null;
             }
             return string.Format("{0}/{1}/{2}/{3}"
@@ -64,42 +108,72 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 , tex2d.name);
         }
 
-        private FilterParam Get(Maid maid, string slotName, Material material, string propName)
+        // 途中版
+        public static Texture2D convert(RenderTexture rtex)
+        {
+            var tex2d = new Texture2D(rtex.width, rtex.height, TextureFormat.ARGB32, false, false);
+            RenderTexture old = RenderTexture.active;
+            RenderTexture.active = rtex;
+            try {
+                tex2d.ReadPixels(new Rect(0, 0, rtex.width, rtex.height), 0, 0);
+                tex2d.Apply();
+            } finally {
+                RenderTexture.active = old;
+            }
+            return tex2d;
+        }
+
+//        private FilterParam GetFilterParam(Material material, TextureEdit texEdit) {
+//
+//            var tex2d = material.GetTexture(texEdit.propName) as Texture2D;
+//            if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) {
+//                return null;
+//            }
+//            var key = new StringBuilder();
+//            key.Append(texEdit.slotName).Append('/').Append(material.name).Append('/').Append(tex2d.name);
+//            rerturn filterParams.GetOrAdd(key.ToString());
+//        }
+
+        private FilterParam GetFilterParam(Maid maid, string slotName, Material material, string propName)
         {
             string key = GetKey(maid, slotName, material, propName);
             return filterParams.GetOrAdd(key);
         }
 
         private void FilterTexture(
-            Dictionary<string, List<Material>> slotMaterials,
-            List<Texture2D> textures, Maid maid, string slotName, int materialIndex, string propName
-        )
+            IDictionary<string, List<Material>> slotMaterials,
+            List<Texture2D> textures, Maid maid, TextureEdit texEdit)
+        {
+            List<Material> materials;
+            if (slotMaterials.TryGetValue(texEdit.slotName, out materials)) {
+                FilterTexture(materials, textures, maid, texEdit);
+            }
+        }
+        private void FilterTexture(
+            ICollection<Material> slotMaterials,
+            List<Texture2D> textures, Maid maid, TextureEdit texEdit)
         {
             Material material = null;
             Texture2D texture = null;
             {
-                List<Material> materials;
-                if (slotMaterials.TryGetValue(slotName, out materials) && materials != null)
-                {
-                    material = materials.ElementAtOrDefault(materialIndex);
-                    if (material != null)
-                    {
-                        texture = material.GetTexture(propName) as Texture2D;
+                if ( slotMaterials != null ) {
+                    material = slotMaterials.ElementAtOrDefault(texEdit.matNo);
+                    if (material != null) {
+                        texture = material.GetTexture(texEdit.propName) as Texture2D;
                     }
                 }
             }
-            if (material == null || texture == null)
-            {
-                return;
-            }
+            if (material == null || texture == null) return;
 
-            FilterParam filterParam = Get(maid, slotName, material, propName);
-            if (!filterParam.Dirty.Value)
-            {
-                return;
-            }
+            FilterParam filterParam = GetFilterParam(maid, texEdit.slotName, material, texEdit.propName);
+            if (!filterParam.Dirty.Value) return;
+            FilterTexture(material, texture, filterParam, texEdit);
+        }
 
-            originalTextureCache.SetDirty(texture);
+        private void FilterTexture(Material material, Texture2D texture, FilterParam filterParam, TextureEdit texEdit)
+        {
+            TextureHolder orgTex = originalTexCache.GetOrAdd(texture);
+            orgTex.dirty  = false;
             filterParam.ClearDirtyFlag();
 
             float outputBase = filterParam.OutputMin * 0.01f;
@@ -113,43 +187,39 @@ namespace CM3D2.AlwaysColorChange.Plugin
             float saturation = filterParam.Saturation / 100f;
             float lightness = filterParam.Lightness / 100f;
 
-            Filter(texture, originalTextureCache.GetOriginalTexture(texture), (color) =>
-                {
-                    Color c = color;
+            Filter(texture, orgTex.texture, (color) =>
+                   {
+                       Color c = color;
 
-                    c.r = Mathf.Clamp01(c.r * inputScale + inputBase);
-                    c.g = Mathf.Clamp01(c.g * inputScale + inputBase);
-                    c.b = Mathf.Clamp01(c.b * inputScale + inputBase);
+                       c.r = Mathf.Clamp01(c.r * inputScale + inputBase);
+                       c.g = Mathf.Clamp01(c.g * inputScale + inputBase);
+                       c.b = Mathf.Clamp01(c.b * inputScale + inputBase);
 
-                    c.r = Mathf.Pow(c.r, inputExp);
-                    c.g = Mathf.Pow(c.g, inputExp);
-                    c.b = Mathf.Pow(c.b, inputExp);
+                       c.r = Mathf.Pow(c.r, inputExp);
+                       c.g = Mathf.Pow(c.g, inputExp);
+                       c.b = Mathf.Pow(c.b, inputExp);
 
-                    Vector4 hsl = ColorUtil.ColorToHsl(c);
-                    hsl.x = (hsl.x + hue) % 1f;
-                    hsl.y *= saturation;
-                    hsl.z *= lightness;
-                    c = ColorUtil.HslToColor(hsl);
+                       Vector4 hsl = ColorUtil.ColorToHsl(c);
+                       hsl.x = (hsl.x + hue) % 1f;
+                       hsl.y *= saturation;
+                       hsl.z *= lightness;
+                       c = ColorUtil.HslToColor(hsl);
 
-                    c.r = c.r * outputScale + outputBase;
-                    c.g = c.g * outputScale + outputBase;
-                    c.b = c.b * outputScale + outputBase;
-
-                    return c;
+                       c.r = c.r * outputScale + outputBase;
+                       c.g = c.g * outputScale + outputBase;
+                       c.b = c.b * outputScale + outputBase;
+                       return c;
                 });
         }
-
         private void Filter(Texture2D dstTexture, Texture2D srcTexture, Func<Color32, Color32> mapFunc)
         {
-            if (dstTexture == null || srcTexture == null || dstTexture.width != srcTexture.width || dstTexture.height != srcTexture.height)
-            {
+            if (dstTexture == null || srcTexture == null || dstTexture.width != srcTexture.width || dstTexture.height != srcTexture.height) {
                 return;
             }
             int maxIndex = dstTexture.width * dstTexture.height;
             Color32[] src = srcTexture.GetPixels32(0);
             Color32[] dst = dstTexture.GetPixels32(0);
-            for (int i = 0; i < maxIndex; i++)
-            {
+            for (int i = 0; i < maxIndex; i++) {
                 dst[i] = mapFunc(src[i]);
             }
             dstTexture.SetPixels32(dst);
@@ -158,27 +228,25 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
         private class FilterParams
         {
-            private Dictionary<string, FilterParam> params_;
+            private readonly Dictionary<string, FilterParam> params_ =
+                new Dictionary<string, FilterParam>();
 
             public FilterParams()
             {
-                Clear();
             }
 
             public void Clear()
             {
-                params_ = new Dictionary<string, FilterParam>();
+                params_.Clear();
             }
 
             public FilterParam GetOrAdd(string key)
             {
                 FilterParam p;
-                if (params_.TryGetValue(key, out p))
-                {
-                    return p;
+                if (!params_.TryGetValue(key, out p)) {
+                    p = new FilterParam();
+                    params_[key] = p;
                 }
-                p = new FilterParam();
-                params_[key] = p;
                 return p;
             }
         }
@@ -204,15 +272,15 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
             public void Clear()
             {
-                Dirty = new DirtyFlag();
-                Hue = new DirtyValue(Dirty, "色相", 0f, 0f, 360f);
-                Saturation = new DirtyValue(Dirty, "彩度", 100f, 0f, 200f);
-                Lightness = new DirtyValue(Dirty, "明度", 100f, 0f, 200f);
-                InputMin = new DirtyValue(Dirty, "InpMin", 0f, 0f, 100f);
-                InputMax = new DirtyValue(Dirty, "InpMax", 100f, 0f, 100f);
-                InputMid = new DirtyValue(Dirty, "InpMid", 50f, 0f, 100f);
-                OutputMin = new DirtyValue(Dirty, "OutMin", 0f, 0f, 100f);
-                OutputMax = new DirtyValue(Dirty, "OutMax", 100f, 0f, 100f);
+                Dirty      = new DirtyFlag();
+                Hue        = new DirtyValue(Dirty, "色相",      0f, 0f, 360f);
+                Saturation = new DirtyValue(Dirty, "彩度",    100f, 0f, 200f);
+                Lightness  = new DirtyValue(Dirty, "明度",    100f, 0f, 200f);
+                InputMin   = new DirtyValue(Dirty, "InpMin",   0f, 0f, 100f);
+                InputMax   = new DirtyValue(Dirty, "InpMax", 100f, 0f, 100f);
+                InputMid   = new DirtyValue(Dirty, "InpMid",  50f, 0f, 100f);
+                OutputMin  = new DirtyValue(Dirty, "OutMin",   0f, 0f, 100f);
+                OutputMax  = new DirtyValue(Dirty, "OutMax", 100f, 0f, 100f);
             }
 
             public void ClearDirtyFlag()
@@ -233,14 +301,16 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
                 GUILayout.Space(margin * 2f);
                 GUILayout.BeginHorizontal();
-                GUILayout.Space(margin * 8f);
-                if (GUILayout.Button("リセット"))
-                {
-                    Clear();
-                    Dirty.Value = true;
+                try {
+                    GUILayout.Space(margin * 8f);
+                    if (GUILayout.Button("リセット")) {
+                        Clear();
+                        Dirty.Value = true;
+                    }
+                    GUILayout.Space(margin * 8f);
+                } finally {
+                    GUILayout.EndHorizontal();
                 }
-                GUILayout.Space(margin * 8f);
-                GUILayout.EndHorizontal();
                 GUILayout.Space(margin * 2f);
             }
 
@@ -251,8 +321,9 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 try {
                     GUILayout.Label(dirtyValue.Name, GUILayout.Width(64));
                     GUILayout.Label(string.Format("{0:F0}", val), GUILayout.Width(32));
+                    
                     val = GUILayout.HorizontalSlider(val, dirtyValue.Min, dirtyValue.Max);
-                    GUILayout.Space(margin * 2f);
+                    GUILayout.Space(margin *2);
                 } finally {
                     GUILayout.EndHorizontal();
                 }
@@ -260,7 +331,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             }
         }
 
-        private class DirtyFlag
+        private class DirtyFlag 
         {
             public bool Value = false;
         }
@@ -275,15 +346,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
             public float Max { get; private set; }
             public float Value
             {
-                get
-                {
-                    return val;
-                }
-                set
-                {
+                get { return val; }
+                set {
                     float v = Mathf.Clamp(value, Min, Max);
-                    if (!val.Equals(v))
-                    {
+                    if (!val.Equals(v)) {
                         val = v;
                         dirtyFlag.Value = true;
                     }
@@ -305,10 +371,16 @@ namespace CM3D2.AlwaysColorChange.Plugin
             }
         }
 
+        private class TextureHolder
+        {
+            public bool dirty;
+            public Texture2D texture;
+        }
+
         private class OriginalTextureCache
         {
-            private Dictionary<string, Texture2D> OriginalTextures;
-            private Dictionary<string, bool> DirtyTextures;
+            private readonly Dictionary<string, TextureHolder> OriginalTextures = 
+                new Dictionary<string, TextureHolder>();
 
             public OriginalTextureCache()
             {
@@ -317,75 +389,71 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
             public void Clear()
             {
-                if (OriginalTextures != null)
-                {
+                if (OriginalTextures != null) {
                     // テクスチャの開放
-                    foreach (Texture2D tex in OriginalTextures.Values)
-                    {
-                        try
-                        {
-                            UnityEngine.Object.Destroy(tex);
-                        }
-                        catch { }
+                    foreach (TextureHolder texHolder in OriginalTextures.Values) {
+                        try {
+                            UnityEngine.Object.Destroy(texHolder.texture);
+                        } catch { }
                     }
                 }
-                OriginalTextures = new Dictionary<string, Texture2D>();
-                DirtyTextures = new Dictionary<string, bool>();
+                OriginalTextures.Clear();
             }
 
             public void Refresh(Texture2D[] maidTextures)
             {
                 // 既に使われなくなったテクスチャを削除
-                var names = new List<string>();
-                foreach (string name in OriginalTextures.Keys)
-                {
+                var nonExistNames = new List<string>();
+                foreach (string name in OriginalTextures.Keys) {
                     bool b = false;
-                    foreach (Texture2D t in maidTextures)
-                    {
-                        if (t.name == name)
-                        {
+                    foreach (Texture2D t in maidTextures) {
+                        if (t.name == name) {
                             b = true;
                             break;
                         }
                     }
-                    if (!b)
-                    {
-                        names.Add(name);
+                    if (!b) {
+                        nonExistNames.Add(name);
                     }
                 }
-                foreach (string name in names)
-                {
-                    Texture2D tex;
-                    if (OriginalTextures.TryGetValue(name, out tex))
-                    {
-                        UnityEngine.Object.Destroy(tex);
+                foreach (string name in nonExistNames) {
+                    TextureHolder texHolder;
+                    if (OriginalTextures.TryGetValue(name, out texHolder)) {
+                        UnityEngine.Object.Destroy(texHolder.texture);
                     }
                     OriginalTextures.Remove(name);
-                    DirtyTextures.Remove(name);
                 }
 
                 // 知らないテクスチャを追加
-                foreach (Texture2D t in maidTextures)
-                {
-                    if (!OriginalTextures.ContainsKey(t.name) && !IsDirty(t))
-                    {
-                        OriginalTextures[t.name] = UnityEngine.Object.Instantiate(t) as Texture2D;
-                        DirtyTextures[t.name] = false;
+                foreach (Texture2D t in maidTextures) {
+                    if (!OriginalTextures.ContainsKey(t.name)) {
+                        var texHolder = new TextureHolder();
+                        texHolder.texture = UnityEngine.Object.Instantiate(t) as Texture2D;
+                        texHolder.dirty   = false;
+                        OriginalTextures[t.name] = texHolder;
                     }
                 }
             }
-
+            public TextureHolder GetOrAdd(Texture2D tex)
+            {
+                TextureHolder holder;
+                if (!OriginalTextures.TryGetValue(tex.name, out holder)) {
+                    holder = new TextureHolder();
+                    holder.texture = UnityEngine.Object.Instantiate(tex) as Texture2D;
+                    OriginalTextures[tex.name] = holder;
+                }
+                return holder;
+            }
             public void SetDirty(Texture2D texture)
             {
-                if (texture != null)
-                {
+                if (texture != null) {
                     SetDirty(texture.name);
                 }
             }
 
             public void SetDirty(string name)
             {
-                DirtyTextures[name] = true;
+                OriginalTextures[name].dirty = true;
             }
 
             public bool IsDirty(Texture2D texture)
@@ -395,12 +463,8 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
             public bool IsDirty(string name)
             {
-                bool b;
-                if (DirtyTextures.TryGetValue(name, out b))
-                {
-                    return b;
-                }
-                return false;
+                TextureHolder texHolder;
+                return OriginalTextures.TryGetValue(name, out texHolder) && texHolder.dirty;
             }
 
             public Texture2D GetOriginalTexture(Texture2D texture)
@@ -410,12 +474,8 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
             public Texture2D GetOriginalTexture(string name)
             {
-                Texture2D t;
-                if (OriginalTextures.TryGetValue(name, out t))
-                {
-                    return t;
-                }
-                return null;
+                TextureHolder t;
+                return OriginalTextures.TryGetValue(name, out t) ? t.texture : null;
             }
         }
 
@@ -435,19 +495,15 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 float s = 0f;
                 float l = (max + min) / 2f;
                 float d = max - min;
-                if (d != 0f)
-                {
+
+                // FIXME float comparation
+                if (d != 0f) {
                     s = (l > 0.5f) ? (d / (2f - max - min)) : (d / (max + min));
-                    if (max == c.r)
-                    {
+                    if (max == c.r) {
                         h = (c.g - c.b) / d + (c.g < c.b ? 6f : 0f);
-                    }
-                    else if (max == c.g)
-                    {
+                    } else if (max == c.g) {
                         h = (c.b - c.r) / d + 2f;
-                    }
-                    else
-                    {
+                    } else {
                         h = (c.r - c.g) / d + 4f;
                     }
                     h /= 6f;
@@ -465,14 +521,11 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 float s = hsl.y;
                 float l = hsl.z;
 
-                if (s == 0f)
-                {
+                if (s == 0f) {
                     c.r = l;
                     c.g = l;
                     c.b = l;
-                }
-                else
-                {
+                } else {
                     float y = (l < 0.5f) ? (l * (1f + s)) : ((l + s) - l * s);
                     float x = 2f * l - y;
                     c.r = Hue(x, y, h + 1f / 3f);
@@ -485,32 +538,45 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
             private static float Hue(float x, float y, float t)
             {
-                if (t < 0f)
-                {
+                if (t < 0f) {
                     t += 1f;
-                }
-                else if (t > 1f)
-                {
+                } else if (t > 1f) {
                     t -= 1f;
-                }
+                } 
 
-                if (t < 1f / 6f)
-                {
+                if (t < 1f / 6f) {
                     return x + (y - x) * 6f * t;
-                }
-                else if (t < 2f / 6f)
-                {
+                } else if (t < 2f / 6f) {
                     return y;
-                }
-                else if (t < 4f / 6f)
-                {
+                } else if (t < 4f / 6f) {
                     return x + (y - x) * 6f * (2f / 3f - t);
-                }
-                else
-                {
+                } else {
                     return x;
                 }
             }
+        }
+    }
+
+    class TextureEdit
+    {
+        public string slotName;
+        public int matNo;
+        public string propName;
+
+        public TextureEdit()
+        {
+            Clear();
+        }
+
+        // テクスチャエディット対象を無効にする
+        public void Clear()
+        {
+            slotName = string.Empty;
+            matNo = -1;
+            propName = string.Empty;
+        }
+        public bool IsValid() {
+            return (matNo >= 0 && slotName.Length != 0 && propName.Length != 0);
         }
     }
 }

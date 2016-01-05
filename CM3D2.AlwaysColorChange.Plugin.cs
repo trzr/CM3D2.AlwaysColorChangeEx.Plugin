@@ -18,17 +18,63 @@ namespace CM3D2.AlwaysColorChange.Plugin {
  PluginFilter("CM3D2x86"),
  PluginFilter("CM3D2VRx64"),
  PluginName("CM3D2 AlwaysColorChangeMod"),
- PluginVersion("0.0.4.4")]
+ PluginVersion("0.0.4.5")]
 class AlwaysColorChange : UnityInjector.PluginBase
 {
-    #region Constants
-    public const string Version = "0.0.4.4";
-    public const string PlugiName = "AlwaysColorChangeMod";
+    // プラグイン名
+    private static volatile string _pluginName;
+    // プラグインバージョン
+    private static volatile string _version;
+    private static byte[] _lock = new byte[0];
+    public static string PluginName
+    {
+        get {
+            if (_pluginName == null) {
+                lock(_lock) {
+                    if (_pluginName == null) {
+                        try {
+                            // 属性クラスからプラグイン名取得
+                            var att = Attribute.GetCustomAttribute( typeof(AlwaysColorChange), typeof( PluginNameAttribute ) ) as PluginNameAttribute;
+                            if( att != null ) {
+                                _pluginName = att.Name;
+                            }
+                        } catch( Exception e ) {
+                            LogUtil.ErrorLog( e );
+                        }
+                    }
+                }
+            }
+            return _pluginName;
+        }
+    }
+    // プラグインバージョン取得
+    public static string Version
+    {
+        get {
+            if (_version == null) {
+                lock(_lock) {
+                    if (_version == null) {
+                        try {
+                            // 属性クラスからバージョン番号取得
+                            var att = Attribute.GetCustomAttribute( typeof(AlwaysColorChange), typeof( PluginVersionAttribute ) ) as PluginVersionAttribute;
+                            if( att != null ) {
+                                _version = att.Version;
+                            }
+                        } catch( Exception e ) {
+                            LogUtil.ErrorLog( e );
+                        }
+                    }
+                }
+            }
+            return _version;
+        }
+    }
 
+    #region Constants
     private const float GUIWidth = 0.25f;
     private const int marginPx = 4;
     private const int fontPx = 14;
-    private const int itemHeightPx = 20;
+    private const int itemHeightPx = 18;
     #endregion
 
     private enum TargetLevel {
@@ -83,22 +129,24 @@ class AlwaysColorChange : UnityInjector.PluginBase
     private bool bApplyChange = false;
     private MenuInfo targetMenuInfo;
     private CCPreset targetPreset;
-    private TextureModifier textureModifier;
 
     private bool bClearMaskEnable = false;
     private bool bSaveBodyPreset  = false;
 
-    private string texturePath;
-    // TODO 配列化 (matNoは配列のindexとして扱えるはず)
-    private Dictionary<int, Dictionary<string, string>> textureFile;
-    private FileBrowser fileBrowser;
-
-    TextureEdit textureEdit = new TextureEdit();
     private bool isActive;
     private string SaveFileName;
 
     private Vector2 scrollViewVector = Vector2.zero;
 
+    // テクスチャ変更用
+    private TextureModifier textureModifier;
+    private TextureEdit textureEdit = new TextureEdit();
+    private FileBrowser fileBrowser;
+    private string texturePath;
+    // TODO 配列化 (matNoは配列のindexとして扱えるはず)
+    private Dictionary<int, Dictionary<string, string>> textureFile;
+
+    private Dictionary<string, List<Material>> slotMaterials = new Dictionary<string, List<Material>>(ACConstants.SlotNames.Count);
     #endregion
 
     #region MonoBehaviour methods
@@ -115,6 +163,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
         textureModifier = new TextureModifier();
         LoadPresets();
+
     }
 
     public void OnDestroy() 
@@ -182,6 +231,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
             }
         }
     }
+
     public void Update()
     {
         fPassedTimeOnLevel += Time.deltaTime;
@@ -198,16 +248,14 @@ class AlwaysColorChange : UnityInjector.PluginBase
         if (Input.GetKeyDown(settings.toggleKey)) {
             menuType = (menuType == MenuType.None)? MenuType.Main : MenuType.None;
         }
-        if (Input.GetKeyDown(KeyCode.Alpha0)) {
-            if (Debug.isDebugBuild) {
-                if (dDelNodes.Any()) {
-                    var keyList = new List<string>(dDelNodes.Keys);
-                    foreach (string key in keyList) {
-                        LogUtil.DebugLog(key);
-                    }
-                }
-            }
-        }
+//        if (Input.GetKeyDown(KeyCode.Alpha0)) {
+//            if (dDelNodes.Any()) {
+//                var keyList = new List<string>(dDelNodes.Keys);
+//                foreach (string key in keyList) {
+//                    LogUtil.DebugLog(key);
+//                }
+//            }
+//        }
 
         bool isEnableControl = false;
         if (menuType != MenuType.None) {
@@ -235,44 +283,35 @@ class AlwaysColorChange : UnityInjector.PluginBase
         }
 
         // テクスチャエディットの反映
-        if (menuType != MenuType.Texture) {
+        if (menuType == MenuType.Texture) {
+            
+            // 必要のないときは処理を行わない
+            if (textureEdit.IsValid()) {
+
+                // スロットが置き換わっているか確認(modelファイルが同一であればマテリアル数は同一
+                TBodySkin slot = holder.maid.body0.GetSlot(currentSlot.Name);
+
+                string modelFile = slot.m_strModelFileName;
+                if (targetModelFile != modelFile) {
+                    LogUtil.DebugLog("slot's model changed.", targetModelFile);
+                    var materials = holder.GetMaterials(slot);
+                    //　対象のスロットのモデルが変更された場合に、マテリアルからtex一覧を初期化
+                    InitTexChange(materials, slot);
+                }
+
+                textureModifier.UpdateSlot(
+                    holder.maid,
+                    slotMaterials[currentSlot.Name],
+                    textureEdit);
+            }
+        } else {
             // テクスチャモードでなければ、テクスチャ変更対象を消す
             textureEdit.Clear();
-
-        } else {
-            // 各スロットのマテリアルの列挙
-            var slotMaterials = new Dictionary<string, List<Material>>(ACConstants.SlotNames.Count);
-            foreach (SlotInfo slot in ACConstants.SlotNames.Values) {
-                slotMaterials[slot.Name] = holder.GetMaterials(slot);
-            }
-
-            // マテリアルで使用されている全テクスチャの列挙
-            var textures = new List<Texture2D>();
-            foreach (List<Material> materials in slotMaterials.Values) {
-                foreach (Material material in materials) {
-                    // TODO material に対応するpropNamesに変更
-                    string shaderName = material.shader.name;
-                    ShaderMapper.MaterialFlag mate = ShaderMapper.resolve(shaderName);
-                    if (mate == null) continue;
-
-                    foreach (string propName in mate.propNames) {
-                        var tex2d = material.GetTexture(propName) as Texture2D;
-                        if (tex2d != null) {
-                            textures.Add(tex2d);
-                        }
-                    }
-                }
-            }
-            textureModifier.Update(
-                holder.maid,
-                slotMaterials,
-                textures,
-                textureEdit.slotName,
-                textureEdit.materialIndex,
-                textureEdit.propName);
         }
     }
     #endregion
+
+
 
     #region Private methods
     private void dispose() 
@@ -305,62 +344,46 @@ class AlwaysColorChange : UnityInjector.PluginBase
 //        uiParams.InitWinRect();
 //        uiParams.InitFBRect();
 
-        return initModsSliderNGUI();
+        return initGUI();
     }
 
-    private bool initModsSliderNGUI() 
+    private bool initGUI() 
     {
         return true;
     }
     #endregion
 
-
-    class TextureEdit
-    {
-        public string slotName;
-        public int materialIndex;
-        public string propName;
-
-        public TextureEdit()
-        {
-            Clear();
-        }
-
-        // テクスチャエディット対象を無効にする
-        public void Clear()
-        {
-            slotName = string.Empty;
-            materialIndex = -1;
-            propName = string.Empty;
-        }
-    }
-
+    // 編集中のパーツに対するモデルファイル
     private string targetModelFile;
-    // テクスチャ変更のためのオブジェクトを初期化
+
+    // テクスチャ変更のためmaterialリストを再取得
     // 対象のスロットのアイテムが変更された場合も呼び出す必要がある
     void InitTexChange(List<Material> materialList, TBodySkin slot) {
         textureFile = new Dictionary<int, Dictionary<string, string>>();
-        int i=0;
+        int matNo = 0;
         foreach (Material m in materialList) {
             string shaderName = m.shader.name;
             ShaderMapper.MaterialFlag mate = ShaderMapper.resolve(shaderName);
 
             // 未対応のシェーダはスキップ
             if (mate == null) {
-                LogUtil.Log("未知のシェーダが指定されていました", shaderName);
-                textureFile.Add(i, new Dictionary<string, string>());
+                LogUtil.Log("未知のシェーダが指定されていました", currentSlot.Name, shaderName);
+                textureFile.Add(matNo, new Dictionary<string, string>());
             } else {
-                textureFile.Add(i, new Dictionary<string, string>(mate.propNames.Length));
+                textureFile.Add(matNo, new Dictionary<string, string>(mate.propNames.Length));
                 foreach (string propName in mate.propNames) {
-                    textureFile[i].Add(propName, "");
+                    textureFile[matNo].Add(propName, "");
                 }
             }
-            i++;
+            matNo++;
         }
         if (slot == null) {
             slot = holder.maid.body0.GetSlot(currentSlot.Name);
         }
+        LogUtil.DebugLog("slot's model changed.", targetModelFile, "=>", slot.m_strModelFileName);
+        slotMaterials[currentSlot.Name] = materialList;
         targetModelFile = slot.m_strModelFileName;
+        // 必要であれば、textureModifierの設定を行う
     }
 
     private void DoSelectTexture(int winId)
@@ -372,7 +395,6 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
         var outRect = uiParams.subRect;
         GUI.Label(outRect, "テクスチャ変更", uiParams.lStyle);
-
         
         scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
         try {
@@ -387,10 +409,10 @@ class AlwaysColorChange : UnityInjector.PluginBase
             TBodySkin slot = holder.maid.body0.GetSlot(currentSlot.Name);
 
             var materials = holder.GetMaterials(slot);
-            string model = slot.m_strModelFileName;
-            if (targetModelFile != model) {
+            //　対象のスロットのモデルが変更された場合に、マテリアルからtex一覧を初期化
+            string modelFile = slot.m_strModelFileName;
+            if (targetModelFile == null || targetModelFile != modelFile) {
                 InitTexChange(materials, slot);
-                targetModelFile = model;
             }
 
     //            conRect.height += uiParams.unitHeight * (materials.Count() * (PropNames.Count() * 2 + 2)) + uiParams.margin * 2;
@@ -405,7 +427,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
     
                 GUILayout.Label(material.name, uiParams.lStyle);
                 foreach (string propName in mate.propNames) {
-                    bool bTargetElement = (matNo == textureEdit.materialIndex && propName == textureEdit.propName);
+                    bool bTargetElement = (matNo == textureEdit.matNo && propName == textureEdit.propName);
 
                     var dic = textureFile[matNo];
 
@@ -431,7 +453,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
                             // エディット中以外のテクスチャの場合
                             if (GUILayout.Button("+変更", uiParams.bStyle, buttonWidth2)) {
                                 textureEdit.slotName = currentSlot.Name;
-                                textureEdit.materialIndex = matNo;
+                                textureEdit.matNo = matNo;
                                 textureEdit.propName = propName;
                             }
                         }
@@ -450,7 +472,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
                     try {
                         dic[propName] = GUILayout.TextField(dic[propName], uiParams.textStyle);
                         if (GUILayout.Button("適", uiParams.bStyle, buttonWidth)) {
-                            ChangeTex(texturePath, dic[propName], matNo, propName);
+                            ChangeTexFile(texturePath, dic[propName], matNo, propName);
                         }
                         if (GUILayout.Button("...", uiParams.bStyle, buttonWidth)) {
                             OpenFileBrowser(matNo, propName);
@@ -485,7 +507,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
                 texturePath = Path.GetDirectoryName(path);
                 textureFile[matNo][propName] = Path.GetFileName(path);
-                ChangeTex(texturePath, textureFile[matNo][propName], matNo, propName);
+                ChangeTexFile(texturePath, textureFile[matNo][propName], matNo, propName);
 
             });
         fileBrowser.SelectionPatterns = new string[] { "*.tex", "*.png" };
@@ -499,7 +521,6 @@ class AlwaysColorChange : UnityInjector.PluginBase
         fileBrowser.OnGUI();
         GUI.DragWindow();
     }
-
 
     private class UIParams {
         private int width;
@@ -523,11 +544,12 @@ class AlwaysColorChange : UnityInjector.PluginBase
         public Rect modalRect       = new Rect();
 
         public Rect mainRect         = new Rect();
+        public Rect mainConRect      = new Rect();
         public Rect colorRect        = new Rect();
         public Rect nodeSelectRect   = new Rect();
         public Rect presetSelectRect = new Rect();
-        public Rect textureRect       = new Rect();
-        public Rect subRect         = new Rect();
+        public Rect textureRect      = new Rect();
+        public Rect subRect          = new Rect();
 
         public GUIStyle winStyle = "box";
         public UIParams() {
@@ -580,10 +602,12 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
             // sub
             mainRect.Set(      margin, unitHeight * 5 + margin, winRect.width - margin * 2, winRect.height - unitHeight * 6);
+            mainConRect.Set(   0,      0,              mainRect.width - 20, unitHeight * ACConstants.SlotNames.Count + margin * 2);
             textureRect.Set(   margin, unitHeight,     winRect.width - margin * 2, winRect.height - unitHeight * 2);
             nodeSelectRect.Set(margin, unitHeight * 2, winRect.width - margin * 2, winRect.height - unitHeight * 4);
             colorRect.Set(     margin, unitHeight * 2, winRect.width - margin * 3, winRect.height - unitHeight * 4);
             subRect.Set(       0,      0,              winRect.width - margin * 2, itemHeight);
+//            color Sub outRect.Set(       margin, 0,              winRect.width - margin * 2, itemHeight);
         }
 
         public void InitWinRect() {
@@ -629,12 +653,9 @@ class AlwaysColorChange : UnityInjector.PluginBase
                 menuType = MenuType.PresetSelect;
             }
         }
+
         outRect.y = 0;
-
-        var conRect = new Rect(0, 0, scrollRect.width - 20, 
-                               (uiParams.unitHeight) * ACConstants.SlotNames.Count + uiParams.margin * 2);
-
-        scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
+        scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, uiParams.mainConRect);
         try {
             foreach (SlotInfo slot in ACConstants.SlotNames.Values) {
                 if (slot.Id == TBody.SlotID.end) continue;
@@ -645,9 +666,6 @@ class AlwaysColorChange : UnityInjector.PluginBase
 //                    continue;
 //                }
 
-//                MaidProp prop = holder.maid.GetPropLower(slot.Name.ToLower());
-//                if (prop == null) continue;
-    
                 if (GUI.Button(outRect, slot.DisplayName, uiParams.bStyle)) {
                     currentSlot = slot;
                     menuType = MenuType.Color;
@@ -679,7 +697,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
         if (bApply) holder.FixFlag();
     }
 
-    private void ChangeTex(string path, string filename, int matNo, string propName)
+    private void ChangeTexFile(string path, string filename, int matNo, string propName)
     {
         if (propName.StartsWith("_")) {
             if (Path.GetExtension(filename).ToLower() == ".tex") {
@@ -692,46 +710,38 @@ class AlwaysColorChange : UnityInjector.PluginBase
                 materials[matNo].SetTexture(propName, tex);
             }
         } else {
-            GameUty.SystemMaterial mat = GameUty.SystemMaterial.Alpha;
-            switch (propName) {
-                case "Alpha":
-                    mat = GameUty.SystemMaterial.Alpha;
-                    break;
-                case "Multiply":
-                    mat = GameUty.SystemMaterial.Multiply;
-                    break;
-                case "InfinityColor":
-                    mat = GameUty.SystemMaterial.InfinityColor;
-                    break;
-                case "TexTo8bitTex":
-                    mat = GameUty.SystemMaterial.TexTo8bitTex;
-                    break;
-                case "Max":
-                    mat = GameUty.SystemMaterial.Max;
-                    break;
+            
+            GameUty.SystemMaterial mat;
+            try {
+                mat = (GameUty.SystemMaterial)Enum.Parse(typeof(GameUty.SystemMaterial), propName);
+            } catch(ArgumentException e) {
+                mat = GameUty.SystemMaterial.Alpha;
             }
 
             // 合成
             if (Path.GetExtension(filename).ToLower() == ".tex") {
                 holder.maid.body0.MulTexSet(currentSlot.Name, matNo, "_MainTex", 1, textureFile[matNo][propName], mat, false, 0, 0, 0, 0);
                 holder.maid.body0.MulTexSet(currentSlot.Name, matNo, "_ShadowTex", 1, textureFile[matNo][propName], mat, false, 0, 0, 0, 0);
-                // TODO 合成したtexを保存できないか？
             } else {
                 //TODO
             }
         }
     }
 
+    // TODO 変更前の情報をメモリ上に保持
+
     private void DoColorMenu(int winID)
     {
         var scrollRect = uiParams.colorRect;
-        var outRect = new Rect(uiParams.margin, 0, uiParams.winRect.width - uiParams.margin * 2, uiParams.itemHeight);
+        //var outRect = new Rect(uiParams.margin, 0, uiParams.winRect.width - uiParams.margin * 2, uiParams.itemHeight);
+        var outRect = uiParams.subRect;
 
         GUI.Label(outRect, "強制カラーチェンジ:" + currentSlot.DisplayName, uiParams.lStyle);
         outRect.y += uiParams.unitHeight;
 
         TBodySkin slot = holder.maid.body0.GetSlot(currentSlot.Name);
         List<Material> materialList = holder.GetMaterials(slot);
+
         if ( GUI.Button(outRect, "テクスチャ変更", uiParams.bStyle) ) {
             InitTexChange(materialList, slot);
             menuType = MenuType.Texture;
@@ -743,7 +753,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
             var conRect = new Rect(0, 0, scrollRect.width - 20, 0);
             int itemCount = 0;
             foreach (Material material in materialList) {
-                itemCount += 3; // title + renderQueue + 1
+                itemCount += 4; // title + shaderName + renderQueue + 1
                 ShaderMapper.MaterialFlag mate = ShaderMapper.resolve(material.shader.name);
 
                 if (mate == null) continue;
@@ -766,221 +776,117 @@ class AlwaysColorChange : UnityInjector.PluginBase
                     outRect.x += uiParams.margin;
                     outRect.width = conRect.width - uiParams.margin * 3;
                     outRect.y += uiParams.unitHeight;
-    
+
                     string shaderName = material.shader.name;
                     ShaderMapper.MaterialFlag mate = ShaderMapper.resolve(shaderName);
-    
+
+                    // シェーダ名
+                    GUI.Label(outRect, "<"+shaderName+">", uiParams.lStyle);
+                    outRect.width = conRect.width - uiParams.margin * 3;
+                    outRect.y += uiParams.unitHeight;
+
                     int renderQueue = material.renderQueue;
                     renderQueue = (int)drawModValueSlider(outRect, renderQueue, 0, 5000, String.Format("{0}:{1}", "RQ", material.renderQueue));
                     material.SetFloat("_SetManualRenderQueue", renderQueue);
                     material.renderQueue = renderQueue;
                     outRect.y += uiParams.unitHeight;
-    
-                    Color sColor       = material.GetColor("_Color");
-                    Color shadowColor  = material.GetColor("_ShadowColor");
-                    Color outlineColor = material.GetColor("_OutlineColor");
-                    Color rimColor     = material.GetColor("_RimColor");
-                    float? shininess    = null;
-                    float? outlineWidth = null;
-                    float? rimPower     = null;
-                    float? rimShift     = null;
-                    float? hiRate       = null;
-                    float? hiPow       = null;
-                    /*
-                    var colors = new ItemContainer[4];
-                    if (mate.hasColor) 
-                        colors[0] = new ItemContainer("Color", sColor);
-                    if (mate.isLighted)    
-                        colors[1] = new ItemContainer("Shadow Color", shadowColor);
-                    if (mate.isOutlined)
-                        colors[2] = new ItemContainer("Outline Color", outlineColor);
-                    if (mate.isToony)
-                        colors[3] = new ItemContainer("Rim Color", rimColor);
-                    
-                    foreach (ItemContainer kv in colors) {
-                        if (kv == null) continue;
-                        //drawColorPane(ref outRect, sColor, "Color", itemHeight, margin, lStyle);
-                        GUI.Label(outRect, kv.label, uiParams.lStyle);
-                        outRect.y += uiParams.unitHeight;
-                        kv.color.r = drawModValueSlider(outRect, kv.color.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", kv.color.r));
-                        outRect.y += uiParams.unitHeight;
-                        kv.color.g = drawModValueSlider(outRect, kv.color.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", kv.color.g));
-                        outRect.y += uiParams.unitHeight;
-                        kv.color.b = drawModValueSlider(outRect, kv.color.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", kv.color.b));
-                        outRect.y += uiParams.unitHeight;
-                        kv.color.a = drawModValueSlider(outRect, kv.color.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", kv.color.a));
-                        outRect.y += uiParams.unitHeight;
-                    }*/
-                    
-                    if (mate.hasColor) {
-                        GUI.Label(outRect, "Color", uiParams.lStyle);
-                        outRect.y += uiParams.unitHeight;
-                        sColor.r = drawModValueSlider(outRect, sColor.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", sColor.r));
-                        outRect.y += uiParams.unitHeight;
-                        sColor.g = drawModValueSlider(outRect, sColor.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", sColor.g));
-                        outRect.y += uiParams.unitHeight;
-                        sColor.b = drawModValueSlider(outRect, sColor.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", sColor.b));
-                        outRect.y += uiParams.unitHeight;
-                        sColor.a = drawModValueSlider(outRect, sColor.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", sColor.a));
-                        outRect.y += uiParams.unitHeight;
-                    }
-                    if (mate.isLighted) {
-                        GUI.Label(outRect, "Shadow Color", uiParams.lStyle);
-                        outRect.y += uiParams.unitHeight;
-                        shadowColor.r = drawModValueSlider(outRect, shadowColor.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", shadowColor.r));
-                        outRect.y += uiParams.unitHeight;
-                        shadowColor.g = drawModValueSlider(outRect, shadowColor.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", shadowColor.g));
-                        outRect.y += uiParams.unitHeight;
-                        shadowColor.b = drawModValueSlider(outRect, shadowColor.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", shadowColor.b));
-                        outRect.y += uiParams.unitHeight;
-                        shadowColor.a = drawModValueSlider(outRect, shadowColor.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", shadowColor.a));
-                        outRect.y += uiParams.unitHeight;
-                    }
-                    if (mate.isOutlined) {
-                        GUI.Label(outRect, "Outline Color", uiParams.lStyle);
-                        outRect.y += uiParams.unitHeight;
-                        outlineColor.r = drawModValueSlider(outRect, outlineColor.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", outlineColor.r));
-                        outRect.y += uiParams.unitHeight;
-                        outlineColor.g = drawModValueSlider(outRect, outlineColor.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", outlineColor.g));
-                        outRect.y += uiParams.unitHeight;
-                        outlineColor.b = drawModValueSlider(outRect, outlineColor.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", outlineColor.b));
-                        outRect.y += uiParams.unitHeight;
-                        outlineColor.a = drawModValueSlider(outRect, outlineColor.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", outlineColor.a));
-                        outRect.y += uiParams.unitHeight;
-                    }
-                    if (mate.isToony) {
-                        GUI.Label(outRect, "Rim Color", uiParams.lStyle);
-                        outRect.y += uiParams.unitHeight;
-                        rimColor.r = drawModValueSlider(outRect, rimColor.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", rimColor.r));
-                        outRect.y += uiParams.unitHeight;
-                        rimColor.g = drawModValueSlider(outRect, rimColor.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", rimColor.g));
-                        outRect.y += uiParams.unitHeight;
-                        rimColor.b = drawModValueSlider(outRect, rimColor.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", rimColor.b));
-                        outRect.y += uiParams.unitHeight;
-                        rimColor.a = drawModValueSlider(outRect, rimColor.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", rimColor.a));
-                        outRect.y += uiParams.unitHeight;
-                    }
-                    if (mate.isLighted) {
-                        shininess = material.GetFloat("_Shininess");
-                        if (shininess != null) {
-                            GUI.Label(outRect, "Shininess", uiParams.lStyle);
-                            outRect.y += uiParams.unitHeight;
-                            shininess = drawModValueSlider(outRect, (float)shininess, settings.shininessMin, settings.shininessMax, 
-                                                           String.Format("  {0:F2}", (float)shininess));
-                            outRect.y += uiParams.unitHeight;
-                        }
-                    }
-                    if (mate.isOutlined) {
-                        outlineWidth = material.GetFloat("_OutlineWidth");
-                        if (outlineWidth != null) {
-                            GUI.Label(outRect, "OutlineWidth", uiParams.lStyle);
-                            outRect.y += uiParams.unitHeight;
-                            outlineWidth = drawModValueSlider(outRect, (float)outlineWidth, settings.outlineWidthMin, settings.outlineWidthMax,
-                                                              String.Format("  {0:F5}", (float)outlineWidth));
-                            outRect.y += uiParams.unitHeight;
-                        }
-                    }
-                    if (mate.isToony) {
-                        rimPower = material.GetFloat("_RimPower");
-                        if (rimPower != null) {
-                            GUI.Label(outRect, "RimPower", uiParams.lStyle);
-                            outRect.y += uiParams.unitHeight;
-                            rimPower = drawModValueSlider(outRect, (float)rimPower, settings.rimPowerMin, settings.rimPowerMax,
-                                                          String.Format("  {0:F2}", (float)rimPower));
-                            outRect.y += uiParams.unitHeight;
-                        }
-                        rimShift = material.GetFloat("_RimShift");
-                        if (rimShift != null) {
-                            GUI.Label(outRect, "RimShift", uiParams.lStyle);
-                            outRect.y += uiParams.unitHeight;
-                            rimShift = drawModValueSlider(outRect, (float)rimShift, settings.rimShiftMin, settings.rimShiftMax,
-                                                          String.Format("  {0:F2}", (float)rimShift));
-                            outRect.y += uiParams.unitHeight;
-                        }
-                    }
-                    if (mate.isHair) {
-                        hiRate = material.GetFloat("_HiRate");
-                        if (hiRate != null) {
-                            GUI.Label(outRect, "HiRate", uiParams.lStyle);
-                            outRect.y += uiParams.unitHeight;
-                            hiRate = drawModValueSlider(outRect, (float)hiRate, settings.hiRateMin, settings.hiRateMax,
-                                                        String.Format("  {0:F2}", (float)hiRate) );
-                            outRect.y += uiParams.unitHeight;
-                        }
-                        hiPow = material.GetFloat("_HiPow");
-                        if (hiPow != null) {
-                            GUI.Label(outRect, "HiPow", uiParams.lStyle);
-                            outRect.y += uiParams.unitHeight;
-                            hiPow = drawModValueSlider(outRect, (float)hiPow, settings.hiPowMin, settings.hiPowMax,
-                                                       String.Format("  {0:F4}", (float)hiPow));
-                            outRect.y += uiParams.unitHeight;
-                        }                        
-                    }
-    
-                    try {
-                        Shader mShader = material.shader;
-                        // material名は別マテリアルで同一となる場合があるため、オブジェクトのハッシュでキャッシュ
-//                        if (!changeShaders.ContainsKey(material.name)) {
-//                            if (shaderName == "Hidden/InternalErrorShader") {
-//                                changeShaders.Add(material.name, null);
-//                            } else {
-//                                changeShaders.Add(material.name, mShader);
-//                            }
-//                        }
-                        if (sColor.a < 1f) {
-                            // CM3D2のシェーダのみを対象として、_Transのついたシェーダを使用するように変更 ただし、Hairは対応するshader無し,
-                            if (!mate.isTrans && mate.isToony && mate.isLighted && !mate.isHair) {
-//                                Shader shader = Shader.Find(shaderName + "_Trans");
-                                Shader shader = Shader.Find("CM3D2/Toony_Lighted_Trans");
-                                if (shader != null) {
-                                    material.shader = shader;
-                                    LogUtil.DebugLog(material.name, " changed shader.", shaderName, "=>", shader.name);
+                    // TODO シェーダ表示
 
-                                    try {
-                                        // 上書きしない 
-                                        changeShaders.Add(material.GetInstanceID(), mShader);
-                                    } catch(ArgumentException ignore) {}
+                    if (mate.hasColor) {
+                        Color sColor       = material.GetColor("_Color");
+                        setColorSlider(ref outRect, "Color", ref sColor);
+                        material.SetColor("_Color", sColor);
+
+                        // シェーダ置き換え
+                        try {
+                            Shader mShader = material.shader;
+                            // material名は別マテリアルで同一となる場合があるため、オブジェクトのハッシュでキャッシュ
+    //                        if (!changeShaders.ContainsKey(material.name)) {
+    //                            if (shaderName == "Hidden/InternalErrorShader") {
+    //                                changeShaders.Add(material.name, null);
+    //                            } else {
+    //                                changeShaders.Add(material.name, mShader);
+    //                            }
+    //                        }
+                            if (sColor.a < 1f) {
+                                // CM3D2のシェーダのみを対象として、_Transのついたシェーダを使用するように変更 ただし、Hairは対応するshader無し,
+                                if (!mate.isTrans && mate.isToony && mate.isLighted && !mate.isHair) {
+//                                    Shader shader = Shader.Find(shaderName + "_Trans");
+                                    Shader shader = Shader.Find("CM3D2/Toony_Lighted_Trans");
+                                    if (shader != null) {
+                                        material.shader = shader;
+                                        LogUtil.DebugLog(material.name, " changed shader.", shaderName, "=>", shader.name);
+    
+                                        try {
+                                            // 上書きしない 
+                                            changeShaders.Add(material.GetInstanceID(), mShader);
+                                        } catch(ArgumentException ignore) {}
+                                    }
+                                }
+        
+                            } else {
+                                // 元のシェーダに戻す
+                                Shader temp = null;
+                                if (changeShaders.TryGetValue(material.GetInstanceID(), out temp)) {
+                                    material.shader = temp;
                                 }
                             }
-    
-                        } else {
-                            // 元のシェーダに戻す
-                            Shader temp = null;
-                            if (changeShaders.TryGetValue(material.GetInstanceID(), out temp)) {
-                                material.shader = temp;
-                            }
+        
+                        } catch (Exception e) {
+                            LogUtil.DebugLog(e);
                         }
-    
-                    } catch (Exception e) {
-                        LogUtil.DebugLog(e);
-                    }
-    
-                    if (mate.hasColor) {
-                        material.SetColor("_Color", sColor);
+
                     }
                     if (mate.isLighted) {
+                        Color shadowColor  = material.GetColor("_ShadowColor");
+                        setColorSlider(ref outRect, "Shadow Color", ref shadowColor);
                         material.SetColor("_ShadowColor", shadowColor);
-                        if (shininess != null)
-                            material.SetFloat("_Shininess", (float)shininess);
-                    }
-                    if (mate.isToony) {
-                        material.SetColor("_RimColor", rimColor);
-                        if (rimPower != null)
-                            material.SetFloat("_RimPower", (float)rimPower);
-                        if (rimShift != null)
-                            material.SetFloat("_RimShift", (float)rimShift);
                     }
                     if (mate.isOutlined) {
+                        Color outlineColor = material.GetColor("_OutlineColor");
+                        setColorSlider(ref outRect, "Outline Color", ref outlineColor);
                         material.SetColor("_OutlineColor", outlineColor);
-                        if (outlineWidth != null)
-                            material.SetFloat("_OutlineWidth", (float)outlineWidth);
+                    }
+                    if (mate.isToony) {
+                        Color rimColor     = material.GetColor("_RimColor");
+                        setColorSlider(ref outRect, "Rim Color", ref rimColor);
+                        material.SetColor("_RimColor", rimColor);
+                    }
+
+                    if (mate.isLighted) {
+                        float shininess = material.GetFloat("_Shininess");
+                        shininess = setValueSlider(ref outRect, "Shininess", "  {0:F2}", shininess, 
+                                                   settings.shininessMin, settings.shininessMax);
+                        material.SetFloat("_Shininess", shininess);
+                    }
+                    if (mate.isOutlined) {
+                        float outlineWidth = material.GetFloat("_OutlineWidth");
+                        outlineWidth = setValueSlider(ref outRect, "OutlineWidth", "  {0:F5}", outlineWidth, 
+                                                   settings.outlineWidthMin, settings.outlineWidthMax);
+                        material.SetFloat("_OutlineWidth", outlineWidth);
+                    }
+                    if (mate.isToony) {
+                        float rimPower     = material.GetFloat("_RimPower");
+                        rimPower = setValueSlider(ref outRect, "RimPower", "  {0:F2}", rimPower, 
+                                                   settings.rimPowerMin, settings.rimPowerMax);
+                        material.SetFloat("_RimPower", rimPower);
+
+                        float rimShift = material.GetFloat("_RimShift");
+                        rimShift = setValueSlider(ref outRect, "RimShift", "  {0:F2}", rimShift, 
+                                                   settings.rimShiftMin, settings.rimShiftMax);
+                        material.SetFloat("_RimShift", rimShift);
                     }
                     if (mate.isHair) {
-                        if (hiRate != null)
-                            material.SetFloat("_HiRate", (float)hiRate);
-                        if (hiPow != null)
-                            material.SetFloat("_HiPow", (float)hiPow);
-                    }
+                        float hiRate       = material.GetFloat("_HiRate");
+                        hiRate = setValueSlider(ref outRect, "HiRate", "  {0:F2}", hiRate, 
+                                                   settings.hiRateMin, settings.hiRateMax);
+                        material.SetFloat("_HiRate", hiRate);
+
+                        float hiPow        = material.GetFloat("_HiPow");
+                        hiPow = setValueSlider(ref outRect, "HiPow", "  {0:F4}", hiPow, 
+                                                   settings.hiPowMin, settings.hiPowMax);
+                        material.SetFloat("_HiPow", hiPow);
+                    }    
                     outRect.y += uiParams.margin * 3;
                 }
             } finally {
@@ -999,6 +905,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
             GameObject obj = tBodySkin.obj;
             if (obj == null) return;
 
+            // propにはなぜかslot名の小文字が指定されている
             MaidProp prop = holder.maid.GetProp(currentSlot.Name.ToLower());
             if (prop != null) {
                 if (prop.strFileName.EndsWith(MenuInfo.EXT_MOD, StringComparison.CurrentCulture)) {
@@ -1440,6 +1347,30 @@ class AlwaysColorChange : UnityInjector.PluginBase
         }
     }
 
+    private void setColorSlider(ref Rect outRect, string label, ref Color color) {
+        GUI.Label(outRect, label, uiParams.lStyle);
+        
+        outRect.y += uiParams.unitHeight;
+
+        color.r = drawModValueSlider(outRect, color.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", color.r));
+        outRect.y += uiParams.unitHeight;
+        color.g = drawModValueSlider(outRect, color.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", color.g));
+        outRect.y += uiParams.unitHeight;
+        color.b = drawModValueSlider(outRect, color.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", color.b));
+        outRect.y += uiParams.unitHeight;
+        color.a = drawModValueSlider(outRect, color.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", color.a));
+        outRect.y += uiParams.unitHeight;
+    }
+    private float setValueSlider(ref Rect outRect, string label, string format, float val, float min, float max) {
+        GUI.Label(outRect, label, uiParams.lStyle);
+        outRect.y += uiParams.unitHeight;
+
+        val = drawModValueSlider(outRect, val, min, max, String.Format(format, (float)val) );
+        outRect.y += uiParams.unitHeight;
+
+        return val;
+    }
+
     private float drawModValueSlider(Rect outRect, float value, float min, float max, string label)
     {
         float conWidth = outRect.width;
@@ -1451,7 +1382,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
         outRect.x += outRect.width - margin;
 
         outRect.width = conWidth * 0.65f;
-        outRect.y += uiParams.FixPx(5);
+        outRect.y += uiParams.FixPx(7);
 
         return GUI.HorizontalSlider(outRect, value, min, max);
     }
@@ -1754,6 +1685,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
         }
         return true;
     }
+
 }
 
 }

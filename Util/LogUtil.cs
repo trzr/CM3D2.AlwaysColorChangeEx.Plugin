@@ -10,7 +10,6 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
     /// </summary>
     public static class LogUtil
     {
-        private const string LogHeader = AlwaysColorChange.PlugiName + ": ";
 
         public static void DebugLog(params object[] message)
         {
@@ -31,7 +30,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
         }
         private static StringBuilder createMesage(object[] message) {
             var sb = new StringBuilder();
-            sb.Append(LogHeader);
+            sb.Append(AlwaysColorChange.PluginName).Append(": ");
             for (int i = 0; i < message.Length; i++) {
                 if (i > 0) {
                     sb.Append(":");
