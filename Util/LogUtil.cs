@@ -14,27 +14,29 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
         public static void DebugLog(params object[] message)
         {
 #if DEBUG
-            StringBuilder sb = createMesage(message);
+            var sb = createMesage(message);
             Debug.Log(sb);
 #endif
         }
+
         public static void Log(params object[] message)
         {
-            StringBuilder sb = createMesage(message);
+            var sb = createMesage(message);
             Debug.Log(sb);
         }
+
         public static void ErrorLog(params object[] message)
         {
-            StringBuilder sb = createMesage(message);
+            var sb = createMesage(message);
             Debug.LogError(sb);
         }
-        private static StringBuilder createMesage(object[] message) {
+
+        private static StringBuilder createMesage(object[] message) 
+        {
             var sb = new StringBuilder();
-            sb.Append(AlwaysColorChange.PluginName).Append(": ");
+            sb.Append(AlwaysColorChange.PluginName).Append(':');
             for (int i = 0; i < message.Length; i++) {
-                if (i > 0) {
-                    sb.Append(":");
-                }
+                if (i > 0) sb.Append(',');
                 sb.Append(message[i]);
             }
             return sb;

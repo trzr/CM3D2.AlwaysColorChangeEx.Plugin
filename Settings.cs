@@ -12,18 +12,24 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
         public KeyCode toggleKey = KeyCode.F9;
         public string configPath;
-        public float shininessMax    = 20f;
-        public float shininessMin    =  0f;
-        public float outlineWidthMax = 0.1f;
-        public float outlineWidthMin = 0f;
+        public float shininessMax    =  20f;
+        public float shininessMin    =   0f;
+        public float outlineWidthMax =   0.1f;
+        public float outlineWidthMin =   0f;
         public float rimPowerMax     = 100f;
-        public float rimPowerMin     = 0f;
-        public float rimShiftMax     = 5f;
-        public float rimShiftMin     = -5f;
-        public float hiRateMax       = 1f;
-        public float hiRateMin       = 0f;
-        public float hiPowMax        = 50f;
-        public float hiPowMin        = 0.001f;
+        public float rimPowerMin     =   0f;
+        public float rimShiftMax     =   5f;
+        public float rimShiftMin     =  -5f;
+        public float hiRateMax       =   1f;
+        public float hiRateMin       =   0f;
+        public float hiPowMax        =  50f;
+        public float hiPowMin        =   0.001f;
+        public float floatVal1Max    = 300f;
+        public float floatVal1Min    =   0f;
+        public float floatVal2Max    =  10f;
+        public float floatVal2Min    = -10f;// -20
+        public float floatVal3Max    =   1f;
+        public float floatVal3Min    =   0f;
     
         // 設定の読み込み
         public void Load(Func<string, string> getValue)
@@ -42,6 +48,12 @@ namespace CM3D2.AlwaysColorChange.Plugin
             GetFloat(getValue("SliderHiRateMin"),       ref hiRateMin);
             GetFloat(getValue("SliderHiPowMax"),        ref hiPowMax);
             GetFloat(getValue("SliderHiPowMin"),        ref hiPowMin);
+            GetFloat(getValue("SliderFloatVal1Max"),    ref floatVal1Max);
+            GetFloat(getValue("SliderFloatVal1Min"),    ref floatVal1Min);
+            GetFloat(getValue("SliderFloatVal2Max"),    ref floatVal2Max);
+            GetFloat(getValue("SliderFloatVal2Min"),    ref floatVal2Min);
+            GetFloat(getValue("SliderFloatVal3Max"),    ref floatVal3Max);
+            GetFloat(getValue("SliderFloatVal3Min"),    ref floatVal3Min);
         }
        
         static void GetBool(string boolString, ref bool output) {

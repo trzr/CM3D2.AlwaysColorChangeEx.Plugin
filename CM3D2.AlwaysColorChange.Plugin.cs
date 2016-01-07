@@ -18,55 +18,28 @@ namespace CM3D2.AlwaysColorChange.Plugin {
  PluginFilter("CM3D2x86"),
  PluginFilter("CM3D2VRx64"),
  PluginName("CM3D2 AlwaysColorChangeMod"),
- PluginVersion("0.0.4.5")]
+ PluginVersion("0.0.4.6")]
 class AlwaysColorChange : UnityInjector.PluginBase
 {
     // プラグイン名
-    private static volatile string _pluginName;
+    public static volatile string PluginName;
     // プラグインバージョン
-    private static volatile string _version;
-    private static byte[] _lock = new byte[0];
-    public static string PluginName
-    {
-        get {
-            if (_pluginName == null) {
-                lock(_lock) {
-                    if (_pluginName == null) {
-                        try {
-                            // 属性クラスからプラグイン名取得
-                            var att = Attribute.GetCustomAttribute( typeof(AlwaysColorChange), typeof( PluginNameAttribute ) ) as PluginNameAttribute;
-                            if( att != null ) {
-                                _pluginName = att.Name;
-                            }
-                        } catch( Exception e ) {
-                            LogUtil.ErrorLog( e );
-                        }
-                    }
-                }
-            }
-            return _pluginName;
-        }
-    }
-    // プラグインバージョン取得
-    public static string Version
-    {
-        get {
-            if (_version == null) {
-                lock(_lock) {
-                    if (_version == null) {
-                        try {
-                            // 属性クラスからバージョン番号取得
-                            var att = Attribute.GetCustomAttribute( typeof(AlwaysColorChange), typeof( PluginVersionAttribute ) ) as PluginVersionAttribute;
-                            if( att != null ) {
-                                _version = att.Version;
-                            }
-                        } catch( Exception e ) {
-                            LogUtil.ErrorLog( e );
-                        }
-                    }
-                }
-            }
-            return _version;
+    public static volatile string Version;
+    static AlwaysColorChange() {
+        // 属性クラスからプラグイン名取得
+        try {
+            var att = Attribute.GetCustomAttribute( typeof(AlwaysColorChange), typeof( PluginNameAttribute ) ) as PluginNameAttribute;
+            if( att != null ) PluginName = att.Name;
+        } catch( Exception e ) {
+            LogUtil.ErrorLog( e );
+        }        
+        // プラグインバージョン取得
+        try {
+            // 属性クラスからバージョン番号取得
+            var att = Attribute.GetCustomAttribute( typeof(AlwaysColorChange), typeof( PluginVersionAttribute ) ) as PluginVersionAttribute;
+            if( att != null ) Version = att.Version;
+        } catch( Exception e ) {
+            LogUtil.ErrorLog( e );
         }
     }
 
@@ -115,8 +88,9 @@ class AlwaysColorChange : UnityInjector.PluginBase
     private Settings settings = Settings.Instance;
 
     private PresetManager presetMgr = new PresetManager();
-    private UIParams uiParams = new UIParams();
+    private UIParams uiParams = new UIParams(fontPx, marginPx, itemHeightPx);
     private MaidHolder holder = MaidHolder.Instance;
+
    
     private MenuType menuType;
     private SlotInfo currentSlot;
@@ -349,10 +323,163 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
     private bool initGUI() 
     {
+
         return true;
     }
     #endregion
 
+    private void DoMainMenu(int winID)
+    {
+        var scrollRect = uiParams.mainRect;
+
+        GUI.Label(uiParams.labelRect, "強制カラーチェンジ", uiParams.lStyle);
+
+        var outRect = uiParams.subRect;
+        if (GUI.Button(outRect, "マスククリア", uiParams.bStyle)) {
+            holder.ClearMasks();
+            // TODO マスクアンクリア
+        }
+        outRect.y += uiParams.unitHeight;
+        if (GUI.Button(outRect, "ノード表示切り替えへ", uiParams.bStyle)) {
+            menuType = MenuType.NodeSelect;
+        }
+        outRect.y += uiParams.unitHeight;
+        if (GUI.Button(outRect, "保存", uiParams.bStyle)) {
+            menuType = MenuType.Save;
+        }
+        if (presets != null && presets.Any()) {
+            outRect.y += uiParams.unitHeight;
+            if (GUI.Button(outRect, "プリセット適用", uiParams.bStyle)) {
+                menuType = MenuType.PresetSelect;
+            }
+        }
+
+        outRect.y = 0;
+        scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, uiParams.mainConRect);
+        try {
+            foreach (SlotInfo slot in ACConstants.SlotNames.Values) {
+                if (slot.Id == TBody.SlotID.end) continue;
+    
+                GUI.enabled = holder.maid.body0.GetSlotVisible(slot.Id);
+                // TODO ボタンごと非表示とする場合は、全体のサイズも変更する必要あり
+//                if (!holder.maid.body0.GetSlotVisible(slot.Id)) {
+//                    continue;
+//                }
+
+                if (GUI.Button(outRect, slot.DisplayName, uiParams.bStyle)) {
+                    currentSlot = slot;
+                    menuType = MenuType.Color;
+                }
+                outRect.y += uiParams.unitHeight;
+            }
+        } finally {
+            GUI.enabled = true;
+            GUI.EndScrollView();
+        }
+        GUI.DragWindow();
+    }
+
+    // TODO 現在のターゲットのslotに関するメニューが変更されたらGUIを更新。それ以外は更新しない
+    private string targetMenu;
+    private List<Material> targetMaterialList;
+    private List<ACCMaterialsView> materialViews;
+    private string getMenuFile() {
+        MaidProp prop = holder.maid.GetProp(currentSlot.Name.ToLower());
+        return prop.strFileName;
+    }
+
+    // TODO 変更前の情報をメモリ上に保持
+
+    private List<ACCMaterialsView> initMaterialView(List<Material> materials) {
+        var ret = new List<ACCMaterialsView>(materials.Count);
+        foreach (Material material in materials) { 
+            ret.Add(new ACCMaterialsView(material, uiParams));
+        }
+        return ret;
+    }
+    private void DoColorMenu(int winID)
+    {
+        var scrollRect = uiParams.colorRect;
+        GUI.Label(uiParams.labelRect, "強制カラーチェンジ:" + currentSlot.DisplayName, uiParams.lStyle);
+
+        var outRect = uiParams.subRect;
+        string menu = getMenuFile();
+        if (targetMenu != menu) {
+            LogUtil.DebugLog("manufile changed.", targetMenu, "=>", menu);
+
+            targetMenu = menu;
+            TBodySkin slot = holder.maid.body0.GetSlot(currentSlot.Name);
+            targetMaterialList = holder.GetMaterials(slot);
+            materialViews = initMaterialView(targetMaterialList);
+        }
+
+        if ( GUI.Button(outRect, "テクスチャ変更", uiParams.bStyle) ) {
+            TBodySkin slot = holder.maid.body0.GetSlot(currentSlot.Name);
+            InitTexChange(targetMaterialList, slot);
+            menuType = MenuType.Texture;
+            return;
+        }
+
+        outRect.y = 0;
+        outRect.width -= uiParams.margin * 2 + 20;
+        if (targetMaterialList.Any()) {
+            // 表示アイテム数に基づいて、スクロール内の領域を算出
+            int itemCount = 0;
+            foreach (ACCMaterialsView view in materialViews) {
+                itemCount += view.itemCount();
+            }
+            var conRect = new Rect(0, 0, scrollRect.width - 20, 
+                                   uiParams.unitHeight * itemCount + uiParams.margin);
+            scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
+
+            try {
+                foreach (ACCMaterialsView view in materialViews) {
+                    view.Show(ref outRect);
+                }
+            } finally {
+                GUI.EndScrollView();
+            }
+        }
+
+        outRect.x = uiParams.margin;
+        outRect.y = uiParams.winRect.height - (uiParams.unitHeight) * 2;
+        outRect.width = uiParams.winRect.width - uiParams.margin * 2;
+        if (GUI.Button(outRect, "menu/mate保存", uiParams.bStyle)) {
+            TBody body = holder.maid.body0;
+//            List<TBodySkin> goSlot = body.goSlot;
+//            int index = (int)global::TBody.hashSlotName[currentSlot.Name];
+            global::TBodySkin tBodySkin = body.GetSlot(currentSlot.Name);
+            GameObject obj = tBodySkin.obj;
+            if (obj == null) return;
+
+            // propにはなぜかslot名の小文字が指定されている
+            MaidProp prop = holder.maid.GetProp(currentSlot.Name.ToLower());
+            if (prop != null) {
+                if (prop.strFileName.EndsWith(MenuInfo.EXT_MOD, StringComparison.CurrentCulture)) {
+                    var msg = "modファイルの変更は未対応です " + prop.strFileName;
+                    NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
+                } else {
+                    targetMenuInfo = new MenuInfo();
+                    bool loaded = targetMenuInfo.LoadMenufile(prop.strFileName);
+                    // 変更可能なmenuファイルがない場合は保存画面へ遷移しない
+                    if (!loaded) {
+                        var msg = "変更可能なmenuファイルがありません " + prop.strFileName;
+                        NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
+                    }
+
+                    if (targetMenuInfo.materials.Any()) {
+                        showSaveDialog |= loaded;
+                    }
+                }
+            }
+        }
+
+        outRect.y += uiParams.unitHeight;
+        if (GUI.Button(outRect, "閉じる", uiParams.bStyle)) {
+            menuType = MenuType.Main;
+        }
+        GUI.DragWindow();
+    }
     // 編集中のパーツに対するモデルファイル
     private string targetModelFile;
 
@@ -373,6 +500,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
                 textureFile.Add(matNo, new Dictionary<string, string>(mate.propNames.Length));
                 foreach (string propName in mate.propNames) {
                     textureFile[matNo].Add(propName, "");
+                    Matrix4x4 matrix = m.GetMatrix(propName);
                 }
             }
             matNo++;
@@ -393,8 +521,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
         GUILayoutOption buttonWidth  = GUILayout.Width(conRect.width * 0.1f);
         GUILayoutOption buttonWidth2 = GUILayout.Width(conRect.width * 0.2f);
 
-        var outRect = uiParams.subRect;
-        GUI.Label(outRect, "テクスチャ変更", uiParams.lStyle);
+        GUI.Label(uiParams.labelRect, "テクスチャ変更", uiParams.lStyle);
         
         scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
         try {
@@ -409,6 +536,8 @@ class AlwaysColorChange : UnityInjector.PluginBase
             TBodySkin slot = holder.maid.body0.GetSlot(currentSlot.Name);
 
             var materials = holder.GetMaterials(slot);
+            if (!materials.Any()) return;
+
             //　対象のスロットのモデルが変更された場合に、マテリアルからtex一覧を初期化
             string modelFile = slot.m_strModelFileName;
             if (targetModelFile == null || targetModelFile != modelFile) {
@@ -486,13 +615,47 @@ class AlwaysColorChange : UnityInjector.PluginBase
         } finally {
             GUI.EndScrollView();
         }
-        outRect.width = uiParams.winRect.width - uiParams.margin * 2;
-        outRect.x = uiParams.margin;
-        outRect.y = uiParams.winRect.height - uiParams.unitHeight;
-        if (GUI.Button(outRect, "閉じる", uiParams.bStyle)) {
+
+        if (GUI.Button(uiParams.closeRect, "閉じる", uiParams.bStyle)) {
             menuType = MenuType.Color;
         }
         GUI.DragWindow();
+    }
+
+    private void ChangeTexFile(string path, string filename, int matNo, string propName)
+    {
+        if (propName.StartsWith("_", StringComparison.CurrentCulture)) {
+            if (Path.GetExtension(filename).ToLower() == ".tex") {
+                holder.maid.body0.ChangeTex(currentSlot.Name, matNo, propName, textureFile[matNo][propName], null, MaidParts.PARTS_COLOR.NONE);
+            } else {
+                var materials = holder.GetMaterials(currentSlot);
+                byte[] img = UTY.LoadImage(Path.Combine(path, filename));
+                var tex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+//                var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);                                                 
+                tex.LoadImage(img);
+                // tex.name = filename;
+                TBodySkin slot = holder.maid.body0.GetSlot(currentSlot.Name);
+                if (slot != null) slot.listDEL.Add(tex);
+
+                materials[matNo].SetTexture(propName, tex);
+            }
+        } else {
+            
+            GameUty.SystemMaterial mat;
+            try {
+                mat = (GameUty.SystemMaterial)Enum.Parse(typeof(GameUty.SystemMaterial), propName);
+            } catch(ArgumentException e) {
+                mat = GameUty.SystemMaterial.Alpha;
+            }
+
+            // 合成
+            if (Path.GetExtension(filename).ToLower() == ".tex") {
+                holder.maid.body0.MulTexSet(currentSlot.Name, matNo, "_MainTex", 1, textureFile[matNo][propName], mat, false, 0, 0, 0, 0);
+                holder.maid.body0.MulTexSet(currentSlot.Name, matNo, "_ShadowTex", 1, textureFile[matNo][propName], mat, false, 0, 0, 0, 0);
+            } else {
+                //TODO
+            }
+        }
     }
 
     private void OpenFileBrowser(int matNo, string propName)
@@ -522,161 +685,23 @@ class AlwaysColorChange : UnityInjector.PluginBase
         GUI.DragWindow();
     }
 
-    private class UIParams {
-        private int width;
-        private int height;
-        private float ratio;
-        
-        public int margin;
-        public int fontSize;
-        public int itemHeight;
-        public int unitHeight;
-        public readonly GUIStyle lStyle = "label";
-        public readonly GUIStyle bStyle = "button";
-        public readonly GUIStyle tStyle = "toggle";
-        public readonly GUIStyle textStyle = "textField";
-        public readonly GUIStyle textAreaStyle = "textArea";
+    private bool InitDelNode() {
+        if (holder.maid == null) return false;
 
-        public readonly Color textColor = new Color(1f, 1f, 1f, 0.98f);
-
-        public Rect winRect         = new Rect();
-        public Rect fileBrowserRect = new Rect();
-        public Rect modalRect       = new Rect();
-
-        public Rect mainRect         = new Rect();
-        public Rect mainConRect      = new Rect();
-        public Rect colorRect        = new Rect();
-        public Rect nodeSelectRect   = new Rect();
-        public Rect presetSelectRect = new Rect();
-        public Rect textureRect      = new Rect();
-        public Rect subRect          = new Rect();
-
-        public GUIStyle winStyle = "box";
-        public UIParams() {
-            Update();
-        }
-
-        public void Update() {
-            bool screenSizeChanged = false;
-
-            if (Screen.height != height) {
-                height = Screen.height;
-                screenSizeChanged = true;
-            }
-            if (Screen.width != width) {
-                width = Screen.width;
-                screenSizeChanged = true;
-            }
-            if (!screenSizeChanged) return;
-
-            ratio = (1.0f + (width / 1280.0f - 1.0f) * 0.6f);
-
-            // 画面サイズが変更された場合にのみ更新
-            fontSize   = FixPx(fontPx);
-            margin     = FixPx(marginPx);
-            itemHeight = FixPx(itemHeightPx);
-            unitHeight = margin + itemHeight;
-
-            lStyle.fontSize         = fontSize;
-            lStyle.normal.textColor = textColor;
-
-            bStyle.fontSize         = fontSize;
-            bStyle.normal.textColor = textColor;
-
-            tStyle.fontSize         = fontSize;
-            tStyle.normal.textColor = textColor;
-
-            textStyle.fontSize         = fontSize;
-            textStyle.normal.textColor = textColor;
-
-            textAreaStyle.fontSize         = fontSize;
-            textAreaStyle.normal.textColor = textColor;
-
-            LogUtil.DebugLog(string.Format("screen=({0},{1}),margin={2},height={3},ratio={4})", width, height, margin, itemHeight, ratio));           
-
-            winStyle.fontSize  = fontSize;
-            winStyle.alignment = TextAnchor.UpperRight;            
-            InitWinRect();
-            InitFBRect();
-            InitModalRect();
-
-            // sub
-            mainRect.Set(      margin, unitHeight * 5 + margin, winRect.width - margin * 2, winRect.height - unitHeight * 6);
-            mainConRect.Set(   0,      0,              mainRect.width - 20, unitHeight * ACConstants.SlotNames.Count + margin * 2);
-            textureRect.Set(   margin, unitHeight,     winRect.width - margin * 2, winRect.height - unitHeight * 2);
-            nodeSelectRect.Set(margin, unitHeight * 2, winRect.width - margin * 2, winRect.height - unitHeight * 4);
-            colorRect.Set(     margin, unitHeight * 2, winRect.width - margin * 3, winRect.height - unitHeight * 4);
-            subRect.Set(       0,      0,              winRect.width - margin * 2, itemHeight);
-//            color Sub outRect.Set(       margin, 0,              winRect.width - margin * 2, itemHeight);
-        }
-
-        public void InitWinRect() {
-            winRect.Set(        width - FixPx(290),     FixPx(20),               FixPx(280), height - FixPx(120));
-        }
-        public void InitFBRect() {
-            fileBrowserRect.Set(width - FixPx(620),     FixPx(100),              FixPx(600), FixPx(600));                
-        }
-        public void InitModalRect() {
-            modalRect.Set(      width / 2 - FixPx(300), height / 2 - FixPx(300), FixPx(600), FixPx(600));                
-        }
-        public int FixPx(int px) {
-            return (int)(ratio * px);
-        }
-    }
-    private bool displayed = false;
-    private void DoMainMenu(int winID)
-    {
-        var scrollRect = uiParams.mainRect;
-        if (!displayed) {
-            displayed = true;
-            LogUtil.DebugLog("MainRect", scrollRect.xMin, scrollRect.yMin, scrollRect.width, scrollRect.height);
-        }
-
-        var outRect = uiParams.subRect;
-        GUI.Label(outRect, "強制カラーチェンジ", uiParams.lStyle);
-        outRect.y += uiParams.unitHeight;
-        if (GUI.Button(outRect, "マスククリア", uiParams.bStyle)) {
-            holder.ClearMasks();
-            // TODO マスクアンクリア
-        }
-        outRect.y += uiParams.unitHeight;
-        if (GUI.Button(outRect, "ノード表示切り替えへ", uiParams.bStyle)) {
-            menuType = MenuType.NodeSelect;
-        }
-        outRect.y += uiParams.unitHeight;
-        if (GUI.Button(outRect, "保存", uiParams.bStyle)) {
-            menuType = MenuType.Save;
-        }
-        if (presets != null && presets.Any()) {
-            outRect.y += uiParams.unitHeight;
-            if (GUI.Button(outRect, "プリセット適用", uiParams.bStyle)) {
-                menuType = MenuType.PresetSelect;
+        // 身体からノード一覧と表示状態を取得
+        TBodySkin tBodySkin = holder.maid.body0.GetSlot(TBody.SlotID.body.ToString());
+//        TBody body = holder.maid.body0;
+//        List<TBodySkin> goSlot = body.goSlot;
+//
+//        int index = (int)global::TBody.hashSlotName[TBody.SlotID.body.ToString()];
+//        TBodySkin tBodySkin = goSlot[index];
+        Dictionary<string, bool> dic = tBodySkin.m_dicDelNodeBody;
+        foreach (string key in ACConstants.NodeNames.Keys) {
+            if (dic.ContainsKey(key)) {
+                dDelNodes.Add(key, dic[key]);
             }
         }
-
-        outRect.y = 0;
-        scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, uiParams.mainConRect);
-        try {
-            foreach (SlotInfo slot in ACConstants.SlotNames.Values) {
-                if (slot.Id == TBody.SlotID.end) continue;
-    
-                GUI.enabled = holder.maid.body0.GetSlotVisible(slot.Id);
-                // TODO ボタンごと非表示とする場合は、全体のサイズも変更する必要あり
-//                if (!holder.maid.body0.GetSlotVisible(slot.Id)) {
-//                    continue;
-//                }
-
-                if (GUI.Button(outRect, slot.DisplayName, uiParams.bStyle)) {
-                    currentSlot = slot;
-                    menuType = MenuType.Color;
-                }
-                outRect.y += uiParams.unitHeight;
-            }
-        } finally {
-            GUI.enabled = true;
-            GUI.EndScrollView();
-        }
-        GUI.DragWindow();
+        return true;
     }
 
     private void FixDelNode(bool bApply)
@@ -697,270 +722,14 @@ class AlwaysColorChange : UnityInjector.PluginBase
         if (bApply) holder.FixFlag();
     }
 
-    private void ChangeTexFile(string path, string filename, int matNo, string propName)
-    {
-        if (propName.StartsWith("_")) {
-            if (Path.GetExtension(filename).ToLower() == ".tex") {
-                holder.maid.body0.ChangeTex(currentSlot.Name, matNo, propName, textureFile[matNo][propName], null, MaidParts.PARTS_COLOR.NONE);
-            } else {
-                var materials = holder.GetMaterials(currentSlot);
-                byte[] img = UTY.LoadImage(Path.Combine(path, filename));
-                var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-                tex.LoadImage(img);
-                materials[matNo].SetTexture(propName, tex);
-            }
-        } else {
-            
-            GameUty.SystemMaterial mat;
-            try {
-                mat = (GameUty.SystemMaterial)Enum.Parse(typeof(GameUty.SystemMaterial), propName);
-            } catch(ArgumentException e) {
-                mat = GameUty.SystemMaterial.Alpha;
-            }
-
-            // 合成
-            if (Path.GetExtension(filename).ToLower() == ".tex") {
-                holder.maid.body0.MulTexSet(currentSlot.Name, matNo, "_MainTex", 1, textureFile[matNo][propName], mat, false, 0, 0, 0, 0);
-                holder.maid.body0.MulTexSet(currentSlot.Name, matNo, "_ShadowTex", 1, textureFile[matNo][propName], mat, false, 0, 0, 0, 0);
-            } else {
-                //TODO
-            }
-        }
-    }
-
-    // TODO 変更前の情報をメモリ上に保持
-
-    private void DoColorMenu(int winID)
-    {
-        var scrollRect = uiParams.colorRect;
-        //var outRect = new Rect(uiParams.margin, 0, uiParams.winRect.width - uiParams.margin * 2, uiParams.itemHeight);
-        var outRect = uiParams.subRect;
-
-        GUI.Label(outRect, "強制カラーチェンジ:" + currentSlot.DisplayName, uiParams.lStyle);
-        outRect.y += uiParams.unitHeight;
-
-        TBodySkin slot = holder.maid.body0.GetSlot(currentSlot.Name);
-        List<Material> materialList = holder.GetMaterials(slot);
-
-        if ( GUI.Button(outRect, "テクスチャ変更", uiParams.bStyle) ) {
-            InitTexChange(materialList, slot);
-            menuType = MenuType.Texture;
-        }
-
-        outRect.y = 0;
-        outRect.width -= uiParams.margin * 2 + 20;
-        if (materialList.Any()) {
-            var conRect = new Rect(0, 0, scrollRect.width - 20, 0);
-            int itemCount = 0;
-            foreach (Material material in materialList) {
-                itemCount += 4; // title + shaderName + renderQueue + 1
-                ShaderMapper.MaterialFlag mate = ShaderMapper.resolve(material.shader.name);
-
-                if (mate == null) continue;
-//                LogUtil.DebugLog("shader=>", material.shader.name, "material=>", ShaderMapper.name(material.shader.name));
-
-                // [color:5, float:2]
-                if (mate.hasColor)   itemCount += 5; // color
-                if (mate.isOutlined) itemCount += 7; // CoutlineColor + OutlineWidth(float)
-                if (mate.isToony)    itemCount += 9; // RimColor + RimPower,RimShift (float x2)
-                if (mate.isLighted)  itemCount += 7; // ShadowColor + Shininess(float)
-                if (mate.isHair)     itemCount += 4; // HiRate,HiPow(float x2)
-            }
-            conRect.height += uiParams.unitHeight * itemCount + uiParams.margin;
-
-            scrollViewVector = GUI.BeginScrollView(scrollRect, scrollViewVector, conRect);
-            try {
-                foreach (Material material in materialList) {
-                    outRect.x = uiParams.margin;
-                    GUI.Label(outRect, material.name, uiParams.lStyle);
-                    outRect.x += uiParams.margin;
-                    outRect.width = conRect.width - uiParams.margin * 3;
-                    outRect.y += uiParams.unitHeight;
-
-                    string shaderName = material.shader.name;
-                    ShaderMapper.MaterialFlag mate = ShaderMapper.resolve(shaderName);
-
-                    // シェーダ名
-                    GUI.Label(outRect, "<"+shaderName+">", uiParams.lStyle);
-                    outRect.width = conRect.width - uiParams.margin * 3;
-                    outRect.y += uiParams.unitHeight;
-
-                    int renderQueue = material.renderQueue;
-                    renderQueue = (int)drawModValueSlider(outRect, renderQueue, 0, 5000, String.Format("{0}:{1}", "RQ", material.renderQueue));
-                    material.SetFloat("_SetManualRenderQueue", renderQueue);
-                    material.renderQueue = renderQueue;
-                    outRect.y += uiParams.unitHeight;
-                    // TODO シェーダ表示
-
-                    if (mate.hasColor) {
-                        Color sColor       = material.GetColor("_Color");
-                        setColorSlider(ref outRect, "Color", ref sColor);
-                        material.SetColor("_Color", sColor);
-
-                        // シェーダ置き換え
-                        try {
-                            Shader mShader = material.shader;
-                            // material名は別マテリアルで同一となる場合があるため、オブジェクトのハッシュでキャッシュ
-    //                        if (!changeShaders.ContainsKey(material.name)) {
-    //                            if (shaderName == "Hidden/InternalErrorShader") {
-    //                                changeShaders.Add(material.name, null);
-    //                            } else {
-    //                                changeShaders.Add(material.name, mShader);
-    //                            }
-    //                        }
-                            if (sColor.a < 1f) {
-                                // CM3D2のシェーダのみを対象として、_Transのついたシェーダを使用するように変更 ただし、Hairは対応するshader無し,
-                                if (!mate.isTrans && mate.isToony && mate.isLighted && !mate.isHair) {
-//                                    Shader shader = Shader.Find(shaderName + "_Trans");
-                                    Shader shader = Shader.Find("CM3D2/Toony_Lighted_Trans");
-                                    if (shader != null) {
-                                        material.shader = shader;
-                                        LogUtil.DebugLog(material.name, " changed shader.", shaderName, "=>", shader.name);
-    
-                                        try {
-                                            // 上書きしない 
-                                            changeShaders.Add(material.GetInstanceID(), mShader);
-                                        } catch(ArgumentException ignore) {}
-                                    }
-                                }
-        
-                            } else {
-                                // 元のシェーダに戻す
-                                Shader temp = null;
-                                if (changeShaders.TryGetValue(material.GetInstanceID(), out temp)) {
-                                    material.shader = temp;
-                                }
-                            }
-        
-                        } catch (Exception e) {
-                            LogUtil.DebugLog(e);
-                        }
-
-                    }
-                    if (mate.isLighted) {
-                        Color shadowColor  = material.GetColor("_ShadowColor");
-                        setColorSlider(ref outRect, "Shadow Color", ref shadowColor);
-                        material.SetColor("_ShadowColor", shadowColor);
-                    }
-                    if (mate.isOutlined) {
-                        Color outlineColor = material.GetColor("_OutlineColor");
-                        setColorSlider(ref outRect, "Outline Color", ref outlineColor);
-                        material.SetColor("_OutlineColor", outlineColor);
-                    }
-                    if (mate.isToony) {
-                        Color rimColor     = material.GetColor("_RimColor");
-                        setColorSlider(ref outRect, "Rim Color", ref rimColor);
-                        material.SetColor("_RimColor", rimColor);
-                    }
-
-                    if (mate.isLighted) {
-                        float shininess = material.GetFloat("_Shininess");
-                        shininess = setValueSlider(ref outRect, "Shininess", "  {0:F2}", shininess, 
-                                                   settings.shininessMin, settings.shininessMax);
-                        material.SetFloat("_Shininess", shininess);
-                    }
-                    if (mate.isOutlined) {
-                        float outlineWidth = material.GetFloat("_OutlineWidth");
-                        outlineWidth = setValueSlider(ref outRect, "OutlineWidth", "  {0:F5}", outlineWidth, 
-                                                   settings.outlineWidthMin, settings.outlineWidthMax);
-                        material.SetFloat("_OutlineWidth", outlineWidth);
-                    }
-                    if (mate.isToony) {
-                        float rimPower     = material.GetFloat("_RimPower");
-                        rimPower = setValueSlider(ref outRect, "RimPower", "  {0:F2}", rimPower, 
-                                                   settings.rimPowerMin, settings.rimPowerMax);
-                        material.SetFloat("_RimPower", rimPower);
-
-                        float rimShift = material.GetFloat("_RimShift");
-                        rimShift = setValueSlider(ref outRect, "RimShift", "  {0:F2}", rimShift, 
-                                                   settings.rimShiftMin, settings.rimShiftMax);
-                        material.SetFloat("_RimShift", rimShift);
-                    }
-                    if (mate.isHair) {
-                        float hiRate       = material.GetFloat("_HiRate");
-                        hiRate = setValueSlider(ref outRect, "HiRate", "  {0:F2}", hiRate, 
-                                                   settings.hiRateMin, settings.hiRateMax);
-                        material.SetFloat("_HiRate", hiRate);
-
-                        float hiPow        = material.GetFloat("_HiPow");
-                        hiPow = setValueSlider(ref outRect, "HiPow", "  {0:F4}", hiPow, 
-                                                   settings.hiPowMin, settings.hiPowMax);
-                        material.SetFloat("_HiPow", hiPow);
-                    }    
-                    outRect.y += uiParams.margin * 3;
-                }
-            } finally {
-                GUI.EndScrollView();
-            }
-        }
-
-        outRect.x = uiParams.margin;
-        outRect.y = uiParams.winRect.height - (uiParams.unitHeight) * 2;
-        outRect.width = uiParams.winRect.width - uiParams.margin * 2;
-        if (GUI.Button(outRect, "menu/mate保存", uiParams.bStyle)) {
-            TBody body = holder.maid.body0;
-//            List<TBodySkin> goSlot = body.goSlot;
-//            int index = (int)global::TBody.hashSlotName[currentSlot.Name];
-            global::TBodySkin tBodySkin = body.GetSlot(currentSlot.Name);
-            GameObject obj = tBodySkin.obj;
-            if (obj == null) return;
-
-            // propにはなぜかslot名の小文字が指定されている
-            MaidProp prop = holder.maid.GetProp(currentSlot.Name.ToLower());
-            if (prop != null) {
-                if (prop.strFileName.EndsWith(MenuInfo.EXT_MOD, StringComparison.CurrentCulture)) {
-                    var msg = "modファイルの変更は未対応です " + prop.strFileName;
-                    NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
-                } else {
-                    targetMenuInfo = new MenuInfo();
-                    bool loaded = targetMenuInfo.LoadMenufile(prop.strFileName);
-                    // 変更可能なmenuファイルがない場合は保存画面へ遷移しない
-                    if (!loaded) {
-                        var msg = "変更可能なmenuファイルがありません " + prop.strFileName;
-                        NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
-                    }
-
-                    if (targetMenuInfo.materials.Any()) {
-                        showSaveDialog |= loaded;
-                    }
-                }
-            }
-        }
-
-        outRect.y += uiParams.unitHeight;
-        if (GUI.Button(outRect, "閉じる", uiParams.bStyle)) {
-            menuType = MenuType.Main;
-        }
-        GUI.DragWindow();
-    }
-
-    private bool InitDelNode() {
-        if (holder.maid == null) return false;
-
-        // 身体からノード一覧と表示状態を取得
-        TBody body = holder.maid.body0;
-        List<TBodySkin> goSlot = body.goSlot;
-
-        int index = (int)global::TBody.hashSlotName[TBody.SlotID.body.ToString()];
-        TBodySkin tBodySkin = goSlot[index];
-        Dictionary<string, bool> dic = tBodySkin.m_dicDelNodeBody;
-        foreach (string key in ACConstants.NodeNames.Keys) {
-            if (dic.ContainsKey(key)) {
-                dDelNodes.Add(key, dic[key]);
-            }
-        }
-        return true;
-    }
-
     private void DoNodeSelectMenu(int winID)
     {
         var scrollRect = uiParams.nodeSelectRect;
         var conRect = new Rect(0, 0, scrollRect.width - 20, 0);
+
+        GUI.Label(uiParams.labelRect, "表示ノード選択", uiParams.lStyle);
+
         var outRect = uiParams.subRect;
-
-        GUI.Label(outRect, "表示ノード選択", uiParams.lStyle);
-        outRect.y += uiParams.unitHeight;
-
         if (!dDelNodes.Any()) {
             InitDelNode();
         }
@@ -1001,10 +770,9 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
     private void DoSaveMenu(int winID)
     {
-        var outRect = uiParams.subRect;
+        GUI.Label(uiParams.labelRect, "保存", uiParams.lStyle);
 
-        GUI.Label(outRect, "保存", uiParams.lStyle);
-        outRect.y += uiParams.unitHeight;
+        var outRect = uiParams.subRect;
         outRect.width = uiParams.winRect.width * 0.3f - uiParams.margin;
 
         GUI.Label(outRect, "プリセット名", uiParams.lStyle);
@@ -1049,11 +817,10 @@ class AlwaysColorChange : UnityInjector.PluginBase
     {
         var scrollRect = uiParams.nodeSelectRect;
         var conRect = new Rect(0, 0, scrollRect.width - 20, 0);
+
+        GUI.Label(uiParams.labelRect, "プリセット適用", uiParams.lStyle);
+
         var outRect = uiParams.subRect;
-
-        GUI.Label(outRect, "プリセット適用", uiParams.lStyle);
-        outRect.y += uiParams.unitHeight;
-
         conRect.height += (uiParams.unitHeight) * presets.Count + uiParams.margin * 2;
         outRect.y = 0;
         outRect.x = uiParams.margin * 2;
@@ -1345,30 +1112,6 @@ class AlwaysColorChange : UnityInjector.PluginBase
         if (!FileExists(menuInfo.icons + MenuInfo.EXT_TEXTURE)) {
             TexWrite(path, menuInfo.baseIcons, menuInfo.icons);
         }
-    }
-
-    private void setColorSlider(ref Rect outRect, string label, ref Color color) {
-        GUI.Label(outRect, label, uiParams.lStyle);
-        
-        outRect.y += uiParams.unitHeight;
-
-        color.r = drawModValueSlider(outRect, color.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", color.r));
-        outRect.y += uiParams.unitHeight;
-        color.g = drawModValueSlider(outRect, color.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", color.g));
-        outRect.y += uiParams.unitHeight;
-        color.b = drawModValueSlider(outRect, color.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", color.b));
-        outRect.y += uiParams.unitHeight;
-        color.a = drawModValueSlider(outRect, color.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", color.a));
-        outRect.y += uiParams.unitHeight;
-    }
-    private float setValueSlider(ref Rect outRect, string label, string format, float val, float min, float max) {
-        GUI.Label(outRect, label, uiParams.lStyle);
-        outRect.y += uiParams.unitHeight;
-
-        val = drawModValueSlider(outRect, val, min, max, String.Format(format, (float)val) );
-        outRect.y += uiParams.unitHeight;
-
-        return val;
     }
 
     private float drawModValueSlider(Rect outRect, float value, float min, float max, string label)
@@ -1687,5 +1430,139 @@ class AlwaysColorChange : UnityInjector.PluginBase
     }
 
 }
+    public class UIParams {
+        private int width;
+        private int height;
+        private float ratio;
+        
+        public int margin;
+        public int fontSize;
+        public int fontSize2;
+        public int itemHeight;
+        public int unitHeight;
+        public readonly GUIStyle lStyle = new GUIStyle("label");
+        public readonly GUIStyle bStyle = new GUIStyle("button");
+        public readonly GUIStyle bStyle2 = new GUIStyle("button");
+        public readonly GUIStyle tStyle = new GUIStyle("toggle");
+        public readonly GUIStyle listStyle = new GUIStyle("list");
+        public readonly GUIStyle textStyle = new GUIStyle("textField");
+        public readonly GUIStyle textAreaStyle = new GUIStyle("textArea");
+        public readonly GUIStyle boxStyle = new GUIStyle("box");
+        public readonly GUIStyle winStyle = new GUIStyle("box");
 
+        public readonly Color textColor = new Color(1f, 1f, 1f, 0.98f);
+
+        public Rect winRect         = new Rect();
+        public Rect fileBrowserRect = new Rect();
+        public Rect modalRect       = new Rect();
+
+        public Rect mainRect         = new Rect();
+        public Rect mainConRect      = new Rect();
+        public Rect colorRect        = new Rect();
+        public Rect nodeSelectRect   = new Rect();
+        public Rect presetSelectRect = new Rect();
+        public Rect textureRect      = new Rect();
+        public Rect labelRect        = new Rect();
+        public Rect subRect          = new Rect();
+        public Rect closeRect        = new Rect();
+
+
+        public int fontPx;
+        public int fontPx2;
+        public int marginPx;
+        public int itemHeightPx;
+        public UIParams(int fontPx, int marginPx, int heightPx) {
+            this.fontPx = fontPx;
+            this.fontPx2 = (int)(fontPx*0.9f);
+            this.marginPx = marginPx;
+            this.itemHeightPx = heightPx;
+
+            var tex = new Texture2D(2, 2);
+            var colors = new Color[16];
+            for (int i=0; i<colors.Length; i++) colors[i] = Color.black;
+            tex.SetPixels(colors);
+            listStyle.onHover.background = listStyle.hover.background = tex;
+            listStyle.padding.left = listStyle.padding.right = 4;
+            listStyle.padding.top = listStyle.padding.bottom = 1;
+            listStyle.normal.textColor = listStyle.onNormal.textColor =
+                listStyle.hover.textColor = listStyle.onHover.textColor =
+                listStyle.active.textColor = listStyle.onActive.textColor =
+                listStyle.focused.textColor = listStyle.onFocused.textColor = Color.white;
+            Update();
+        }
+
+        public void Update() {
+            bool screenSizeChanged = false;
+
+            if (Screen.height != height) {
+                height = Screen.height;
+                screenSizeChanged = true;
+            }
+            if (Screen.width != width) {
+                width = Screen.width;
+                screenSizeChanged = true;
+            }
+            if (!screenSizeChanged) return;
+
+            ratio = (1.0f + (width / 1280.0f - 1.0f) * 0.6f);
+
+            // 画面サイズが変更された場合にのみ更新
+            fontSize   = FixPx(fontPx);
+            margin     = FixPx(marginPx);
+            itemHeight = FixPx(itemHeightPx);
+            unitHeight = margin + itemHeight;
+
+            lStyle.fontSize         = fontSize;
+            lStyle.normal.textColor = textColor;
+
+            bStyle.fontSize         = fontSize;
+            bStyle.normal.textColor = textColor;
+
+            bStyle2.fontSize         = FixPx(fontPx2);
+            bStyle2.normal.textColor = textColor;
+
+            tStyle.fontSize         = fontSize;
+            tStyle.normal.textColor = textColor;
+
+            listStyle.fontSize         = FixPx(fontPx2);
+            listStyle.normal.textColor = textColor;
+
+            textStyle.fontSize         = fontSize;
+            textStyle.normal.textColor = textColor;
+
+            textAreaStyle.fontSize         = fontSize;
+            textAreaStyle.normal.textColor = textColor;
+
+            LogUtil.DebugLog(string.Format("screen=({0},{1}),margin={2},height={3},ratio={4})", width, height, margin, itemHeight, ratio));           
+
+            winStyle.fontSize  = fontSize;
+            winStyle.alignment = TextAnchor.UpperRight;            
+            InitWinRect();
+            InitFBRect();
+            InitModalRect();
+
+            // sub
+            mainRect.Set(      margin, unitHeight * 5 + margin, winRect.width - margin * 2, winRect.height - unitHeight * 6);
+            mainConRect.Set(   0,      0,              mainRect.width - 20, unitHeight * ACConstants.SlotNames.Count + margin * 2);
+            textureRect.Set(   margin, unitHeight,     winRect.width - margin * 2, winRect.height - unitHeight * 2);
+            nodeSelectRect.Set(margin, unitHeight * 2, winRect.width - margin * 2, winRect.height - unitHeight * 4);
+            colorRect.Set(     margin, unitHeight * 2, winRect.width - margin * 3, winRect.height - unitHeight * 4);
+            labelRect.Set(     0,      0,              winRect.width - margin * 2, itemHeight*1.2f);
+            subRect.Set(       0,      itemHeight,     winRect.width - margin * 2, itemHeight);
+            closeRect.Set(     margin, winRect.height - unitHeight,  winRect.width - margin * 2, itemHeight);
+        }
+
+        public void InitWinRect() {
+            winRect.Set(        width - FixPx(290),     FixPx(20),               FixPx(280), height - FixPx(120));
+        }
+        public void InitFBRect() {
+            fileBrowserRect.Set(width - FixPx(620),     FixPx(100),              FixPx(600), FixPx(600));                
+        }
+        public void InitModalRect() {
+            modalRect.Set(      width / 2 - FixPx(300), height / 2 - FixPx(300), FixPx(600), FixPx(600));                
+        }
+        public int FixPx(int px) {
+            return (int)(ratio * px);
+        }
+    }
 }

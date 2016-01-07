@@ -1,6 +1,8 @@
 ﻿/*
- * 
- * このテンプレートを変更する場合「ツール→オプション→コーディング→標準ヘッダの編集」
+ * シェーダ名のマッピング解決用静的クラス
+ * シェーダ名と各シェーダの編集項目のフラグの対応付けを管理する
+ *
+ * TODO Slotnamesは別のクラスへ移動..
  */
 using System;
 using System.Collections.Generic;
@@ -12,7 +14,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
 {
     /// <summary>
     /// Description of ShaderMapper.
-    /// シェーダと
+    /// シェーダ名とシェーダの対応付け、
     /// </summary>
     public static class ShaderMapper
     {
@@ -174,13 +176,48 @@ namespace CM3D2.AlwaysColorChange.Plugin
             {"CM3D2/Toony_Lighted_Trans_NoZ", "トゥーン 透過 NoZ" },
             {"CM3D2/Toony_Lighted_Outline", "トゥーン 輪郭線" },
             {"CM3D2/Toony_Lighted_Outline_Trans", "トゥーン 輪郭線 透過" },
-            {"CM3D2/Toony_Lighted_Outline_Trans_NoZ", "トゥーン 輪郭線 透過 NoZ" },
             {"CM3D2/Toony_Lighted_Hair", "トゥーン 髪" },
             {"CM3D2/Toony_Lighted_Hair_Outline", "トゥーン 髪 輪郭線" },
             {"Unlit/Texture", "発光" },
             {"Unlit/Transparent", "発光 透過" },
             {"Diffuse", "リアル" },
             {"Transparent/Diffuse",　"透過 リアル"}
+        };
+
+        public static ShaderName ParseShader(string name) {
+            foreach (ShaderName sn in ShaderNames) {
+                if (name == sn.Name) {
+                    return sn;
+                }
+            }
+            return null;
+        }
+
+        // シェーダ名として、識別名と表示名を保持するデータクラス
+        public class ShaderName {
+            public string Name {get; private set;}
+            public string DisplayName {get; private set;}
+            public ShaderName(string name, string displayName) {
+                Name = name;
+                DisplayName = displayName;
+            }
+        }
+        public static readonly ShaderName[] ShaderNames = {
+            new ShaderName("CM3D2/Toony_Lighted","トゥーン"),
+            new ShaderName("CM3D2/Toony_Lighted_Trans","トゥーン 透過"),
+            new ShaderName("CM3D2/Toony_Lighted_Trans_NoZ","トゥーン 透過 NoZ"),
+            new ShaderName("CM3D2/Toony_Lighted_Outline","トゥーン 輪郭線"),
+            new ShaderName("CM3D2/Toony_Lighted_Outline_Trans","トゥーン 輪郭線 透過"),
+            new ShaderName("CM3D2/Toony_Lighted_Hair","トゥーン 髪"),
+            new ShaderName("CM3D2/Toony_Lighted_Hair_Outline","トゥーン 髪 輪郭線"),
+            new ShaderName("CM3D2/Lighted","非トゥーン"),
+            new ShaderName("CM3D2/Lighted_Trans","透過"),
+            new ShaderName("Unlit/Texture","発光"),
+            new ShaderName("Unlit/Transparent","発光 透過"),
+            new ShaderName("Diffuse","リアル"),
+            new ShaderName("Transparent/Diffuse","透過 リアル"),
+            new ShaderName("CM3D2/Mosaic","モザイク"),
+            new ShaderName("CM3D2/Man","ご主人様"),
         };
 
          public static string name(string shaderName) {
@@ -199,56 +236,78 @@ namespace CM3D2.AlwaysColorChange.Plugin
         }
 
         //        string[] propNames = new string[] { "_MainTex", "_ShadowTex", "_ToonRamp", "_ShadowRateToon", "Alpha", "Multiply", "InfinityColor", "TexTo8bitTex", "Max" };
-        public static readonly string[] PropNamesEmpty   = new string[] {  };
-        public static readonly string[] PropNamesColored = new string[] { "_MainTex" };
-        public static readonly string[] PropNames        = new string[] { "_MainTex", "_ToonRamp", "_ShadowTex", "_ShadowRateToon" };
-        public static readonly string[] PropNamesHair    = new string[] { "_MainTex", "_ToonRamp", "_ShadowTex", "_ShadowRateToon", "_HiTex" };
-
-        // Toony/Lighted_Trans
-        public readonly static MaterialFlag ToonyLightedTrans         = new MaterialFlag(PropNames, true, true, true, false, true, false);
-        public readonly static MaterialFlag ToonyLightedOutlinedTrans = new MaterialFlag(PropNames, true, true, true, true, true, false);
-        public readonly static MaterialFlag ToonyLightedOutlined      = new MaterialFlag(PropNames, true, true, true, true, false, false);
+        public static readonly string[] PropNamesEmpty     = new string[] {  };
+        public static readonly string[] PropNamesTex = new string[] { "_RenderTex" };
+        public static readonly string[] PropNamesColored   = new string[] { "_MainTex" };
+        public static readonly string[] PropNames          = new string[] { "_MainTex", "_ToonRamp", "_ShadowTex", "_ShadowRateToon" };
+        public static readonly string[] PropNamesHair      = new string[] { "_MainTex", "_ToonRamp", "_ShadowTex", "_ShadowRateToon", "_HiTex" };
 
         private readonly static Dictionary<string, MaterialFlag> shaderMap = new Dictionary<string, MaterialFlag>(16) {
-            {"CM3D2/Man",                             new MaterialFlag(PropNamesEmpty, true, true, false, false, false, false)},
-            {"CM3D2/Mosaic",                          new MaterialFlag(PropNamesEmpty, true, true, false, false, false, false)},
-            {"CM3D2/Lighted",                         new MaterialFlag(PropNamesColored, true, true, false, false, false, false)},
-            {"CM3D2/Lighted_Trans",                   new MaterialFlag(PropNamesColored, true, true, false, false, true, false)},
-            {"CM3D2/Toony_Lighted",                   new MaterialFlag(PropNamesColored, true, true, true, false, false, false)},
-            {"CM3D2/Toony_Lighted_Trans",             ToonyLightedTrans},
-            {"CM3D2/Toony_Lighted_Trans_NoZ",         ToonyLightedTrans},
-            {"CM3D2/Toony_Lighted_Outline",           ToonyLightedOutlined},
-            {"CM3D2/Toony_Lighted_Outline_Trans",     ToonyLightedOutlinedTrans},
-            {"CM3D2/Toony_Lighted_Outline_Trans_NoZ", ToonyLightedOutlinedTrans},
-            {"CM3D2/Toony_Lighted_Hair",              new MaterialFlag(PropNamesHair, true, true, true, false, false, true)},
-            {"CM3D2/Toony_Lighted_Hair_Outline",      new MaterialFlag(PropNamesHair, true, true, true, true, false, true)},
-            {"Unlit/Texture",                         new MaterialFlag(PropNamesColored, false, false, false, false, false, false)},
-            {"Unlit/Transparent",                     new MaterialFlag(PropNamesColored, false, false, false, false, false, false)},
-            {"Diffuse",                               new MaterialFlag(PropNamesColored, true, false, false, false, false, false)},
-            {"Transparent/Diffuse",                   new MaterialFlag(PropNamesColored, true, false, false, false, true, false)},
+            {"CM3D2/Toony_Lighted",               new MaterialFlag(ShaderNames[0], PropNamesColored,  COLOR+LIGHT+TOONY)},               //   0000 0111
+            {"CM3D2/Toony_Lighted_Trans",         new MaterialFlag(ShaderNames[1], PropNames,         COLOR+LIGHT+TOONY+TRANS)},         //   0001 0111
+            {"CM3D2/Toony_Lighted_Trans_NoZ",     new MaterialFlag(ShaderNames[2], PropNames,         COLOR+LIGHT+TOONY+TRANS)},         //   0001 0111
+            {"CM3D2/Toony_Lighted_Outline",       new MaterialFlag(ShaderNames[3], PropNames,         COLOR+LIGHT+TOONY+OUTLINE)},       //   0000 1111
+            {"CM3D2/Toony_Lighted_Outline_Trans", new MaterialFlag(ShaderNames[4], PropNames,         COLOR+LIGHT+TOONY+OUTLINE+TRANS)}, //   0001 1111
+            {"CM3D2/Toony_Lighted_Hair",          new MaterialFlag(ShaderNames[5], PropNamesHair,     COLOR+LIGHT+TOONY+HAIR)},          //   0010 0111
+            {"CM3D2/Toony_Lighted_Hair_Outline",  new MaterialFlag(ShaderNames[6], PropNamesHair,     COLOR+LIGHT+TOONY+OUTLINE+HAIR)},  //   0010 1111
+            {"CM3D2/Lighted",                     new MaterialFlag(ShaderNames[7], PropNamesColored,  COLOR+LIGHT)},                     //   0000 0011
+            {"CM3D2/Lighted_Trans",               new MaterialFlag(ShaderNames[8], PropNamesColored,  COLOR+LIGHT+TRANS)},               //   0001 0011
+            {"Unlit/Texture",                     new MaterialFlag(ShaderNames[9], PropNamesColored,  0x000)}, //   0000 0000
+            {"Unlit/Transparent",                 new MaterialFlag(ShaderNames[10], PropNamesColored, 0x000)}, //   0000 0000
+            {"Diffuse",                           new MaterialFlag(ShaderNames[11], PropNamesColored, COLOR)},                           //   0000 0001
+            {"Transparent/Diffuse",               new MaterialFlag(ShaderNames[12], PropNamesColored, COLOR+TRANS)},                     //   0001 0001
+            {"CM3D2/Mosaic",                      new MaterialFlag(ShaderNames[13], PropNamesTex,     FLOATVAL1)},                       // 0 0100 0000
+            {"CM3D2/Man",                         new MaterialFlag(ShaderNames[14], PropNamesEmpty,   COLOR+FLOATVAL2+FLOATVAL3)},       // 1 1000 0001
         };
-
-
-
-
+        public const int COLOR     = 0x001;
+        public const int LIGHT     = 0x002;
+        public const int TOONY     = 0x004;
+        public const int OUTLINE   = 0x008;
+        public const int TRANS     = 0x010;
+        public const int HAIR      = 0x020;
+        public const int FLOATVAL1 = 0x040;
+        public const int FLOATVAL2 = 0x080;
+        public const int FLOATVAL3 = 0x100;
         public class MaterialFlag {
-            public MaterialFlag(String[] propNames, bool hasColor, bool isLighted, bool isToony, bool isOutlined, bool isTrans, bool isHair) {
+            public MaterialFlag(ShaderName shader, String[] propNames, bool hasColor, bool isLighted, bool isToony, bool isOutlined,
+                        bool isTrans, bool isHair) {
+                this.shader = shader;
                 this.propNames = propNames;
                 this.hasColor   = hasColor;
                 this.isLighted  = isLighted;
                 this.isToony    = isToony;
                 this.isOutlined = isOutlined;
                 this.isHair     = isHair;
-                this.isTrans    = isTrans;
-                
+                this.isTrans    = isTrans;                
             }
-            public String[] propNames  { get; set; }
-            public bool hasColor       { get; set; }
-            public bool isLighted      { get; set; }
-            public bool isOutlined     { get; set; }
-            public bool isToony        { get; set; }
-            public bool isHair         { get; set; }
-            public bool isTrans        { get; set; }
+            public MaterialFlag(ShaderName shader, String[] propNames, int flag) {
+                this.shader = shader;
+                this.propNames = propNames;
+    
+                this.hasColor   = ((flag & COLOR)   != 0);
+                this.isLighted  = ((flag & LIGHT)   != 0);
+                this.isToony    = ((flag & TOONY)   != 0);
+                this.isOutlined = ((flag & OUTLINE) != 0);
+                this.isHair     = ((flag & HAIR)    != 0);
+                this.isTrans    = ((flag & TRANS)   != 0);
+                this.hasFloat1  = ((flag & FLOATVAL1) != 0);
+                this.hasFloat2  = ((flag & FLOATVAL2) != 0);
+                this.hasFloat3  = ((flag & FLOATVAL3) != 0);
+            }
+
+            public ShaderName shader   { get; private set; }
+            public String[] propNames  { get; private set; }
+            public bool hasColor       { get; private set; }
+            public bool isLighted      { get; private set; }
+            public bool isOutlined     { get; private set; }
+            public bool isToony        { get; private set; }
+            public bool isHair         { get; private set; }
+            public bool isTrans        { get; private set; }
+            public bool hasFloat1      { get; private set; }
+            public bool hasFloat2      { get; private set; }
+            public bool hasFloat3      { get; private set; }
+
+
         }
         
     }
