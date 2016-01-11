@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using CM3D2.AlwaysColorChange.Plugin.Util;
 
 namespace CM3D2.AlwaysColorChange.Plugin.Data
 {
@@ -9,64 +11,70 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
     public static class ACConstants
     {
         public static readonly Dictionary<TBody.SlotID, SlotInfo> SlotNames = new Dictionary<TBody.SlotID, SlotInfo>(Enum.GetNames(typeof(TBody.SlotID)).Length) {
-            {TBody.SlotID.body,        new SlotInfo(TBody.SlotID.body,      "身体") },
-            {TBody.SlotID.chikubi,     new SlotInfo(TBody.SlotID.chikubi,   "乳首")},        
-            {TBody.SlotID.underhair,   new SlotInfo(TBody.SlotID.underhair, "アンダーヘア")},
-            {TBody.SlotID.head,        new SlotInfo(TBody.SlotID.head,      "頭")},
-            {TBody.SlotID.eye,         new SlotInfo(TBody.SlotID.eye,       "目")},
-            {TBody.SlotID.accHa,       new SlotInfo(TBody.SlotID.accHa,     "歯")},
-            {TBody.SlotID.hairF,       new SlotInfo(TBody.SlotID.hairF,     "前髪")},
-            {TBody.SlotID.hairR,       new SlotInfo(TBody.SlotID.hairR,     "後髪")},
-            {TBody.SlotID.hairS,       new SlotInfo(TBody.SlotID.hairS,     "横髪")},
-            {TBody.SlotID.hairT,       new SlotInfo(TBody.SlotID.hairT,     "エクステ毛")},
-            {TBody.SlotID.hairAho,     new SlotInfo(TBody.SlotID.hairAho,   "アホ毛")},
-            {TBody.SlotID.accHat,      new SlotInfo(TBody.SlotID.accHat,    "帽子")},
-            {TBody.SlotID.headset,     new SlotInfo(TBody.SlotID.headset,   "ヘッドドレス")},
-            {TBody.SlotID.wear,        new SlotInfo(TBody.SlotID.wear,      "トップス")},
-            {TBody.SlotID.skirt,       new SlotInfo(TBody.SlotID.skirt,     "ボトムス")},
-            {TBody.SlotID.onepiece,    new SlotInfo(TBody.SlotID.onepiece,  "ワンピース")},
-            {TBody.SlotID.mizugi,      new SlotInfo(TBody.SlotID.mizugi,    "水着")},
-            {TBody.SlotID.bra,         new SlotInfo(TBody.SlotID.bra,       "ブラジャー")},
-            {TBody.SlotID.panz,        new SlotInfo(TBody.SlotID.panz,      "パンツ")},
-            {TBody.SlotID.stkg,        new SlotInfo(TBody.SlotID.stkg,      "靴下")},
-            {TBody.SlotID.shoes,       new SlotInfo(TBody.SlotID.shoes,     "靴")},
-            {TBody.SlotID.accKami_1_,  new SlotInfo(TBody.SlotID.accKami_1_, "アクセ：前髪")},
-            {TBody.SlotID.accKami_2_,  new SlotInfo(TBody.SlotID.accKami_2_, "アクセ：前髪：左")},
-            {TBody.SlotID.accKami_3_,  new SlotInfo(TBody.SlotID.accKami_3_, "アクセ：前髪：右")},
-            {TBody.SlotID.megane,      new SlotInfo(TBody.SlotID.megane,    "アクセ：メガネ")},
-            {TBody.SlotID.accHead,     new SlotInfo(TBody.SlotID.accHead,   "アクセ：アイマスク")},
-            {TBody.SlotID.glove,       new SlotInfo(TBody.SlotID.glove,     "アクセ：手袋")},
-            {TBody.SlotID.accHana,     new SlotInfo(TBody.SlotID.accHana,   "アクセ：鼻")},
-            {TBody.SlotID.accMiMiL,    new SlotInfo(TBody.SlotID.accMiMiL,  "アクセ：左耳")},
-            {TBody.SlotID.accMiMiR,    new SlotInfo(TBody.SlotID.accMiMiR,  "アクセ：右耳")},
-            {TBody.SlotID.accKubi,     new SlotInfo(TBody.SlotID.accKubi,   "アクセ：ネックレス")},
-            {TBody.SlotID.accKubiwa,   new SlotInfo(TBody.SlotID.accKubiwa, "アクセ：チョーカー")},
-            {TBody.SlotID.accKamiSubL, new SlotInfo(TBody.SlotID.accKamiSubL, "アクセ：左リボン")},
-            {TBody.SlotID.accKamiSubR, new SlotInfo(TBody.SlotID.accKamiSubR, "アクセ：右リボン")},
-            {TBody.SlotID.accNipL,     new SlotInfo(TBody.SlotID.accNipL,   "アクセ：左乳首")},
-            {TBody.SlotID.accNipR,     new SlotInfo(TBody.SlotID.accNipR,   "アクセ：右乳首")},
-            {TBody.SlotID.accUde,      new SlotInfo(TBody.SlotID.accUde,    "アクセ：腕")},
-            {TBody.SlotID.accHeso,     new SlotInfo(TBody.SlotID.accHeso,   "アクセ：へそ")},
-            {TBody.SlotID.accAshi,     new SlotInfo(TBody.SlotID.accAshi,   "アクセ：足首")},
-            {TBody.SlotID.accSenaka,   new SlotInfo(TBody.SlotID.accSenaka, "アクセ：背中")},
-            {TBody.SlotID.accShippo,   new SlotInfo(TBody.SlotID.accShippo, "アクセ：しっぽ")},
-            {TBody.SlotID.accXXX,      new SlotInfo(TBody.SlotID.accXXX,    "アクセ：前穴")},
-            {TBody.SlotID.seieki_naka, new SlotInfo(TBody.SlotID.seieki_naka, "精液：中")},
-            {TBody.SlotID.seieki_hara, new SlotInfo(TBody.SlotID.seieki_hara, "精液：腹")},
-            {TBody.SlotID.seieki_face, new SlotInfo(TBody.SlotID.seieki_face, "精液：顔")},
-            {TBody.SlotID.seieki_mune, new SlotInfo(TBody.SlotID.seieki_mune, "精液：胸")},
-            {TBody.SlotID.seieki_hip,  new SlotInfo(TBody.SlotID.seieki_hip, "精液：尻")},
-            {TBody.SlotID.seieki_ude,  new SlotInfo(TBody.SlotID.seieki_ude, "精液：腕")},
-            {TBody.SlotID.seieki_ashi, new SlotInfo(TBody.SlotID.seieki_ashi, "精液：足")},
-            {TBody.SlotID.HandItemL,   new SlotInfo(TBody.SlotID.HandItemL, "手持アイテム：左")},
-            {TBody.SlotID.HandItemR,   new SlotInfo(TBody.SlotID.HandItemR, "手持アイテム：右")},
-            {TBody.SlotID.kubiwa,      new SlotInfo(TBody.SlotID.kubiwa,    "首輪")},
-            {TBody.SlotID.kousoku_upper, new SlotInfo(TBody.SlotID.kousoku_upper, "拘束具：上")},
-            {TBody.SlotID.kousoku_lower, new SlotInfo(TBody.SlotID.kousoku_lower, "拘束具：下")},
-            {TBody.SlotID.accAnl,      new SlotInfo(TBody.SlotID.accAnl,    "アナルバイブ")},
-            {TBody.SlotID.accVag,      new SlotInfo(TBody.SlotID.accVag,    "バイブ")},
-            {TBody.SlotID.chinko,      new SlotInfo(TBody.SlotID.chinko,   "チ○コ")}
+            {TBody.SlotID.body,        new SlotInfo(TBody.SlotID.body,      MPN.body,      "身体", false) },
+            {TBody.SlotID.head,        new SlotInfo(TBody.SlotID.head,      MPN.head,      "頭", false)},
+            {TBody.SlotID.eye,         new SlotInfo(TBody.SlotID.eye,       MPN.eye,       "目", false)},
+            {TBody.SlotID.chikubi,     new SlotInfo(TBody.SlotID.chikubi,   MPN.chikubi,   "乳首", true)},       
+            {TBody.SlotID.accHa,       new SlotInfo(TBody.SlotID.accHa,     MPN.accha,     "歯", true)},
+            {TBody.SlotID.hairF,       new SlotInfo(TBody.SlotID.hairF,     MPN.hairf,     "前髪", true)},
+            {TBody.SlotID.hairR,       new SlotInfo(TBody.SlotID.hairR,     MPN.hairr,     "後髪", true)},
+            {TBody.SlotID.hairS,       new SlotInfo(TBody.SlotID.hairS,     MPN.hairs,     "横髪", true)},
+            {TBody.SlotID.hairT,       new SlotInfo(TBody.SlotID.hairT,     MPN.hairt,     "エクステ毛", true)},
+            {TBody.SlotID.hairAho,     new SlotInfo(TBody.SlotID.hairAho,   MPN.hairaho,   "アホ毛", true)},
+            {TBody.SlotID.underhair,   new SlotInfo(TBody.SlotID.underhair, MPN.underhair, "アンダーヘア", true)},
+            {TBody.SlotID.accHat,      new SlotInfo(TBody.SlotID.accHat,    MPN.acchat,    "帽子", true)},
+            {TBody.SlotID.headset,     new SlotInfo(TBody.SlotID.headset,   MPN.headset,   "ヘッドドレス", true)},
+            {TBody.SlotID.wear,        new SlotInfo(TBody.SlotID.wear,      MPN.wear,      "トップス", true)},
+            {TBody.SlotID.skirt,       new SlotInfo(TBody.SlotID.skirt,     MPN.skirt,     "ボトムス", true)},
+            {TBody.SlotID.onepiece,    new SlotInfo(TBody.SlotID.onepiece,  MPN.onepiece,  "ワンピース", true)},
+            {TBody.SlotID.mizugi,      new SlotInfo(TBody.SlotID.mizugi,    MPN.mizugi,    "水着", true)},
+            {TBody.SlotID.bra,         new SlotInfo(TBody.SlotID.bra,       MPN.bra,       "ブラジャー", true)},
+            {TBody.SlotID.panz,        new SlotInfo(TBody.SlotID.panz,      MPN.panz,      "パンツ", true)},
+            {TBody.SlotID.stkg,        new SlotInfo(TBody.SlotID.stkg,      MPN.stkg,      "靴下", true)},
+            {TBody.SlotID.shoes,       new SlotInfo(TBody.SlotID.shoes,     MPN.shoes,     "靴", true)},
+            {TBody.SlotID.accKami_1_,  new SlotInfo(TBody.SlotID.accKami_1_, MPN.acckami,  "アクセ：前髪", true)},
+            {TBody.SlotID.accKami_2_,  new SlotInfo(TBody.SlotID.accKami_2_, MPN.acckami,  "アクセ：前髪：左", true)},
+            {TBody.SlotID.accKami_3_,  new SlotInfo(TBody.SlotID.accKami_3_, MPN.acckami,  "アクセ：前髪：右", true)},
+            {TBody.SlotID.megane,      new SlotInfo(TBody.SlotID.megane,    MPN.megane,    "アクセ：メガネ", true)},
+            {TBody.SlotID.accHead,     new SlotInfo(TBody.SlotID.accHead,   MPN.acchead,   "アクセ：アイマスク", true)},
+            {TBody.SlotID.glove,       new SlotInfo(TBody.SlotID.glove,     MPN.glove,     "アクセ：手袋", true)},
+            {TBody.SlotID.accHana,     new SlotInfo(TBody.SlotID.accHana,   MPN.acchana,   "アクセ：鼻", true)},
+            {TBody.SlotID.accMiMiL,    new SlotInfo(TBody.SlotID.accMiMiL,  MPN.accmimi,   "アクセ：左耳", true)},
+            {TBody.SlotID.accMiMiR,    new SlotInfo(TBody.SlotID.accMiMiR,  MPN.accmimi,   "アクセ：右耳", true)},
+            {TBody.SlotID.accKubi,     new SlotInfo(TBody.SlotID.accKubi,   MPN.acckubi,   "アクセ：ネックレス", true)},
+            {TBody.SlotID.accKubiwa,   new SlotInfo(TBody.SlotID.accKubiwa, MPN.acckubiwa, "アクセ：チョーカー", true)},
+            {TBody.SlotID.accKamiSubL, new SlotInfo(TBody.SlotID.accKamiSubL, MPN.acckamisub,"アクセ：左リボン", true)},
+            {TBody.SlotID.accKamiSubR, new SlotInfo(TBody.SlotID.accKamiSubR, MPN.acckamisub,"アクセ：右リボン", true)},
+            {TBody.SlotID.accNipL,     new SlotInfo(TBody.SlotID.accNipL,   MPN.accnip,    "アクセ：左乳首", true)},
+            {TBody.SlotID.accNipR,     new SlotInfo(TBody.SlotID.accNipR,   MPN.accnip,    "アクセ：右乳首", true)},
+            {TBody.SlotID.accUde,      new SlotInfo(TBody.SlotID.accUde,    MPN.accude,    "アクセ：腕", true)},
+            {TBody.SlotID.accHeso,     new SlotInfo(TBody.SlotID.accHeso,   MPN.accheso,   "アクセ：へそ", true)},
+            {TBody.SlotID.accAshi,     new SlotInfo(TBody.SlotID.accAshi,   MPN.accashi,   "アクセ：足首", true)},
+            {TBody.SlotID.accSenaka,   new SlotInfo(TBody.SlotID.accSenaka, MPN.accsenaka, "アクセ：背中", true)},
+            {TBody.SlotID.accShippo,   new SlotInfo(TBody.SlotID.accShippo, MPN.accshippo, "アクセ：しっぽ", true)},
+            {TBody.SlotID.accXXX,      new SlotInfo(TBody.SlotID.accXXX,    MPN.accxxx,    "アクセ：前穴", true)},
+            {TBody.SlotID.seieki_naka, new SlotInfo(TBody.SlotID.seieki_naka, MPN.seieki_naka, "精液：中", true)},
+            {TBody.SlotID.seieki_hara, new SlotInfo(TBody.SlotID.seieki_hara, MPN.seieki_hara, "精液：腹", true)},
+            {TBody.SlotID.seieki_face, new SlotInfo(TBody.SlotID.seieki_face, MPN.seieki_face, "精液：顔", true)},
+            {TBody.SlotID.seieki_mune, new SlotInfo(TBody.SlotID.seieki_mune, MPN.seieki_mune, "精液：胸", true)},
+            {TBody.SlotID.seieki_hip,  new SlotInfo(TBody.SlotID.seieki_hip, MPN.seieki_hip,   "精液：尻", true)},
+            {TBody.SlotID.seieki_ude,  new SlotInfo(TBody.SlotID.seieki_ude, MPN.seieki_ude,   "精液：腕", true)},
+            {TBody.SlotID.seieki_ashi, new SlotInfo(TBody.SlotID.seieki_ashi, MPN.seieki_ashi, "精液：足", true)},
+            {TBody.SlotID.HandItemL,   new SlotInfo(TBody.SlotID.HandItemL, MPN.handitem, "手持アイテム：左", true)},
+            {TBody.SlotID.HandItemR,   new SlotInfo(TBody.SlotID.HandItemR, MPN.handitem, "手持アイテム：右", true)},
+
+            {TBody.SlotID.kubiwa,      new SlotInfo(TBody.SlotID.kubiwa,    MPN.KubiScl,  "首輪", true)},
+            {TBody.SlotID.kousoku_upper, new SlotInfo(TBody.SlotID.kousoku_upper, MPN.kousoku_upper, "拘束具：上", true)},
+            {TBody.SlotID.kousoku_lower, new SlotInfo(TBody.SlotID.kousoku_lower, MPN.kousoku_lower, "拘束具：下", true)},
+            {TBody.SlotID.accAnl,      new SlotInfo(TBody.SlotID.accAnl,    MPN.accanl,  "アナルバイブ", true)},
+            {TBody.SlotID.accVag,      new SlotInfo(TBody.SlotID.accVag,    MPN.accvag,  "バイブ", true)},
+            {TBody.SlotID.chinko,      new SlotInfo(TBody.SlotID.chinko,   MPN.null_mpn, "チ○コ", false)},
+            //{TBody.SlotID.moza,        new SlotInfo(TBody.SlotID.moza,   MPN.moza, "モザ", true)},
         };
+        
+        // マスク対象スロット
+//        public static readonly Dictionary<int, SlotInfo> MaskSlots = new Dictionary<int, SlotInfo>(Enum.GetNames(typeof(TBody.SlotID)).Length);
+
         public static readonly Dictionary<string, string> NodeNames = new Dictionary<string, string>() {
             {"Bip01 Head", "頭" },
             {"Bip01 Neck_SCL_", "首"},
@@ -309,13 +317,32 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
     }
     public class SlotInfo {
         public TBody.SlotID Id        { get; private set; }
+        public string mpn             { get; private set; }
         public string Name            { get; private set; }
         public string DisplayName     { get; private set; }
-        public SlotInfo(TBody.SlotID id, string displayName) {
+        public bool   maskable        { get; private set; }
+        private int no;
+        public int No                 { 
+            get {
+                if (no == -1) {
+                    try {
+                        this.no = (int)TBody.hashSlotName[Name];
+                    } catch(Exception e) {
+                        LogUtil.Log("Initialize Error Slot name is illegal", Name, e);
+                    }
+                }
+                return no;
+            }
+            private set { no = value; }
+        }
+        public SlotInfo(TBody.SlotID id, MPN mpn, string displayName, bool mask) {
             this.Id = id;
             this.Name = Id.ToString();
+            this.mpn = mpn.ToString();
             this.DisplayName = displayName;
+            this.no = -1;
+            this.maskable = mask;
         }
     }
-        
+
 }

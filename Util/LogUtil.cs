@@ -11,6 +11,14 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
     public static class LogUtil
     {
 
+        public static void DebugLogF(string format, params object[] message) 
+        {
+#if DEBUG
+            var sb = String.Format(format, message);
+            Debug.Log(sb);
+#endif
+        }
+
         public static void DebugLog(params object[] message)
         {
 #if DEBUG
@@ -19,10 +27,22 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
 #endif
         }
 
+        public static void LogF(string format, params object[] message)
+        {
+            var sb = String.Format(format, message);
+            Debug.Log(sb);
+        }
+
         public static void Log(params object[] message)
         {
             var sb = createMesage(message);
             Debug.Log(sb);
+        }
+
+        public static void ErrorLogF(string format, params object[] message)
+        {
+            var sb = String.Format(format, message);
+            Debug.LogError(sb);
         }
 
         public static void ErrorLog(params object[] message)

@@ -10,7 +10,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
             get { return instance; }
         }
 
-        public KeyCode toggleKey = KeyCode.F9;
+        public KeyCode toggleKey = KeyCode.F12;
         public string configPath;
         public float shininessMax    =  20f;
         public float shininessMin    =   0f;
@@ -26,8 +26,8 @@ namespace CM3D2.AlwaysColorChange.Plugin
         public float hiPowMin        =   0.001f;
         public float floatVal1Max    = 300f;
         public float floatVal1Min    =   0f;
-        public float floatVal2Max    =  10f;
-        public float floatVal2Min    = -10f;// -20
+        public float floatVal2Max    =  15f;
+        public float floatVal2Min    = -15f;// -20
         public float floatVal3Max    =   1f;
         public float floatVal3Min    =   0f;
     

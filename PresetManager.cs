@@ -90,6 +90,18 @@ namespace CM3D2.AlwaysColorChange.Plugin
                                 if (f != null) {
                                     material.hiPow = (float)f;
                                 }
+                                f = materialNode.Element("floatValue1");
+                                if (f != null) {
+                                    material.floatVal1 = (float)f;
+                                }
+                                f = materialNode.Element("floatValue2");
+                                if (f != null) {
+                                    material.floatVal2 = (float)f;
+                                }
+                                f = materialNode.Element("floatValue3");
+                                if (f != null) {
+                                    material.floatVal3 = (float)f;
+                                }
                                 slot.materials.Add(material.name, material);
                             }
                             preset.slots.Add(slot.name, slot);
@@ -161,30 +173,19 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 List<Material> materialList = holder.GetMaterials(slot);
                 if (!materialList.Any()) continue;
 
-                var slotDoc = new XElement("slot",
-                                           new XAttribute("slotname", slot.Name)
-                                          );
+                var slotDoc = new XElement("slot", new XAttribute("slotname", slot.Name) );
 
                 foreach (Material material in materialList) {
                     string shaderName = material.shader.name;
                     ShaderMapper.MaterialFlag mate = ShaderMapper.resolve(shaderName);
                     if (mate == null) continue;
 
-                    Color color        = material.GetColor("_Color");
-                    Color shadowColor  = material.GetColor("_ShadowColor");
-                    Color rimColor     = material.GetColor("_RimColor");
-                    Color outlineColor = material.GetColor("_OutlineColor");
-                    float shininess    = material.GetFloat("_Shininess");
-                    float outlineWidth = material.GetFloat("_OutlineWidth");
-                    float rimPower     = material.GetFloat("_RimPower");
-                    float rimShift     = material.GetFloat("_RimShift");
-                    float hiRate       = material.GetFloat("_HiRate");
-                    float hiPow        = material.GetFloat("_HiPow");
                     var materialNode = new XElement("material",
                                                     new XElement("name", material.name),
                                                     new XElement("shader", material.shader.name));
                     
                     if (mate.hasColor) {
+                        Color color        = material.GetColor("_Color");
                         materialNode.Add(new XElement("color",
                                 new XAttribute("R", color.r),
                                 new XAttribute("G", color.g),
@@ -192,6 +193,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                                 new XAttribute("A", color.a)));
                     }
                     if (mate.isLighted) {
+                        Color shadowColor  = material.GetColor("_ShadowColor");
                         materialNode.Add(new XElement("shadowColor",
                                 new XAttribute("R", shadowColor.r),
                                 new XAttribute("G", shadowColor.g),
@@ -199,6 +201,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                                 new XAttribute("A", shadowColor.a)));
                     }
                     if (mate.isToony) {
+                        Color rimColor     = material.GetColor("_RimColor");
                         materialNode.Add(new XElement("rimColor",
                             new XAttribute("R", rimColor.r),
                             new XAttribute("G", rimColor.g),
@@ -206,6 +209,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                             new XAttribute("A", rimColor.a)));
                     }
                     if (mate.isOutlined) {
+                        Color outlineColor = material.GetColor("_OutlineColor");
                         materialNode.Add(new XElement("outlineColor",
                             new XAttribute("R", outlineColor.r),
                             new XAttribute("G", outlineColor.g),
@@ -213,18 +217,36 @@ namespace CM3D2.AlwaysColorChange.Plugin
                             new XAttribute("A", outlineColor.a)));
                     }
                     if (mate.isLighted) {
+                        float shininess    = material.GetFloat("_Shininess");
                         materialNode.Add(new XElement("shininess", shininess));
                     }
-                    if (mate.isOutlined) 
+                    if (mate.isOutlined) {
+                        float outlineWidth = material.GetFloat("_OutlineWidth");
                         materialNode.Add(new XElement("outlineWidth", outlineWidth));
-                    
+                    }
                     if (mate.isToony) {
+                        float rimPower     = material.GetFloat("_RimPower");
+                        float rimShift     = material.GetFloat("_RimShift");
                         materialNode.Add(new XElement("rimPower", rimPower),
                                         new XElement("rimShift", rimShift));
                     }
                     if (mate.isHair) {
+                        float hiRate       = material.GetFloat("_HiRate");
+                        float hiPow        = material.GetFloat("_HiPow");
                         materialNode.Add(new XElement("hiRate", hiRate));
                         materialNode.Add(new XElement("hiPow", hiPow));
+                    }
+                    if (mate.hasFloat1) {
+                        float floatVal1    = material.GetFloat("_FloatValue1");
+                        materialNode.Add(new XElement("floatVal1", floatVal1));
+                    }
+                    if (mate.hasFloat2) {
+                        float floatVal2    = material.GetFloat("_FloatValue2");
+                        materialNode.Add(new XElement("floatVal2", floatVal2));
+                    }
+                    if (mate.hasFloat3) {
+                        float floatVal3    = material.GetFloat("_FloatValue3");
+                        materialNode.Add(new XElement("floatVal3", floatVal3));
                     }
 
                     slotDoc.Add(materialNode);

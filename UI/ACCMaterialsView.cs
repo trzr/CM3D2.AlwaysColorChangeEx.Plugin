@@ -9,7 +9,6 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
     /// Description of ACCMaterial.
     /// </summary>
     public class ACCMaterial {
-        private static readonly Color WHITE = new Color(1f, 1f, 1f, 1f);
         private const float DEFAULT_FV1 = 10f;
         private const float DEFAULT_FV2 = 1f;
         private const float DEFAULT_FV3 = 1f;
@@ -22,16 +21,15 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
         public Color? shadowColor;
         public Color? rimColor;
         public Color? outlineColor;
-        public float? shininess;
-        public float? outlineWidth;
-        public float? rimPower;
-        public float? rimShift;
-        public float? hiRate;
-        public float? hiPow;
-        public float? floatVal1;
-        public float? floatVal2;
-        public float? floatVal3;
-        public bool dirty;
+        public float shininess;
+        public float outlineWidth = 0.002f;
+        public float rimPower = 25f;
+        public float rimShift;
+        public float hiRate;
+        public float hiPow = 0.001f;
+        public float floatVal1 = DEFAULT_FV1;
+        public float floatVal2 = DEFAULT_FV2;
+        public float floatVal3 = DEFAULT_FV3;
 
         public ACCMaterial(string matName, ShaderMapper.MaterialFlag flag) {
             this.name = matName;
@@ -39,32 +37,15 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             this.shader = flag.shader;
 
             renderQueue = 2000;
-            if (flag.hasColor) color = WHITE;
+            if (flag.hasColor) color = Color.white;
             if (flag.isLighted) {
-                shadowColor = WHITE;
-                shininess = 0f;
+                shadowColor = Color.white;
             }
             if (flag.isOutlined) {
-                outlineColor = new Color(0, 0, 0, 1);
-                outlineWidth = 0f;
+                outlineColor = Color.black;
             }
             if (flag.isToony) {
-                rimColor = WHITE;
-                rimPower = 0f;
-                rimShift = 0f;
-            }
-            if (flag.isHair) {
-                hiRate = 0f;
-                hiPow = 0.001f;
-            }
-            if (flag.hasFloat1) {
-                floatVal1 = DEFAULT_FV1;
-            }
-            if (flag.hasFloat2) {
-                floatVal2 = DEFAULT_FV2;
-            }
-            if (flag.hasFloat3) {
-                floatVal3 = DEFAULT_FV3;
+                rimColor = Color.white;
             }
         }
         public ACCMaterial(ACCMaterial src) {
@@ -86,8 +67,8 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             this.floatVal1 = src.floatVal1;
             this.floatVal2 = src.floatVal2;
             this.floatVal3 = src.floatVal3;
-
         }
+
         public ACCMaterial(Material m) {
             this.material = m;
             name = m.name;
@@ -129,54 +110,24 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             this.flag = flag;
             this.shader = flag.shader;
             if (flag.hasColor) {
-                if (!color.HasValue) color = WHITE;
+                if (!color.HasValue) color = Color.white;
             } else {
                 color = null;
             }
             if (flag.isLighted) {
-                if (!shadowColor.HasValue) shadowColor = WHITE;
-                if (!shininess.HasValue) shininess   = 0f;
+                if (!shadowColor.HasValue) shadowColor = Color.white;
             } else {
                 shadowColor = null;
-                shininess   = null;
             }
             if (flag.isOutlined) {
-                if (!outlineColor.HasValue) outlineColor = new Color(0f, 0f, 0f, 1f);
-                if (!outlineWidth.HasValue) outlineWidth = 0f;
+                if (!outlineColor.HasValue) outlineColor = Color.black;
             } else {
                 outlineColor = null;
-                outlineWidth = null;
             }
             if (flag.isToony) {
-                if (!rimColor.HasValue) rimColor = WHITE;
-                if (!rimPower.HasValue) rimPower = 0f;
-                if (!rimShift.HasValue) rimShift = 0f;
+                if (!rimColor.HasValue) rimColor = Color.white;
             } else {
                 rimColor = null;
-                rimPower = null;
-                rimShift = null;
-            }
-            if (flag.isHair) {
-                if (!hiRate.HasValue) hiRate = 0f;
-                if (!hiPow.HasValue) hiPow = 0.001f;
-            } else {
-                hiRate = null;
-                hiPow = null;
-            }
-            if (flag.hasFloat1) {
-                if (!floatVal1.HasValue) floatVal1 = DEFAULT_FV1;
-            } else {
-                floatVal1 = null;
-            }
-            if (flag.hasFloat2) {
-                if (!floatVal2.HasValue) floatVal2 = DEFAULT_FV2;
-            } else {
-                floatVal2 = null;
-            }
-            if (flag.hasFloat3) {
-                if (!floatVal3.HasValue) floatVal3 = DEFAULT_FV3;
-            } else {
-                floatVal3 = null;
             }
         }
         public void ReflectTo(Material m) {
@@ -188,35 +139,34 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             }
             if (flag.isLighted) {
                 m.SetColor("_ShadowColor", shadowColor.Value);
-                m.SetFloat("_Shininess", shininess.Value);
+                m.SetFloat("_Shininess", shininess);
             }
             if (flag.isOutlined) {
                 m.SetColor("_OutlineColor", outlineColor.Value);
-                m.SetFloat("_OutlineWidth", outlineWidth.Value);
+                m.SetFloat("_OutlineWidth", outlineWidth);
             }
             if (flag.isToony) {
                 m.SetColor("_RimColor", rimColor.Value);
-                m.SetFloat("_RimPower", rimPower.Value);
-                m.SetFloat("_RimShift", rimShift.Value);
+                m.SetFloat("_RimPower", rimPower);
+                m.SetFloat("_RimShift", rimShift);
             }
             if (flag.isHair) {
-                m.SetFloat("_HiRate", hiRate.Value);
-                m.SetFloat("_HiPow", hiPow.Value);
+                m.SetFloat("_HiRate", hiRate);
+                m.SetFloat("_HiPow", hiPow);
             }
             if (flag.isHair) {
-                m.SetFloat("_HiRate", hiRate.Value);
-                m.SetFloat("_HiPow", hiPow.Value);
+                m.SetFloat("_HiRate", hiRate);
+                m.SetFloat("_HiPow", hiPow);
             }
             if (flag.hasFloat1) {
-                m.SetFloat("_FloatValue1", floatVal1.Value);
+                m.SetFloat("_FloatValue1", floatVal1);
             }
             if (flag.hasFloat2) {
-                m.SetFloat("_FloatValue2", floatVal2.Value);
+                m.SetFloat("_FloatValue2", floatVal2);
             }
             if (flag.hasFloat3) {
-                m.SetFloat("_FloatValue3", floatVal3.Value);
+                m.SetFloat("_FloatValue3", floatVal3);
             }
-            
         }
     }
 
@@ -244,7 +194,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             }
         }
 
-        private int GetIndex(string shaderName) {
+        private static int GetIndex(string shaderName) {
             ShaderMapper.ShaderName[] names = ShaderMapper.ShaderNames;
             for (int i=0; i< names.Length; i++) {
                 if (names[i].Name == shaderName) {
@@ -253,8 +203,8 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             }
             return -1;
         }
-        ACCMaterial original;
-        ACCMaterial edited;
+        public ACCMaterial original;
+        public ACCMaterial edited;
         public ComboBox shaderCombo;
         readonly UIParams uiParams;
 
@@ -287,12 +237,12 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
 
         public void Show(ref Rect outRect) {
             Material material = edited.material;
-            edited.dirty = false;
             outRect.x = uiParams.margin;
-            GUI.Label(outRect, edited.name, uiParams.lStyle);
+            GUI.Label(outRect, edited.name, uiParams.lStyleC);
+
             outRect.x += uiParams.margin;
             outRect.width = uiParams.colorRect.width- 20 - uiParams.margin * 3;
-            outRect.y += uiParams.unitHeight;
+            outRect.y += uiParams.itemHeight;
 
             string shaderName = edited.shader.Name;
             ShaderMapper.MaterialFlag mat = edited.flag;
@@ -304,9 +254,9 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             shaderCombo.rect = outRect;
             shaderCombo.Show();
             if (shaderCombo.IsClickedComboButton) {
-                outRect.y += (shaderCombo.ItemCount*0.75f)*uiParams.unitHeight;
+                outRect.y += (shaderCombo.ItemCount*0.9f)*uiParams.itemHeight;
             } else {
-                outRect.y += uiParams.unitHeight;
+                outRect.y += uiParams.itemHeight;
             }
 
             int selectedIdx = shaderCombo.SelectedItemIndex;
@@ -331,7 +281,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
                 material.SetFloat("_SetManualRenderQueue", renderQueue);
                 material.renderQueue = renderQueue;
             }
-            outRect.y += uiParams.unitHeight;
+            outRect.y += uiParams.itemHeight;
 
             if (mat.hasColor) {
                 Color color = edited.color.Value;
@@ -340,38 +290,6 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
                     edited.color = color;
                     material.SetColor("_Color", color);
                 }
-
-//                // シェーダ置き換え
-//                try {
-//                    Shader mShader = material.shader;
-//                    if (color.a < 1f) {
-//                        // CM3D2のシェーダのみを対象として、_Transのついたシェーダを使用するように変更 ただし、Hairは対応するshader無し,
-//                        if (!mat.isTrans && mat.isToony && mat.isLighted && !mat.isHair) {
-////                                    Shader shader = Shader.Find(shaderName + "_Trans");
-//                            Shader shader = Shader.Find("CM3D2/Toony_Lighted_Trans");
-//                            if (shader != null) {
-//                                material.shader = shader;
-//                                LogUtil.DebugLog(material.name, " changed shader.", shaderName, "=>", shader.name);
-//
-//                                try {
-//                                    // 上書きしない 
-//                                    changeShaders.Add(material.GetInstanceID(), mShader);
-//                                } catch(ArgumentException ignore) {}
-//                            }
-//                        }
-//
-//                    } else {
-//                        // 元のシェーダに戻す
-//                        Shader temp = null;
-//                        if (changeShaders.TryGetValue(material.GetInstanceID(), out temp)) {
-//                            material.shader = temp;
-//                        }
-//                    }
-//
-//                } catch (Exception e) {
-//                    LogUtil.DebugLog(e);
-//                }
-
             }
             if (mat.isLighted) {
                 Color shadowColor  = edited.shadowColor.Value;
@@ -399,85 +317,84 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             }
 
             if (mat.isLighted) {
-                float shininess = edited.shininess.Value;
+                float shininess = edited.shininess;
                 shininess = setValueSlider(ref outRect, "Shininess", "  {0:F2}", shininess, 
                                            settings.shininessMin, settings.shininessMax);
-                if ( NotEquals(shininess, edited.shininess.Value) ) {
+                if ( NotEquals(shininess, edited.shininess) ) {
                     edited.shininess = shininess;
                     material.SetFloat("_Shininess", shininess);
                 }
             }
             if (mat.isOutlined) {
-                float outlineWidth = edited.outlineWidth.Value;
+                float outlineWidth = edited.outlineWidth;
                 outlineWidth = setValueSlider(ref outRect, "OutlineWidth", "  {0:F5}", outlineWidth, 
                                            settings.outlineWidthMin, settings.outlineWidthMax);
-                if ( NotEquals(outlineWidth, edited.outlineWidth.Value) ) {
+                if ( NotEquals(outlineWidth, edited.outlineWidth) ) {
                     edited.outlineWidth = outlineWidth;
                     material.SetFloat("_OutlineWidth", outlineWidth);
                 }
             }
             if (mat.isToony) {
-                float rimPower     = edited.rimPower.Value;
+                float rimPower     = edited.rimPower;
                 rimPower = setValueSlider(ref outRect, "RimPower", "  {0:F2}", rimPower, 
                                            settings.rimPowerMin, settings.rimPowerMax);
-                if ( NotEquals(rimPower, edited.rimPower.Value) ) {
+                if ( NotEquals(rimPower, edited.rimPower) ) {
                     edited.rimPower = rimPower;
                     material.SetFloat("_RimPower", rimPower);
                 }
 
-                float rimShift = edited.rimShift.Value;
+                float rimShift = edited.rimShift;
                 rimShift = setValueSlider(ref outRect, "RimShift", "  {0:F2}", rimShift, 
                                            settings.rimShiftMin, settings.rimShiftMax);
-                if ( NotEquals(rimShift, edited.rimShift.Value) ) {
+                if ( NotEquals(rimShift, edited.rimShift) ) {
                     edited.rimShift = rimShift;
                     material.SetFloat("_RimShift", rimShift);
                 }
             }
             if (mat.isHair) {
-                float hiRate       = edited.hiRate.Value;
+                float hiRate       = edited.hiRate;
                 hiRate = setValueSlider(ref outRect, "HiRate", "  {0:F2}", hiRate, 
                                            settings.hiRateMin, settings.hiRateMax);
-                if ( NotEquals(hiRate, edited.hiRate.Value) ) {
+                if ( NotEquals(hiRate, edited.hiRate) ) {
                     edited.hiRate = hiRate;
                     material.SetFloat("_HiRate", hiRate);
                 }
 
-                float hiPow        = edited.hiPow.Value;
+                float hiPow        = edited.hiPow;
                 hiPow = setValueSlider(ref outRect, "HiPow", "  {0:F4}", hiPow, 
                                            settings.hiPowMin, settings.hiPowMax);
-                if ( NotEquals(hiPow, edited.hiPow.Value) ) {
+                if ( NotEquals(hiPow, edited.hiPow) ) {
                     edited.hiPow = hiPow;
                     material.SetFloat("_HiPow", hiPow);
                 }
             }
             if (mat.hasFloat1) {
-                float fv = edited.floatVal1.Value;
+                float fv = edited.floatVal1;
                 fv = setValueSlider(ref outRect, "FloatValue1", "  {0:F2}", fv, 
                                            settings.floatVal1Min, settings.floatVal1Max);
-                if ( NotEquals(fv, edited.floatVal1.Value) ) {
+                if ( NotEquals(fv, edited.floatVal1) ) {
                     edited.floatVal1= fv;
                     material.SetFloat("_FloatValue1", fv);
                 }
             }
             if (mat.hasFloat2) {
-                float fv = edited.floatVal2.Value;
+                float fv = edited.floatVal2;
                 fv = setValueSlider(ref outRect, "FloatValue2", "  {0:F2}", fv, 
                                            settings.floatVal2Min, settings.floatVal2Max);
-                if ( NotEquals(fv, edited.floatVal2.Value) ) {
+                if ( NotEquals(fv, edited.floatVal2) ) {
                     edited.floatVal2= fv;
                     material.SetFloat("_FloatValue2", fv);
                 }
             }
             if (mat.hasFloat3) {
-                float fv = edited.floatVal3.Value;
+                float fv = edited.floatVal3;
                 fv = setValueSlider(ref outRect, "FloatValue3", "  {0:F3}", fv, 
                                            settings.floatVal3Min, settings.floatVal3Max);
-                if ( NotEquals(fv, edited.floatVal3.Value) ) {
+                if ( NotEquals(fv, edited.floatVal3) ) {
                     edited.floatVal3= fv;
                     material.SetFloat("_FloatValue3", fv);
                 }
             }
-
             outRect.y += uiParams.margin * 3;
         }
         private static bool NotEquals(float f1, float f2) {
@@ -486,27 +403,28 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
 
         private void setColorSlider(ref Rect outRect, string label, ref Color color, bool isTrans) {
             GUI.Label(outRect, label, uiParams.lStyle);
-            
-            outRect.y += uiParams.unitHeight;
+            int interval = uiParams.unitHeight; //uiParams.itemHeight; 
+            outRect.y += interval;
     
             color.r = drawModValueSlider(outRect, color.r, 0f, 2f, String.Format("{0}:{1:F2}", "R", color.r));
-            outRect.y += uiParams.unitHeight;
+            outRect.y += interval;
             color.g = drawModValueSlider(outRect, color.g, 0f, 2f, String.Format("{0}:{1:F2}", "G", color.g));
-            outRect.y += uiParams.unitHeight;
+            outRect.y += interval;
             color.b = drawModValueSlider(outRect, color.b, 0f, 2f, String.Format("{0}:{1:F2}", "B", color.b));
-            outRect.y += uiParams.unitHeight;
+            outRect.y += interval;
             if (isTrans) {
                 color.a = drawModValueSlider(outRect, color.a, 0f, 1f, String.Format("{0}:{1:F2}", "A", color.a));
-                outRect.y += uiParams.unitHeight;
+                outRect.y += interval;
             }
         }
 
         private float setValueSlider(ref Rect outRect, string label, string format, float val, float min, float max) {
             GUI.Label(outRect, label, uiParams.lStyle);
-            outRect.y += uiParams.unitHeight;
+            int interval = uiParams.unitHeight; //uiParams.itemHeight;
+            outRect.y += interval;
     
             val = drawModValueSlider(outRect, val, min, max, String.Format(format, (float)val) );
-            outRect.y += uiParams.unitHeight;
+            outRect.y += interval;
     
             return val;
         }

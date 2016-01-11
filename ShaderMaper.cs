@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
 using UnityEngine;
+using CM3D2.AlwaysColorChange.Plugin.Util;
 #pragma warning disable 0168
 namespace CM3D2.AlwaysColorChange.Plugin
 {
@@ -218,12 +219,14 @@ namespace CM3D2.AlwaysColorChange.Plugin
             new ShaderName("Transparent/Diffuse","透過 リアル"),
             new ShaderName("CM3D2/Mosaic","モザイク"),
             new ShaderName("CM3D2/Man","ご主人様"),
+//            new ShaderName("CM3D2_Debug/Debug_CM3D2_Normal2Color","デバッグ"),
         };
 
          public static string name(string shaderName) {
             try {
                 return shaderNameMap[shaderName];
             } catch(KeyNotFoundException e) {
+                LogUtil.Log("未対応シェーダのため、マテリアルに関するフラグが解決できません。", shaderName);
                 return null;
             }
         }
@@ -231,13 +234,13 @@ namespace CM3D2.AlwaysColorChange.Plugin
             try {
                 return shaderMap[shaderName];
             } catch(KeyNotFoundException e) {
+                LogUtil.Log("未対応シェーダのため、マテリアルに関するフラグが解決できません。", shaderName);
                 return null;
             }
         }
 
         //        string[] propNames = new string[] { "_MainTex", "_ShadowTex", "_ToonRamp", "_ShadowRateToon", "Alpha", "Multiply", "InfinityColor", "TexTo8bitTex", "Max" };
         public static readonly string[] PropNamesEmpty     = new string[] {  };
-        public static readonly string[] PropNamesTex = new string[] { "_RenderTex" };
         public static readonly string[] PropNamesColored   = new string[] { "_MainTex" };
         public static readonly string[] PropNames          = new string[] { "_MainTex", "_ToonRamp", "_ShadowTex", "_ShadowRateToon" };
         public static readonly string[] PropNamesHair      = new string[] { "_MainTex", "_ToonRamp", "_ShadowTex", "_ShadowRateToon", "_HiTex" };
@@ -256,8 +259,9 @@ namespace CM3D2.AlwaysColorChange.Plugin
             {"Unlit/Transparent",                 new MaterialFlag(ShaderNames[10], PropNamesColored, 0x000)}, //   0000 0000
             {"Diffuse",                           new MaterialFlag(ShaderNames[11], PropNamesColored, COLOR)},                           //   0000 0001
             {"Transparent/Diffuse",               new MaterialFlag(ShaderNames[12], PropNamesColored, COLOR+TRANS)},                     //   0001 0001
-            {"CM3D2/Mosaic",                      new MaterialFlag(ShaderNames[13], PropNamesTex,     FLOATVAL1)},                       // 0 0100 0000
+            {"CM3D2/Mosaic",                      new MaterialFlag(ShaderNames[13], PropNamesEmpty,   FLOATVAL1)},                       // 0 0100 0000
             {"CM3D2/Man",                         new MaterialFlag(ShaderNames[14], PropNamesEmpty,   COLOR+FLOATVAL2+FLOATVAL3)},       // 1 1000 0001
+//            {"CM3D2_Debug/Debug_CM3D2_Normal2Color", new MaterialFlag(ShaderNames[15],PropNamesHair,  COLOR)},                           // 0 0000 0001
         };
         public const int COLOR     = 0x001;
         public const int LIGHT     = 0x002;
@@ -306,8 +310,6 @@ namespace CM3D2.AlwaysColorChange.Plugin
             public bool hasFloat1      { get; private set; }
             public bool hasFloat2      { get; private set; }
             public bool hasFloat3      { get; private set; }
-
-
         }
         
     }

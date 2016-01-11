@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Reflection;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 using CM3D2.AlwaysColorChange.Plugin.Data;
@@ -15,18 +18,31 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
         public static MaidHolder Instance {
             get { return instance;  }
         }
+
         private static readonly List<Material> EmptyList = new List<Material>(0);
         
         private MaidHolder() { }
-        public Maid maid { get; set; }
 
-        public List<Material> GetMaterials(SlotInfo slot)
-        {
+        // 選択中のメイド
+        public Maid maid { get; set; }
+        // 選択中のスロット
+        public SlotInfo currentSlot { get; set; }
+            
+        /// <summary>選択中のスロットを取得する</summary>
+        /// <returns>スロット</returns>
+        public TBodySkin GetCurrentSlot() {
+            return maid.body0.GetSlot(currentSlot.Name);
+        }
+
+        public List<Material> GetMaterials() {
+            return GetMaterials( maid.body0.GetSlot(currentSlot.Name) );
+        }
+
+        public List<Material> GetMaterials(SlotInfo slot) {
             return GetMaterials(slot.Name);
         }
 
-        public List<Material> GetMaterials(string slotName)
-        {
+        public List<Material> GetMaterials(string slotName) {
             return GetMaterials(maid.body0.GetSlot(slotName));
         }
 
@@ -115,6 +131,55 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
             return rendererList;
         }
 
+        public void SetDelNodes(Dictionary<string, bool> dDelNodes, bool bApply) {
+            if (!dDelNodes.Any()) return;
+
+            foreach (TBodySkin slot in maid.body0.goSlot) {
+                slot.boVisible = true;
+                foreach (KeyValuePair<string, bool> entry in dDelNodes) {
+                    if (slot.m_dicDelNodeBody.ContainsKey(entry.Key)) {
+                        slot.m_dicDelNodeBody[entry.Key] = entry.Value;
+                    }
+                }
+            }
+            if (bApply) FixFlag();
+        }
+            
+        private Hashtable GetMaskTable() {
+            if (maid == null) return null;
+            try {
+                var field = maid.body0.GetType().GetField("m_hFoceHide",BindingFlags.NonPublic | BindingFlags.Instance);//  | BindingFlags.GetField | BindingFlags.SetField
+                return (Hashtable)field.GetValue(maid.body0);
+            } catch(Exception e) {}
+            return null;
+        }
+
+        public void SetSlotVisibles(Dictionary<TBody.SlotID, MaskInfo> maskDic) {
+            Hashtable m_foceHide = GetMaskTable();
+            if (m_foceHide == null) {
+                LogUtil.ErrorLog("cannot take MaskTable");
+                return;
+            }
+
+            foreach (KeyValuePair<TBody.SlotID, MaskInfo> pair in maskDic) {
+                MaskInfo maskInfo = pair.Value;
+                // 未読み込みの場合はスキップ
+                if (maskInfo.state == SlotState.NotLoaded) continue;
+
+                maskInfo.slot.boVisible = maskInfo.value;
+//                m_foceHide[pair.Key] = maskInfo.value;
+            }
+        }
+
+        // 表示状態を変更するのみ。
+        // フラグを適用することで元に戻せる
+        public void SetAllVisible() {
+            foreach (TBodySkin tBodySkin in maid.body0.goSlot) {
+                tBodySkin.boVisible = true;
+            }
+        }
+
+        // マスク情報をすべてクリアして反映
         public void ClearMasks()
         {
             foreach (TBodySkin tBodySkin in maid.body0.goSlot) {
@@ -123,6 +188,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
             }
             FixFlag();
         }
+
         public void FixFlag() {
             maid.body0.FixMaskFlag();
             maid.body0.FixVisibleFlag(false);
