@@ -19,7 +19,8 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
             get { return instance;  }
         }
 
-        private static readonly List<Material> EmptyList = new List<Material>(0);
+        private static readonly Material[] EmptyList = new Material[0];
+        private static readonly List<Material>   EmptyList1 = new List<Material>(0);
         
         private MaidHolder() { }
 
@@ -27,61 +28,83 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
         public Maid maid { get; set; }
         // 選択中のスロット
         public SlotInfo currentSlot { get; set; }
-            
+
+        // メイドの更新
+        // 
+        // @return 別のメイドに変更された場合はtrueを返す
+        public bool UpdateMaid() {
+            Maid maid0 = GameMain.Instance.CharacterMgr.GetMaid(0);
+            if (maid == maid0) {
+                return false;
+            }
+            maid = maid0;
+            return true;
+        }
+        public string GetCurrentMenuFile() {
+            if (maid != null) {
+                MaidProp prop = maid.GetProp(currentSlot.mpn);
+                if (prop != null) return prop.strFileName;
+
+                LogUtil.Log("maid prop is null", currentSlot.mpn);
+            }
+            return null;
+        }
+
         /// <summary>選択中のスロットを取得する</summary>
         /// <returns>スロット</returns>
         public TBodySkin GetCurrentSlot() {
             return maid.body0.GetSlot(currentSlot.Name);
         }
 
-        public List<Material> GetMaterials() {
+        public Material[] GetMaterials() {
             return GetMaterials( maid.body0.GetSlot(currentSlot.Name) );
         }
 
-        public List<Material> GetMaterials(SlotInfo slot) {
+        public Material[] GetMaterials(SlotInfo slot) {
             return GetMaterials(slot.Name);
         }
 
-        public List<Material> GetMaterials(string slotName) {
+        public Material[] GetMaterials(string slotName) {
             return GetMaterials(maid.body0.GetSlot(slotName));
         }
 
-        public List<Material> GetMaterials(TBodySkin slot)
+        public Material[] GetMaterials(TBodySkin slot)
         {
             GameObject gobj = slot.obj;
             if (gobj == null) {
                 return EmptyList;
             }
 
-            var materialList = new List<Material>();
             Transform[] componentsInChildren = gobj.transform.GetComponentsInChildren<Transform>(true);
             foreach (Transform tf in componentsInChildren) {
                 Renderer r = tf.renderer;
-                if (r != null && r.material != null && r.material.shader != null) {
+                if (r != null && r.material != null && r.materials.Length > 0 && r.material.shader != null) {
                     // 確認：複数回ヒットするケースが存在するのか？基本はないが…
-                    materialList.AddRange(r.materials);
+                    return r.materials;
+
+                    //// 確認用ログ
+                    //if (materialList.Count > 1) {
+                    //    LogUtil.Log("multiple materials exist.", materialList.Count, slot.m_strModelFileName);
+                    //}
                 }
             }
-            return materialList;
+            return EmptyList;
+        }
+        public Material GetMaterial(int matNo) {
+            return GetMaterial(maid.body0.GetSlot(currentSlot.Name), matNo);
+        }
+        public Material GetMaterial(TBodySkin slot, int matNo)
+        {
+            if (slot.obj == null) return null;
 
-//            var materialList = new List<Material>();
-//            int idx = 0;
-//            Transform[] componentsInChildren = gobj.transform.GetComponentsInChildren<Transform>(true);
-//            foreach (Transform tf in componentsInChildren) {
-//                Renderer r = tf.renderer;
-//                if (r != null && r.material != null && r.materials.Length > 0 && r.material.shader != null) {
-//                    materialList.AddRange(r.materials);
-//                    var buf = new StringBuilder();
-//                    buf.Append(r.name).Append("=>");
-//                    foreach (Material m in r.materials) {
-//                        buf.Append(m.name).Append(",");
-//                    }
-//                    buf.Append(r.materials.Length);
-//                    LogUtil.DebugLog(slotName, idx, buf);
-//                }
-//                idx++;
-//            }
-//            return materialList;
+            Transform[] componentsInChildren = slot.obj.transform.GetComponentsInChildren<Transform>(true);
+            foreach (Transform tf in componentsInChildren) {
+                Renderer r = tf.renderer;
+                if (r != null && r.material != null && r.materials.Length > matNo && r.material.shader != null) {
+                    return r.materials[matNo];
+                }
+            }
+            return null;
         }
 
         /// <summary>
@@ -93,14 +116,10 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
         /// <returns>マテリアル　ただし、見つからない場合はnullを返す</returns>
         public Material GetMaterial(string slotName, int matNo)
         {
-            TBody body = maid.body0;
-            List<TBodySkin> goSlot = body.goSlot;
-            int index = (int)global::TBody.hashSlotName[slotName];
-            global::TBodySkin tBodySkin = goSlot[index];
-            GameObject gobj = tBodySkin.obj;
-            if (gobj == null) return null;
+            global::TBodySkin slot = maid.body0.GetSlot(slotName);
+            if (slot.obj == null) return null;
 
-            Transform[] componentsInChildren = gobj.transform.GetComponentsInChildren<Transform>(true);
+            Transform[] componentsInChildren = slot.obj.transform.GetComponentsInChildren<Transform>(true);
             foreach (Transform tf in componentsInChildren) {
                 Renderer r = tf.renderer;
                 if (r != null && r.material != null && r.materials.Length > matNo) {

@@ -317,7 +317,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
     }
     public class SlotInfo {
         public TBody.SlotID Id        { get; private set; }
-        public string mpn             { get; private set; }
+        public MPN mpn             { get; private set; }
         public string Name            { get; private set; }
         public string DisplayName     { get; private set; }
         public bool   maskable        { get; private set; }
@@ -338,7 +338,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
         public SlotInfo(TBody.SlotID id, MPN mpn, string displayName, bool mask) {
             this.Id = id;
             this.Name = Id.ToString();
-            this.mpn = mpn.ToString();
+            this.mpn = mpn;
             this.DisplayName = displayName;
             this.no = -1;
             this.maskable = mask;

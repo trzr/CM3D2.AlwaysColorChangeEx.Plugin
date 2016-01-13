@@ -170,8 +170,8 @@ namespace CM3D2.AlwaysColorChange.Plugin
                                      );
             var slots = new XElement("slots");
             foreach (SlotInfo slot in ACConstants.SlotNames.Values) {
-                List<Material> materialList = holder.GetMaterials(slot);
-                if (!materialList.Any()) continue;
+                Material[] materialList = holder.GetMaterials(slot);
+                if (materialList.Length == 0) continue;
 
                 var slotDoc = new XElement("slot", new XAttribute("slotname", slot.Name) );
 

@@ -14,104 +14,64 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
     /// </summary>
     public class MenuInfo
     {
-        #region Constants
-        public const string HEAD = "CM3D2_MENU";
-        public const string HEAD_MOD = "CM3D2_MOD";
-        public const string RET = "《改行》";
-        public const string EXT_MOD     = ".mod";
-        public const string EXT_MENU     = ".menu";
-        public const string EXT_MATERIAL = ".mate";
-        public const string EXT_MODEL    = ".model";
-        public const string EXT_TEXTURE  = ".tex";
-        #endregion
-
         public string baseFilename
         { get; set; }
-
         public string baseIcons
         { get; set; }
-
         public List<string[]> baseMaterials
         { get; set; }
-
         public List<string[]> baseAddItems
         { get; set; }
-
         public List<string[]> baseResources
         { get; set; }
-
         public string outputPath
         { get; set; }
-
         public string filename
         { get; set; }
-
         public int version
         { get; set; }
-
         public string txtpath
         { get; set; }
-
         public string headerName
         { get; set; }
-
         public string headerCategory
         { get; set; }
-
         public string headerSetumei
         { get; set; }
-
         public string menuFolder
         { get; set; }
-
         public string category
         { get; set; }
-
         public string catno
         { get; set; }
-
         public string priority
         { get; set; }
-
         public string name
         { get; set; }
-
         public string setumei
         { get; set; }
-
         public string icons
         { get; set; }
-
         public string[] itemParam
         { get; set; }
-
         public List<string> items
         { get; set; }
-
         public List<string[]> addItems
         { get; set; }
-
         public List<string> maskItems
         { get; set; }
-
         public List<string[]> materials
         { get; set; }
-
         public List<string> delNodes
         { get; set; }
-
         public List<string> showNodes
         { get; set; }
-
         public List<string[]> delPartsNodes
         { get; set; }
-
         public List<string[]> showPartsNodes
         { get; set; }
-
         public List<string[]> resources
         { get; set; }
-
         public MenuInfo()
         {
             baseMaterials = new List<string[]>();
@@ -134,28 +94,15 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             LogUtil.DebugLog("loading menu file", filename);
             this.baseFilename = filename;
             this.filename = Path.GetFileNameWithoutExtension(filename);
-            byte[] cd = null;
-            try {
-                using (AFileBase aFileBase = global::GameUty.FileOpen(filename)) {
-                    if (!aFileBase.IsValid()) {
-                        LogUtil.ErrorLog("アイテムメニューファイルが見つかりません。", filename);
-                        return false;
-                    }
-                    cd = aFileBase.ReadAll();
-                }
-            } catch (Exception ex2) {
-                LogUtil.ErrorLog("アイテムメニューファイルが読み込めませんでした。", filename, ex2.Message);
-                return false;
-            }
 
             try {
-                using (var binaryReader = new BinaryReader(new MemoryStream(cd), Encoding.UTF8)) {
-                    string text = binaryReader.ReadString();
-                    if (text != HEAD) {
-                        if (text == HEAD_MOD) {
+                using (var binaryReader = new BinaryReader(File.Open(filename, FileMode.Open), Encoding.UTF8)) {
+                    string head = binaryReader.ReadString();
+                    if (head != FileConst.HEAD_MENU) {
+                        if (head == FileConst.HEAD_MOD) {
                             LogUtil.ErrorLog("MODファイルは未対応。", filename);
                         } else {
-                            LogUtil.ErrorLog("例外: ヘッダーファイルが不正です。", text, filename);
+                            LogUtil.ErrorLog("MENUファイルのヘッダーファイルが正しくありません", head, filename);
                         }
                         return false;
                     }
@@ -163,7 +110,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
                     txtpath = binaryReader.ReadString();
                     headerName = binaryReader.ReadString();
                     headerCategory = binaryReader.ReadString();
-                    headerSetumei = binaryReader.ReadString().Replace(RET, "\n");
+                    headerSetumei  = binaryReader.ReadString().Replace(FileConst.RET, "\n");
 
                     int num2 = (int)binaryReader.ReadInt32();
                     while (true) {
@@ -193,7 +140,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
                                 name = param[1];
                                 break;
                             case "setumei":
-                                setumei = param[1].Replace(RET, "\n");
+                                setumei = param[1].Replace(FileConst.RET, "\n");
                                 break;
                             case "icon":
                             case "icons":
@@ -288,7 +235,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
                 }
 
             } catch (Exception e) {
-                LogUtil.DebugLog(e);
+                LogUtil.ErrorLog("アイテムメニューファイルが読み込めませんでした。", filename, e);
                 return false;
             }
             LogUtil.DebugLog("loaded. return true");

@@ -1,6 +1,7 @@
 ﻿// テクスチャの色変え処理
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -16,6 +17,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
         private OriginalTextureCache originalTexCache = new OriginalTextureCache();
 
         public static GUIStyle lStyle;
+        private static OutputUtil outUtil = OutputUtil.Instance;
         
         public void Clear()
         {
@@ -48,9 +50,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
             var key = CreateKey(maid.Param.status.guid, slotName, material.name, tex2d.name);
             FilterParam fp = filterParams.GetOrAdd(key.ToString());
-            if (fp != null) {
-                fp.ProcGUI(margin, fontSize, itemHeight);
-            }
+            fp.ProcGUI(margin, fontSize, itemHeight, tex2d);
         }
 
         public void Update(
@@ -77,10 +77,10 @@ namespace CM3D2.AlwaysColorChange.Plugin
             return key;
         }
 
-        public void UpdateTex(Maid maid, List<Material> slotMaterials, EditTarget texEdit)
+        public void UpdateTex(Maid maid, Material[] slotMaterials, EditTarget texEdit)
         {
             // material 抽出 => texture 抽出
-            if (slotMaterials.Count <=  texEdit.matNo) return;
+            if (slotMaterials.Length <=  texEdit.matNo) return;
             Material mat = slotMaterials[texEdit.matNo];
 
             var tex2d = mat.GetTexture(texEdit.propName) as Texture2D;
@@ -285,7 +285,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 Dirty.Value = false;
             }
 
-            public void ProcGUI(float margin, float fontSize, float itemHeight) {
+            public void ProcGUI(float margin, float fontSize, float itemHeight, Texture2D tex2d) {
                 guiSlider(margin, Hue);
                 guiSlider(margin, Saturation);
                 guiSlider(margin, Lightness);
@@ -298,15 +298,27 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 GUILayout.Space(margin);
                 GUILayout.BeginHorizontal();
                 try {
-                    GUILayout.Space(margin * 8f);
+                    GUILayout.Space(margin * 4f);
                     if (GUILayout.Button("リセット")) {
                         Clear();
                         Dirty.Value = true;
                     }
-                    GUILayout.Space(margin * 8f);
+                    if (GUILayout.Button("保存")) {
+                        byte[] bytes = tex2d.EncodeToPNG();
+                        string dir = outUtil.GetExportDirectory();
+                        var date = DateTime.Now;
+                        string name = tex2d.name + "_" + date.ToString("MMddHHmmss") + ".png";
+                        string path = Path.Combine(dir, name);
+                        
+                        outUtil.WriteBytes(path, bytes);
+                        LogUtil.Log("png ファイルをエクスポートしました。", path);
+                    }
+                    GUILayout.Space(margin * 4f);
                 } finally {
                     GUILayout.EndHorizontal();
                 }
+//                GUILayout.Label(
+                    
                 GUILayout.Space(margin * 2f);
             }
 
@@ -478,7 +490,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
                 float l = (max + min) / 2f;
                 float d = max - min;
 
-                // FIXME float comparation
+                // FIXME float compare
                 if (d != 0f) {
                     s = (l > 0.5f) ? (d / (2f - max - min)) : (d / (max + min));
                     if (max == c.r) {

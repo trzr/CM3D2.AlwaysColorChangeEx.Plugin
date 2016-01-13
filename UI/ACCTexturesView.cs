@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 using UnityEngine;
 using CM3D2.AlwaysColorChange.Plugin.Util;
@@ -98,10 +99,12 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             editTarget.Clear();
         }
 
-        public static void UpdateTex(Maid maid, List<Material> slotMaterials) {
+        public static void UpdateTex(Maid maid, Material[] slotMaterials) {
             textureModifier.UpdateTex(maid, slotMaterials, editTarget);
         }
 
+        // TODO メイドが変わると呼び出されるため、保持すべきデータとクリアすべきデータを整理
+        // textureModifier上は一部、メイド毎のフィルタデータを保持できる構造になっている
         public static void Clear() {
             textureModifier.Clear();
         }
@@ -294,17 +297,20 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
                 holder.maid.body0.ChangeTex(holder.currentSlot.Name, matNo1, propName, filename, null, MaidParts.PARTS_COLOR.NONE);
 
             } else {
+
+                TBodySkin slot = holder.maid.body0.GetSlot(holder.currentSlot.Name);
                 // 直接イメージをロードして適用(要dir指定)
-                var materials = holder.GetMaterials();
+                var material = holder.GetMaterial(slot, matNo1);
+                if (material == null) return;
+
                 byte[] img = UTY.LoadImage(Path.Combine(dir, filename));
                 var tex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
 //                var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);                                                 
                 tex.LoadImage(img);
                 // tex.name = filename;
-                TBodySkin slot = holder.maid.body0.GetSlot(holder.currentSlot.Name);
-                if (slot != null) slot.listDEL.Add(tex);
+                slot.listDEL.Add(tex);
 
-                materials[matNo1].SetTexture(propName, tex);
+                material.SetTexture(propName, tex);
             }
         }
         private void MulTexSet(string filename, int matNo1, string propName)
