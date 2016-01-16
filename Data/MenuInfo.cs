@@ -18,7 +18,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
         { get; set; }
         public string baseIcons
         { get; set; }
-        public List<string[]> baseMaterials
+        public Dictionary<string, List<TargetMaterial>> baseMaterials
         { get; set; }
         public List<string[]> baseAddItems
         { get; set; }
@@ -56,11 +56,10 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
         { get; set; }
         public List<string> items
         { get; set; }
-        public List<string[]> addItems
-        { get; set; }
-        public List<string> maskItems
-        { get; set; }
-        public List<string[]> materials
+        public List<string[]> addItems { get; set; }
+        public List<string> delItems   { get; set; }
+        public List<string> maskItems  { get; set; }
+        public List<TargetMaterial> materials
         { get; set; }
         public List<string> delNodes
         { get; set; }
@@ -70,23 +69,24 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
         { get; set; }
         public List<string[]> showPartsNodes
         { get; set; }
-        public List<string[]> resources
+        // キーとmenuファイル
+        public Dictionary<string, string> resDic
         { get; set; }
         public MenuInfo()
         {
-            baseMaterials = new List<string[]>();
+            baseMaterials = new Dictionary<string, List<TargetMaterial>>();
             baseAddItems = new List<string[]>();
             baseResources = new List<string[]>();
             itemParam = new string[3];
             items = new List<string>();
             addItems = new List<string[]>();
+            delItems = new List<string>();
             maskItems = new List<string>();
-            materials = new List<string[]>();
+            materials = new List<TargetMaterial>();
             delNodes = new List<string>();
             showNodes = new List<string>();
             delPartsNodes = new List<string[]>();
             showPartsNodes = new List<string[]>();
-            resources = new List<string[]>();
         }
 
         public bool LoadMenufile(string filename)
@@ -96,7 +96,8 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             this.filename = Path.GetFileNameWithoutExtension(filename);
 
             try {
-                using (var binaryReader = new BinaryReader(File.Open(filename, FileMode.Open), Encoding.UTF8)) {
+                byte[] menuBytes = OutputUtilEx.Instance.LoadInternal(filename);
+                using (var binaryReader = new BinaryReader(new MemoryStream(menuBytes), Encoding.UTF8)) {
                     string head = binaryReader.ReadString();
                     if (head != FileConst.HEAD_MENU) {
                         if (head == FileConst.HEAD_MOD) {
@@ -117,100 +118,95 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
                         int size = (int) binaryReader.ReadByte();
                         if (size == 0) break;
 
-                        var param = new string[size];
-                        for (int i = 0; i < size; i++) {
+                        string key = binaryReader.ReadString();
+                        var param = new string[size-1];
+                        for (int i = 0; i < size-1; i++) {
                             param[i] = binaryReader.ReadString();
                         }
-                        switch (param[0]) {
+                        switch (key) {
                             case "メニューフォルダ":
-                                menuFolder = param[1];
+                                menuFolder = param[0];
                                 break;
                             case "category":
-                                category = param[1];
+                                category = param[0];
                                 break;
                             case "catno":
-                                catno = param[1];
+                                catno = param[0];
                                 break;
                             case "属性追加":
                                 break;
                             case "priority":
-                                priority = param[1];
+                                priority = param[0];
                                 break;
                             case "name":
-                                name = param[1];
+                                name = param[0];
                                 break;
                             case "setumei":
-                                setumei = param[1].Replace(FileConst.RET, "\n");
+                                setumei = param[0].Replace(FileConst.RET, "\n");
                                 break;
                             case "icon":
                             case "icons":
-                                baseIcons = Path.GetFileNameWithoutExtension(param[1]);
+                                baseIcons = Path.GetFileNameWithoutExtension(param[0]);
                                 icons = baseIcons;
                                 break;
                             case "アイテムパラメータ":
-                                //                                    itemParam = new String[3];
-                                itemParam[0] = param[1];
-                                itemParam[1] = param[2];
-                                itemParam[2] = param[3];
+                                if (param.Length == 3) {
+                                    Array.Copy(param, 0, itemParam, 0, param.Length);
+                                }
                                 break;
                             case "アイテム":
-                                items.Add(Path.GetFileNameWithoutExtension(param[1]));
+                                items.Add(Path.GetFileNameWithoutExtension(param[0]));
                                 break;
 
                             case "additem":
-//                                var ai = new string[2];
-//                                ai[0] = Path.GetFileNameWithoutExtension(param[1]);
-//                                ai[1] = param[2];
-//                                baseAddItems.Add(ai);
-//                                ai = new string[2];
-//                                ai[0] = Path.GetFileNameWithoutExtension(param[1]);
-//                                ai[1] = param[2];
-//                                addItems.Add(ai);
-
-                                var ai = new string[size-1];
-                                Array.Copy(param, 1, ai, 0, size-1);
-                                ai[0] = Path.GetFileNameWithoutExtension(ai[0]);
-                                baseAddItems.Add(ai);
-                                addItems.Add((string[])ai.Clone());
+                                param[0] = Path.GetFileNameWithoutExtension(param[0]);
+                                baseAddItems.Add(param);
+                                addItems.Add((string[])param.Clone());
                                 break;
                             case "maskitem":
-                                maskItems.Add(param[1]);
+                                if (param.Length >= 1) {
+                                    maskItems.Add(param[0]);
+                                }
+                                break;
+                            case "delitem":
+                                string slot0 = category;
+                                if (param.Length >= 1) slot0 = param[0];
+                                delItems.Add(slot0);
                                 break;
                             case "マテリアル変更":
-                                var mat = new string[size-1];
-                                Array.Copy(param, 1, mat, 0, size-1);
-                                mat[2] = Path.GetFileNameWithoutExtension(mat[2]);
-                                LogUtil.DebugLog(mat);
-                                baseMaterials.Add(mat);
-                                materials.Add((string[])mat.Clone());
+                                string slot = param[0];
+                                int matNo = int.Parse(param[1]);
+                                string file = param[2];
+                                List<TargetMaterial> mats;
+                                if (!baseMaterials.TryGetValue(slot, out mats)) {
+                                    mats = new List<TargetMaterial>();
+                                    baseMaterials[slot] = mats;
+                                }
+                                var tm = new TargetMaterial(slot, matNo, file);
+                                mats.Add(tm);
+                                materials.Add(tm);
                                 break;
                             case "node消去":
-                                delNodes.Add(param[1]);
+                                delNodes.Add(param[0]);
                                 break;
                             case "node表示":
-                                showNodes.Add(param[1]);
+                                showNodes.Add(param[0]);
                                 break;
                             // TODO
-                            case "消去ノード":
-                                break;
                             case "パーツnode消去":
-                                var dp = new string[size-1];
-                                Array.Copy(param, 1, dp, 0, size-1);
-                                delPartsNodes.Add(dp);
+                                delPartsNodes.Add(param);
                                 break;
                             case "パーツnode表示":
-                                var sp = new string[size-1];
-                                Array.Copy(param, 1, sp, 0, size-1);
-                                showPartsNodes.Add(sp);
+                                showPartsNodes.Add(param);
                                 break;
                             case "リソース参照":
-                                var rs = new string[size-1];
-                                Array.Copy(param, 1, rs, 0, size-1);
-                                rs[1] = Path.GetFileNameWithoutExtension(rs[1]);
-                                baseResources.Add(rs);
-                                resources.Add((string[])rs.Clone());
+                                if (resDic == null) resDic = new Dictionary<string, string>();
+                                resDic[param[0]] = param[1];
                                 break;
-                            // TODO
+                            case "半脱ぎ":
+                                if (resDic == null) resDic = new Dictionary<string, string>();
+                                resDic["半脱ぎ"] = param[0];
+                                break;
                             case "テクスチャ合成":
                                 break;
                             case "アタッチポイントの設定":
@@ -222,8 +218,6 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
                             case "unsetitem":
                                 break;
                             // TODO
-                            case "delitem":
-                                break;
                             case "commenttype":
                                 break;
                             // TODO 
@@ -238,8 +232,21 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
                 LogUtil.ErrorLog("アイテムメニューファイルが読み込めませんでした。", filename, e);
                 return false;
             }
+
             LogUtil.DebugLog("loaded. return true");
             return true;
+        }
+    }
+    public class TargetMaterial {
+        public string category { get; private set;}
+        public int matNo       { get; private set;}
+        public string filename { get; private set;}
+        public string editname { get; set;}
+        public TargetMaterial(string cat, int matNo, string filename) {
+            this.category = cat;
+            this.matNo = matNo;
+            this.filename = filename;
+            this.editname = Path.GetFileNameWithoutExtension(filename);
         }
     }
 

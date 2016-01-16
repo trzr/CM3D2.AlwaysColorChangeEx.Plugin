@@ -1,11 +1,11 @@
 ﻿/*
- * 外部化可能なようにC#標準のライブラリのみ使用が望ましい。
  * 定義ファイル関連のユーティリティ
  */
 using System;
 using System.IO;
 using System.Text;
 using CM3D2.AlwaysColorChange.Plugin.Data;
+using CM3D2.AlwaysColorChange.Plugin.UI;
 
 namespace CM3D2.AlwaysColorChange.Plugin.Util
 {
@@ -58,151 +58,151 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
             }
         }
 
-        public void WriteTex(string file, string txtPath, byte[] imageBytes) {
-            using (var writer = new BinaryWriter(File.OpenWrite(file))) {
-                writer.Write("CM3D2_TEX");
+        public void WriteTex(string outpath, string txtPath, byte[] imageBytes) {
+            using (var writer = new BinaryWriter(File.OpenWrite(outpath))) {
+                writer.Write(FileConst.HEAD_TEX);
                 writer.Write(1000);// Int32
                 writer.Write(txtPath);
                 writer.Write(imageBytes.Length);
                 writer.Write(imageBytes);
             }
         }
- 
-        public void Copy(string infile, string outfile) {
 
-            const int buffSize = 8196;
-            using ( var writer = new BinaryWriter(File.OpenWrite(outfile)) ) {
-                using (AFileBase aFileBase = global::GameUty.FileOpen(infile)) {
-                    
-                    if (!aFileBase.IsValid()) {
-                        LogUtil.ErrorLog("入力ファイルが見つかりません。", infile);
-                        return;
-                    }
+        private const int buffSize = 8196;
 
-                    var buff = new byte[buffSize];
-                    int length = 0;
-                    while ((length = aFileBase.Read(ref buff, buffSize))>= 0) {
-                        writer.Write(buff, 0, length);
-                    }
+        // infile,outfileで、ファイルが特定できる必要あり
+        public void Copy(string infilepath, string outfilepath) {
+
+            using ( var writer = new BinaryWriter(File.OpenWrite(outfilepath)) ) 
+            using (var  fs = new FileStream(infilepath, FileMode.Open)) {
+
+                var buff = new byte[buffSize];
+                int length = 0;
+                while ((length = fs.Read(buff, 0, buffSize))>= 0) {
+                    writer.Write(buff, 0, length);
                 }
             }
         }
-        // TODO マテリアル番号と、変更するシェーダ名1,2を指定する必要あり
         public bool CopyModel(string infile, string outfile, string shader) {
+            using ( var writer = new BinaryWriter(File.OpenWrite(outfile)) ) 
+            //using (AFileBase aFileBase = global::GameUty.FileOpen(infile)) {
+            using (var reader = new BinaryReader(File.Open(infile, FileMode.Open), Encoding.UTF8)) {
+                return CopyModel(reader, writer, shader);
+            }
+        }
 
-            using ( var writer = new BinaryWriter(File.OpenWrite(outfile)) ) {
-//                using (AFileBase aFileBase = global::GameUty.FileOpen(infile)) {
-                using (var reader = new BinaryReader(File.Open(infile, FileMode.Open), Encoding.UTF8)) {
-                    // ヘッダ
-                    string head = reader.ReadString();
-                    if (head != FileConst.HEAD_MODEL) {
-                        LogUtil.ErrorLog("正しいモデルファイルではありません。ヘッダが不正です。", infile, head);
-                        return false;
-                    }
-                    writer.Write(head);
-                    writer.Write(reader.ReadInt32());  // ver
-                    writer.Write(reader.ReadString()); // "_SM_" + name
-                    writer.Write(reader.ReadString()); // base_bone
-                    int count = reader.ReadInt32();
-                    writer.Write(count);  // num (bone_count)
-                    for(int i=0; i< count; i++) {
-                        writer.Write(reader.ReadString());
-                        writer.Write(reader.ReadByte());
-                    }
+        // TODO マテリアル番号と、変更するシェーダ名1,2を指定する必要あり
+        public bool CopyModel(BinaryReader reader, BinaryWriter writer, string shader) {
+            // ヘッダ
+            string head = reader.ReadString();
+            if (head != FileConst.HEAD_MODEL) {
+                LogUtil.ErrorLog("正しいモデルファイルではありません。ヘッダが不正です。", head);
+                return false;
+            }
+            writer.Write(head);
+            writer.Write(reader.ReadInt32());  // ver
+            writer.Write(reader.ReadString()); // "_SM_" + name
+            writer.Write(reader.ReadString()); // base_bone
+            int count = reader.ReadInt32();
+            writer.Write(count);  // num (bone_count)
+            for(int i=0; i< count; i++) {
+                writer.Write(reader.ReadString());
+                writer.Write(reader.ReadByte());
+            }
 
-                    for(int i=0; i< count; i++) {
-                        int count2 = reader.ReadInt32();
-                        writer.Write(count2);
-                    }
+            for(int i=0; i< count; i++) {
+                int count2 = reader.ReadInt32();
+                writer.Write(count2);
+            }
 
-                    for(int i=0; i< count; i++) {
+            for(int i=0; i< count; i++) {
+                // x, y, z
+                writer.Write(reader.ReadSingle());
+                writer.Write(reader.ReadSingle());
+                writer.Write(reader.ReadSingle());
+                // x2, y2, z2, w
+                writer.Write(reader.ReadSingle());
+                writer.Write(reader.ReadSingle());
+                writer.Write(reader.ReadSingle());
+                writer.Write(reader.ReadSingle());
+            }
+            int vertexCount = reader.ReadInt32();
+            int facesCount = reader.ReadInt32();
+            int localBoneCount = reader.ReadInt32();
+            writer.Write(vertexCount);
+            writer.Write(facesCount);
+            writer.Write(localBoneCount);
+
+            for(int i=0; i< localBoneCount; i++) {
+                writer.Write(reader.ReadString());
+            }
+            for(int i=0; i< localBoneCount; i++) {
+                for (int j=0; j< 16; j++) {
+                    writer.Write(reader.ReadSingle());
+                }
+            }
+            for(int i=0; i< vertexCount; i++) {
+                for (int j=0; j< 8; j++) {
+                    writer.Write(reader.ReadSingle());
+                }
+            }
+            int vertexCount2 = reader.ReadInt32();
+            writer.Write(vertexCount2);
+            for(int i=0; i< vertexCount2; i++) {
+                for (int j=0; j< 4; j++) {
+                    writer.Write(reader.ReadSingle());
+                }
+            }
+            for(int i=0; i< vertexCount; i++) {
+                for (int j=0; j< 4; j++) {
+                    writer.Write(reader.ReadUInt16());
+                }
+                for (int j=0; j< 4; j++) {
+                    writer.Write(reader.ReadSingle());
+                }
+            }
+            for(int i=0; i< facesCount; i++) {
+                int cnt = reader.ReadInt32();
+                writer.Write(cnt);
+                for (int j=0; j< cnt; j++) {
+                    writer.Write(reader.ReadInt16());
+                }
+            }
+            // material
+            int mateCount = reader.ReadInt32();
+            writer.Write(mateCount);
+            for(int i=0; i< mateCount; i++) {
+                // TODO material copy
+                CopyMaterial(reader, writer);
+            }
+            
+            // morph
+            while (true) {
+                string name = reader.ReadString();
+                writer.Write(name);
+                if (name == "end") break;
+
+                if (name == "morph") {
+                    string key = reader.ReadString();
+                    writer.Write(key);
+                    int num = reader.ReadInt32();
+                    writer.Write(num);
+                    for (int i=0; i< num; i++) {
+                        writer.Write(reader.ReadUInt16());
                         // x, y, z
                         writer.Write(reader.ReadSingle());
                         writer.Write(reader.ReadSingle());
                         writer.Write(reader.ReadSingle());
-                        // x2, y2, z2, w
+                        // x, y, z
                         writer.Write(reader.ReadSingle());
                         writer.Write(reader.ReadSingle());
                         writer.Write(reader.ReadSingle());
-                        writer.Write(reader.ReadSingle());
-                    }
-                    int vertexCount = reader.ReadInt32();
-                    int facesCount = reader.ReadInt32();
-                    int localBoneCount = reader.ReadInt32();
-                    writer.Write(vertexCount);
-                    writer.Write(facesCount);
-                    writer.Write(localBoneCount);
-
-                    for(int i=0; i< localBoneCount; i++) {
-                        writer.Write(reader.ReadString());
-                    }
-                    for(int i=0; i< localBoneCount; i++) {
-                        for (int j=0; j< 16; j++) {
-                            writer.Write(reader.ReadSingle());
-                        }
-                    }
-                    for(int i=0; i< vertexCount; i++) {
-                        for (int j=0; j< 8; j++) {
-                            writer.Write(reader.ReadSingle());
-                        }
-                    }
-                    int vertexCount2 = reader.ReadInt32();
-                    writer.Write(vertexCount2);
-                    for(int i=0; i< vertexCount2; i++) {
-                        for (int j=0; j< 4; j++) {
-                            writer.Write(reader.ReadSingle());
-                        }
-                    }
-                    for(int i=0; i< vertexCount; i++) {
-                        for (int j=0; j< 4; j++) {
-                            writer.Write(reader.ReadUInt16());
-                        }
-                        for (int j=0; j< 4; j++) {
-                            writer.Write(reader.ReadSingle());
-                        }
-                    }
-                    for(int i=0; i< facesCount; i++) {
-                        int cnt = reader.ReadInt32();
-                        writer.Write(cnt);
-                        for (int j=0; j< cnt; j++) {
-                            writer.Write(reader.ReadInt16());
-                        }
-                    }
-                    // material
-                    int mateCount = reader.ReadInt32();
-                    writer.Write(mateCount);
-                    for(int i=0; i< mateCount; i++) {
-                        // TODO material copy
-                    }
-                    
-                    // morph
-                    while (true) {
-                        string name = reader.ReadString();
-                        writer.Write(name);
-                        if (name == "end") break;
-
-                        if (name == "morph") {
-                            string key = reader.ReadString();
-                            writer.Write(key);
-                            int num = reader.ReadInt32();
-                            writer.Write(num);
-                            for (int i=0; i< num; i++) {
-                                writer.Write(reader.ReadUInt16());
-                                // x, y, z
-                                writer.Write(reader.ReadSingle());
-                                writer.Write(reader.ReadSingle());
-                                writer.Write(reader.ReadSingle());
-                                // x, y, z
-                                writer.Write(reader.ReadSingle());
-                                writer.Write(reader.ReadSingle());
-                                writer.Write(reader.ReadSingle());
-                            }
-                        }
                     }
                 }
             }
             return true;
         }
+
         private bool CopyMaterial(BinaryReader reader, BinaryWriter writer) {
             writer.Write(reader.ReadString()); // name
 
@@ -255,6 +255,28 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
                 }
             }
             return true;
+        }
+
+        public void WritePmat(string outpath, string name, float priority, string shader) {
+            using ( var writer = new BinaryWriter(File.OpenWrite(outpath)) ) {
+                writer.Write(FileConst.HEAD_PMAT);
+                writer.Write(1000);// Int32
+                writer.Write(name.GetHashCode());
+                writer.Write(name);
+                writer.Write(priority);
+                writer.Write(shader);
+            }
+        }
+
+        public void WriteMenu(BinaryReader reader, BinaryWriter writer, ACCMenu menu) {
+//            using ( var writer = new BinaryWriter(File.OpenWrite(outpath)) ) {
+//                writer.Write(FileConst.HEAD_PMAT);
+//                writer.Write(1000);// Int32
+//                writer.Write(name.GetHashCode());
+//                writer.Write(name);
+//                writer.Write(priority);
+//                writer.Write(shader);
+//            }
         }
     }
 }

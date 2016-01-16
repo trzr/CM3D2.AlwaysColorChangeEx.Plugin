@@ -190,16 +190,16 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
                             // あきらめて何もしない。無理やり書いても良いのかもしれないけど……
                             var tmp = GUI.enabled;
                             GUI.enabled = false;
-                            GUILayout.Button("+変更", uiParams.bStyle, uiParams.buttonWidth2);
+                            GUILayout.Button("+変更", uiParams.bStyle, uiParams.buttonLWidth);
                             GUI.enabled = tmp;
                         } else if (bTargetElement) {
                             // エディット中のテクスチャの場合
-                            if (GUILayout.Button("-変更", uiParams.bStyle, uiParams.buttonWidth2)) {
+                            if (GUILayout.Button("-変更", uiParams.bStyle, uiParams.buttonLWidth)) {
                                 editTarget.Clear();
                             }
                         } else {
                             // エディット中以外のテクスチャの場合
-                            if (GUILayout.Button("+変更", uiParams.bStyle, uiParams.buttonWidth2)) {
+                            if (GUILayout.Button("+変更", uiParams.bStyle, uiParams.buttonLWidth)) {
                                 editTarget.slotName = holder.currentSlot.Name;
                                 editTarget.matNo = matNo;
                                 editTarget.propName = tex.propName;

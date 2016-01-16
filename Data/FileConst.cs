@@ -15,6 +15,8 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
         public const string HEAD_MOD   = "CM3D2_MOD";
         public const string HEAD_MODEL = "CM3D2_MESH";
         public const string HEAD_MATE  = "CM3D2_MATERIAL";
+        public const string HEAD_TEX   = "CM3D2_TEX";
+        public const string HEAD_PMAT  = "CM3D2_PMATERIAL";
 
         public const string RET = "《改行》";
 
