@@ -5,9 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
-using CM3D2.AlwaysColorChange.Plugin.Data;
+using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 
-namespace CM3D2.AlwaysColorChange.Plugin.Util
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 {
     /// <summary>
     /// Description of MaidHolder.
@@ -53,15 +53,18 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
         /// <summary>選択中のスロットを取得する</summary>
         /// <returns>スロット</returns>
         public TBodySkin GetCurrentSlot() {
-            return maid.body0.GetSlot(currentSlot.Name);
+            return maid.body0.GetSlot((int)currentSlot.Id);
         }
 
         public Material[] GetMaterials() {
-            return GetMaterials( maid.body0.GetSlot(currentSlot.Name) );
+            return GetMaterials( maid.body0.GetSlot((int)currentSlot.Id) );
         }
 
         public Material[] GetMaterials(SlotInfo slot) {
-            return GetMaterials(slot.Name);
+            return GetMaterials(slot.Id);
+        }
+        public Material[] GetMaterials(TBody.SlotID slotID) {
+            return GetMaterials(maid.body0.GetSlot((int)slotID));
         }
 
         public Material[] GetMaterials(string slotName) {
@@ -166,11 +169,14 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
             
         private Hashtable GetMaskTable() {
             if (maid == null) return null;
-            try {
-                var field = maid.body0.GetType().GetField("m_hFoceHide",BindingFlags.NonPublic | BindingFlags.Instance);//  | BindingFlags.GetField | BindingFlags.SetField
-                return (Hashtable)field.GetValue(maid.body0);
-            } catch(Exception e) {}
-            return null;
+            return PrivateAccessor.Get<Hashtable>(maid.body0, "m_hFoceHide");
+//            try {
+//                var field = maid.body0.GetType().GetField("m_hFoceHide", BindingFlags.NonPublic | BindingFlags.Instance);//  | BindingFlags.GetField | BindingFlags.SetField
+//                return (Hashtable)field.GetValue(maid.body0);
+//            } catch(Exception e) {
+//                LogUtil.DebugLog(e);
+//            }
+//            return null;
         }
 
         public void SetSlotVisibles(Dictionary<TBody.SlotID, MaskInfo> maskDic) {

@@ -1,175 +1,14 @@
-﻿using System;
+﻿/*
+ * TODO
+*  GUILayoutへ変更
+ */
+using System;
 using System.Collections.Generic;
 using UnityEngine;
-using CM3D2.AlwaysColorChange.Plugin.Util;
+using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
-namespace CM3D2.AlwaysColorChange.Plugin.Data
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 {
-    /// <summary>
-    /// Description of ACCMaterial.
-    /// </summary>
-    public class ACCMaterial {
-        private const float DEFAULT_FV1 = 10f;
-        private const float DEFAULT_FV2 = 1f;
-        private const float DEFAULT_FV3 = 1f;
-        public Material material;
-        public string name;
-        public ShaderMapper.ShaderName shader;
-        public ShaderMapper.MaterialFlag flag;
-        public int renderQueue;
-        public Color? color;
-        public Color? shadowColor;
-        public Color? rimColor;
-        public Color? outlineColor;
-        public float shininess;
-        public float outlineWidth = 0.002f;
-        public float rimPower = 25f;
-        public float rimShift;
-        public float hiRate;
-        public float hiPow = 0.001f;
-        public float floatVal1 = DEFAULT_FV1;
-        public float floatVal2 = DEFAULT_FV2;
-        public float floatVal3 = DEFAULT_FV3;
-
-        public ACCMaterial(string matName, ShaderMapper.MaterialFlag flag) {
-            this.name = matName;
-            this.flag = flag;
-            this.shader = flag.shader;
-
-            renderQueue = 2000;
-            if (flag.hasColor) color = Color.white;
-            if (flag.isLighted) {
-                shadowColor = Color.white;
-            }
-            if (flag.isOutlined) {
-                outlineColor = Color.black;
-            }
-            if (flag.isToony) {
-                rimColor = Color.white;
-            }
-        }
-        public ACCMaterial(ACCMaterial src) {
-            this.material = src.material;
-            this.name = src.name;
-            this.shader = src.shader;
-            this.flag = src.flag;
-            this.renderQueue = src.renderQueue;
-            this.color = src.color;
-            this.shadowColor = src.shadowColor;
-            this.rimColor = src.rimColor;
-            this.outlineColor = src.outlineColor;
-            this.shininess = src.shininess;
-            this.outlineWidth = src.outlineWidth;
-            this.rimPower = src.rimPower;
-            this.rimShift = src.rimShift;
-            this.hiRate = src.hiRate;
-            this.hiPow = src.hiPow;
-            this.floatVal1 = src.floatVal1;
-            this.floatVal2 = src.floatVal2;
-            this.floatVal3 = src.floatVal3;
-        }
-
-        public ACCMaterial(Material m) {
-            this.material = m;
-            name = m.name;
-            flag = ShaderMapper.resolve(m.shader.name);
-            shader = flag.shader;
-            renderQueue = m.renderQueue;
-
-            if (flag.hasColor) color = m.GetColor("_Color");
-            if (flag.isLighted) {
-                shadowColor = m.GetColor("_ShadowColor");
-                shininess = m.GetFloat("_Shininess");
-            }
-            if (flag.isOutlined) {
-                outlineColor = m.GetColor("_OutlineColor");
-                outlineWidth = m.GetFloat("_OutlineWidth");
-            }
-            if (flag.isToony) {
-                rimColor = m.GetColor("_RimColor");
-                rimPower = m.GetFloat("_RimPower");
-                rimShift = m.GetFloat("_RimShift");
-            }
-            if (flag.isHair) {
-                hiRate = m.GetFloat("_HiRate");
-                hiPow = m.GetFloat("_HiPow");
-            }
-            if (flag.hasFloat1) {
-                floatVal1 = m.GetFloat("_FloatValue1");
-            }
-            if (flag.hasFloat2) {
-                floatVal2 = m.GetFloat("_FloatValue2");
-            }
-            if (flag.hasFloat3) {
-                floatVal3 = m.GetFloat("_FloatValue3");
-            }
-        }
-        public void Update(ShaderMapper.MaterialFlag flag) {
-            if (this.flag == flag) return;
-                
-            this.flag = flag;
-            this.shader = flag.shader;
-            if (flag.hasColor) {
-                if (!color.HasValue) color = Color.white;
-            } else {
-                color = null;
-            }
-            if (flag.isLighted) {
-                if (!shadowColor.HasValue) shadowColor = Color.white;
-            } else {
-                shadowColor = null;
-            }
-            if (flag.isOutlined) {
-                if (!outlineColor.HasValue) outlineColor = Color.black;
-            } else {
-                outlineColor = null;
-            }
-            if (flag.isToony) {
-                if (!rimColor.HasValue) rimColor = Color.white;
-            } else {
-                rimColor = null;
-            }
-        }
-        public void ReflectTo(Material m) {
-            m.SetFloat("_SetManualRenderQueue", renderQueue);
-            m.renderQueue = renderQueue;
-
-            if (flag.hasColor) {
-                m.SetColor("_Color", color.Value);
-            }
-            if (flag.isLighted) {
-                m.SetColor("_ShadowColor", shadowColor.Value);
-                m.SetFloat("_Shininess", shininess);
-            }
-            if (flag.isOutlined) {
-                m.SetColor("_OutlineColor", outlineColor.Value);
-                m.SetFloat("_OutlineWidth", outlineWidth);
-            }
-            if (flag.isToony) {
-                m.SetColor("_RimColor", rimColor.Value);
-                m.SetFloat("_RimPower", rimPower);
-                m.SetFloat("_RimShift", rimShift);
-            }
-            if (flag.isHair) {
-                m.SetFloat("_HiRate", hiRate);
-                m.SetFloat("_HiPow", hiPow);
-            }
-            if (flag.isHair) {
-                m.SetFloat("_HiRate", hiRate);
-                m.SetFloat("_HiPow", hiPow);
-            }
-            if (flag.hasFloat1) {
-                m.SetFloat("_FloatValue1", floatVal1);
-            }
-            if (flag.hasFloat2) {
-                m.SetFloat("_FloatValue2", floatVal2);
-            }
-            if (flag.hasFloat3) {
-                m.SetFloat("_FloatValue3", floatVal3);
-            }
-        }
-    }
-
     public class ACCMaterialsView {
         private const float EPSILON = 0.00001f;
         private static Dictionary<int, Shader> changeShaders = new Dictionary<int, Shader>();
@@ -186,7 +25,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
                 if (shaderNames == null) {
                     shaderNames = new GUIContent[ShaderMapper.ShaderNames.Length];
                     int idx = 0;
-                    foreach (ShaderMapper.ShaderName shaderName in ShaderMapper.ShaderNames) {
+                    foreach (ShaderName shaderName in ShaderMapper.ShaderNames) {
                         shaderNames[idx++] = new GUIContent(shaderName.Name, shaderName.DisplayName);
                     }
                 }
@@ -195,7 +34,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
         }
 
         private static int GetIndex(string shaderName) {
-            ShaderMapper.ShaderName[] names = ShaderMapper.ShaderNames;
+            ShaderName[] names = ShaderMapper.ShaderNames;
             for (int i=0; i< names.Length; i++) {
                 if (names[i].Name == shaderName) {
                     return i;
@@ -220,7 +59,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
          */
         public int itemCount() {
             int count = 4; // title + shaderName + renderQueue + 1
-            ShaderMapper.MaterialFlag mate = edited.flag;
+            MaterialType mate = edited.type;
             if (mate.hasColor)   count += mate.isTrans ? 5 : 4; // color
             if (mate.isOutlined) count += 6; // CoutlineColor + OutlineWidth(float)
             if (mate.isToony)    count += 8; // RimColor + RimPower,RimShift (float x2)
@@ -235,6 +74,16 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             return count;
         }
 
+        private void ChangeShader(string shaderName, ref Material material) {
+            Shader shader = Shader.Find(shaderName);
+            if (shader != null) {
+                material.shader = shader;
+                var mat = ShaderMapper.resolve(shaderName);
+                // 未設定の項目を有効にする際は、デフォルト値を使うべき？
+                edited.Update(mat);
+                LogUtil.DebugLog("selected shader updated");
+            }
+        }
         public void Show(ref Rect outRect) {
             Material material = edited.material;
             outRect.x = uiParams.margin;
@@ -245,7 +94,6 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             outRect.y += uiParams.itemHeight;
 
             string shaderName = edited.shader.Name;
-            ShaderMapper.MaterialFlag mat = edited.flag;
             int idx = GetIndex(shaderName);
 
             GUIContent selected = (idx != -1)? ShaderNames[idx] : ShaderNames[4];
@@ -263,16 +111,10 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             if (idx != selectedIdx) {
                 LogUtil.DebugLog("selected shader changed", idx, "=>", selectedIdx);
                 // シェーダ変更
-                shaderName = ShaderNames[selectedIdx].text;
-                Shader shader = Shader.Find(shaderName);
-                if (shader != null) {
-                    material.shader = shader;
-                    mat = ShaderMapper.resolve(shaderName);
-                    // 未設定の項目を有効にする際は、デフォルト値を使うべき？
-                    edited.Update(mat);
-                    LogUtil.DebugLog("selected shader updated");
-                }
+                var shaderName0 = ShaderNames[selectedIdx].text;
+                ChangeShader(shaderName0, ref material);
             }
+            MaterialType mat = edited.type;
 
             int renderQueue = edited.renderQueue;
             renderQueue = (int)drawModValueSlider(outRect, renderQueue, 0, 5000, String.Format("{0}:{1}", "RQ", renderQueue));

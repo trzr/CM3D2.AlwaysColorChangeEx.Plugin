@@ -3,92 +3,32 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using UnityEngine;
-using CM3D2.AlwaysColorChange.Plugin.Util;
+using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
-namespace CM3D2.AlwaysColorChange.Plugin.Data
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 {
-    /// <summary>
-    /// Description of ACCMaterial.
-    /// </summary>
-    public class ACCTexture {
-        public const int RAMP   = 1;
-        public const int SHADOW_RATE = 2;
-        public const int NONE = 0;
-        public Texture tex;
-
-        public string propName;
-        public string name = string.Empty;
-        public string filepath;
-        public Vector2? texOffset;
-        public Vector2? texScale;
-        public int toonType;
-        public bool dirty;
-        
-        public ACCTexture(Material mate, string propName) {
-            this.propName = propName;
-
-            if (propName == "_ToonRamp" ) {
-                toonType = RAMP;
-            } else if (propName == "_ShadowRateToon") {
-                toonType = SHADOW_RATE;
-            }
-            this.tex = mate.GetTexture(propName);
-
-            if (tex != null) {
-                this.name = tex.name;
-                if (tex is Texture2D) {
-                   texOffset = mate.GetTextureOffset(propName);
-                   texScale  = mate.GetTextureScale(propName);
-                }
-            } else {
-                LogUtil.LogF("tex not found. propname={0}, material={1}", propName, mate.name);
-                this.tex = new Texture2D(2, 2);
-                // テクスチャを追加セット
-                mate.SetTexture(propName, this.tex);
-            }
-        }        
-        public ACCTexture(ACCTexture src) {
-            this.propName  = src.propName;
-
-            this.name      = src.name;
-            this.filepath  = src.filepath;
-            this.texOffset = src.texOffset;
-            this.texScale  = src.texScale;
-
-            this.toonType  = src.toonType;
-        }
-        public bool SetName(string name) {
-            if (this.name != name) {
-                this.name = name;
-                this.dirty = true;
-                return true;
-            }
-            return false;
-        }
-    }
-
     public class ACCTexturesView {
         private static readonly MaidHolder holder = MaidHolder.Instance;
         public static EditTarget editTarget = new EditTarget();
-        public static readonly string[] RAMP_NAMES = {
-            "NoTex",
-            "ToonBlackA1",
-            "ToonBlueA1",   "ToonBlueA2",   "ToonBrownA1",
-            "ToonGrayA1",
-            "ToonGreenA1",  "ToonGreenA2",  "ToonOrangeA1",
-            "ToonPinkA1",   "ToonPinkA2",   "ToonPurpleA1",
-            "ToonRedA1",    "ToonRedA2",
-            "ToonYellowA1", "ToonYellowA2", "ToonYellowA3",
-            "ToonDress_Shadow",
-            "ToonFace", "ToonFace_Shadow",  "ToonFace002",
-            "ToonSkin", "ToonSkin_Shadow",  "ToonSkin002",
+        public static readonly string[] TOON_NAMES = {
+            "noTex",
+            "toonBlackA1",
+            "toonBlueA1",   "toonBlueA2",   "toonBrownA1",
+            "toonGrayA1",
+            "toonGreenA1",  "toonGreenA2",  "toonOrangeA1",
+            "toonPinkA1",   "toonPinkA2",   "toonPurpleA1",
+            "toonRedA1",    "toonRedA2",
+            "toonYellowA1", "toonYellowA2", "toonYellowA3",
+            "toonDress_Shadow",
+            "toonFace", "toonFace_Shadow",  "toonFace002",
+            "toonSkin", "toonSkin_Shadow",  "toonSkin002",
         };
         private const float EPSILON = 0.00001f;
         private static Settings settings = Settings.Instance;
         static TextureModifier textureModifier = new TextureModifier();
 
         public static void Init(UIParams uiParams) {
-            TextureModifier.lStyle = uiParams.lStyle;
+            TextureModifier.uiParams = uiParams;
         }
 
         public static bool IsChangeTarget() {
@@ -102,46 +42,56 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
         public static void UpdateTex(Maid maid, Material[] slotMaterials) {
             textureModifier.UpdateTex(maid, slotMaterials, editTarget);
         }
+        public static bool IsChangedTexColor(Maid maid, string slot, Material material, string propName) {
+            return textureModifier.IsChanged(maid, slot, material, propName);
+        }
+
+        public static TextureModifier.FilterParam GetFilter(Maid maid, string slot, Material material, string propName) {
+            return textureModifier.GetFilter(maid, slot, material, propName);
+        }
+        public static Texture2D Filter(Texture2D srcTex, TextureModifier.FilterParam filterParam) {
+            return textureModifier.Filter(srcTex, filterParam);
+        }
 
         // TODO メイドが変わると呼び出されるため、保持すべきデータとクリアすべきデータを整理
-        // textureModifier上は一部、メイド毎のフィルタデータを保持できる構造になっている
+        // textureModifier上は一部、メイド毎のフィルタデータを保持できる構造
         public static void Clear() {
             textureModifier.Clear();
         }
 
         // ComboBox用アイテムリスト
-        private static GUIContent[] rampNames;
-        private static GUIContent[] RampNames {
+        private static GUIContent[] itemNames;
+        private static GUIContent[] ItemNames {
             get {
-                if (rampNames == null) {
-                    rampNames = new GUIContent[RAMP_NAMES.Length];
+                if (itemNames == null) {
+                    itemNames = new GUIContent[TOON_NAMES.Length];
                     int idx = 0;
-                    foreach (string name in RAMP_NAMES) {
-                        rampNames[idx++] = new GUIContent(name, name);
+                    foreach (string name in TOON_NAMES) {
+                        itemNames[idx++] = new GUIContent(name, name);
                     }
                 }
-                return rampNames;
+                return itemNames;
             }
         }
 
         private static int GetIndex(string rampName) {
-            for (int i=0; i< RAMP_NAMES.Length; i++) {
-                if (RAMP_NAMES[i] == rampName) {
+            for (int i=0; i< TOON_NAMES.Length; i++) {
+                if (TOON_NAMES[i] == rampName) {
                     return i;
                 }
             }
             return -1;
         }
 
-        public static List<ACCTexture> Load(Material mate, ShaderMapper.MaterialFlag flag) {
+        public static List<ACCTexture> Load(Material mate, MaterialType matType) {
             
-            if (flag == null) {
-                flag = ShaderMapper.resolve(mate.shader.name);
+            if (matType == null) {
+                matType = ShaderMapper.resolve(mate.shader.name);
             }
 
-            var ret = new List<ACCTexture>(flag.propNames.Length);
-            foreach (string propName in flag.propNames) {
-               ret.Add(new ACCTexture(mate, propName));
+            var ret = new List<ACCTexture>(matType.texPropNames.Length);
+            foreach (string propName in matType.texPropNames) {
+               ret.Add(new ACCTexture(mate, propName, matType));
             }
             return ret;
         }
@@ -155,14 +105,14 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
         private Dictionary<string, ComboBoxLO> combos = new Dictionary<string, ComboBoxLO>(2);
         readonly UIParams uiParams;
         Material material;
-        ShaderMapper.MaterialFlag flag;
+        MaterialType matType;
 
         public ACCTexturesView(Material m, int matNo, UIParams uiParams) {
             this.uiParams = uiParams;
             this.material = m;
-            this.flag = ShaderMapper.resolve(m.shader.name);
+            this.matType = ShaderMapper.resolve(m.shader.name);
 
-            this.original = Load(m, flag);
+            this.original = Load(m, matType);
             this.edited = new List<ACCTexture>(original.Count);
             foreach ( ACCTexture tex in original ) {
                 edited.Add(new ACCTexture(tex));
@@ -172,20 +122,17 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
         }
 
         public void Show() {
-            string shaderName = material.shader.name;
-//            ShaderMapper.MaterialFlag mate = ShaderMapper.resolve(shaderName);
-//            if (mate == null) continue;
 
             GUILayout.BeginVertical(uiParams.inboxStyle);
             try {
                 GUILayout.Label(material.name, uiParams.lStyleC);
-                foreach (ACCTexture tex in edited) {                
-                    bool bTargetElement = (matNo == editTarget.matNo && tex.propName == editTarget.propName);
+                foreach (ACCTexture editTex in edited) {                
+                    bool bTargetElement = (matNo == editTarget.matNo && editTex.propName == editTarget.propName);
     
                     GUILayout.BeginHorizontal();
                     try {
                         // エディット用スライダーの開閉
-                        if (!textureModifier.IsValidTarget(holder.maid, holder.currentSlot.Name, material, tex.propName)) {
+                        if (!textureModifier.IsValidTarget(holder.maid, holder.currentSlot.Name, material, editTex.propName)) {
                             // 参照先が Texture2D が取れなかった (例 : RenderTexture だった) 場合はとりあえず
                             // あきらめて何もしない。無理やり書いても良いのかもしれないけど……
                             var tmp = GUI.enabled;
@@ -202,10 +149,16 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
                             if (GUILayout.Button("+変更", uiParams.bStyle, uiParams.buttonLWidth)) {
                                 editTarget.slotName = holder.currentSlot.Name;
                                 editTarget.matNo = matNo;
-                                editTarget.propName = tex.propName;
+                                editTarget.propName = editTex.propName;
                             }
                         }
-                        GUILayout.Label(tex.propName, uiParams.lStyle);
+                        GUILayout.Label(editTex.propName, uiParams.lStyle);
+                        if (bTargetElement && editTex.type.isToony && editTex.propName == "_MainTex") {
+                            if ( GUILayout.Button("_ShadowTexに反映", uiParams.bStyle2) ) {
+                                // 現在のFilterを_ShadowTexにも反映 
+                                textureModifier.DuplicateFilter(holder.maid, holder.currentSlot.Name, material, editTex.propName, "_ShadowTex");
+                            }
+                        }
     
     
                     } finally {
@@ -214,46 +167,46 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
     
                     // テクスチャエディット用スライダー
                     if (bTargetElement) {
-                        textureModifier.ProcGUI(holder.maid, holder.currentSlot.Name, material, tex.propName, 
-                                                uiParams.margin, uiParams.fontSize, uiParams.itemHeight);
+                        textureModifier.ProcGUI(holder.maid, holder.currentSlot.Name, material, editTex.propName);
                     }
         
                     float height = uiParams.itemHeight;
                     ComboBoxLO combo = null;
-                    if (tex.toonType != ACCTexture.NONE) {
-                        if (combos.TryGetValue(tex.propName, out combo)) {
+                    if (editTex.toonType != ACCTexture.NONE) {
+                        if (combos.TryGetValue(editTex.propName, out combo)) {
                             if (combo.IsClickedComboButton) {
                                 height = combo.ItemCount*uiParams.itemHeight*0.8f;
                             }
                         } else {
-                            combo = new ComboBoxLO(new GUIContent("選"), RampNames, uiParams.bStyle, uiParams.boxStyle, uiParams.listStyle, true);
-                            combos[tex.propName] = combo;
-                            combo.SelectItem(tex.name);
+                            combo = new ComboBoxLO(new GUIContent("選"), ItemNames, uiParams.bStyle, uiParams.boxStyle, uiParams.listStyle, true);
+                            combos[editTex.propName] = combo;
+                            combo.SelectItem(editTex.editname);
                         }
                     }
                     GUILayout.BeginHorizontal(GUILayout.Height(height));
                     try {
-                        string old = tex.name;
-                        string editName = GUILayout.TextField(tex.name, uiParams.textStyle, uiParams.contentWidth);
-                        if (tex.toonType != ACCTexture.NONE) {
+                        string old = editTex.editname;
+                        string editName = GUILayout.TextField(editTex.editname, uiParams.textStyle, uiParams.contentWidth);
+                        if (editTex.toonType != ACCTexture.NONE) {
                             // 偽コンボボックス
                             int prevSelected = combo.SelectedItemIndex;
                             int selected = combo.Show(uiParams.buttonWidth);
                             if (selected != prevSelected) {
-                                editName = RampNames[selected].text;
+                                editName = ItemNames[selected].text;
                                 // 上記textFieldの更新は次回描画時に任せる
                             }
                         }
-                        tex.SetName(editName);
+                        editTex.SetName(editName);
     
-                        GUI.enabled = tex.dirty;
+                        GUI.enabled = editTex.dirty;
                         if (GUILayout.Button("適", uiParams.bStyle, uiParams.buttonWidth)) {
-                            ChangeTexFile(textureDir, tex.name, matNo, tex.propName);
-                            tex.dirty = false;
+                            Texture tex = ChangeTexFile(textureDir, editTex.editname, matNo, editTex.propName);
+                            if (tex != null) editTex.tex = tex;
+                            editTex.dirty = false;
                         }
                         GUI.enabled = true;
                         if (GUILayout.Button("...", uiParams.bStyle, uiParams.buttonWidth)) {
-                            OpenFileBrowser(matNo, tex);
+                            OpenFileBrowser(matNo, editTex);
                         }
                     } finally {
                         GUILayout.EndHorizontal();
@@ -276,11 +229,11 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
     
                     acctex.filepath = textureDir = Path.GetDirectoryName(path);
                     string name = Path.GetFileName(path);
-                    if (acctex.name != name) {
-                        acctex.name = name;
+                    if (acctex.editname != name) {
+                        acctex.editname = name;
                         acctex.dirty = true;
                     }
-                    ChangeTexFile(textureDir, acctex.name, matNo1, acctex.propName);
+                    ChangeTexFile(textureDir, acctex.editname, matNo1, acctex.propName);
     
                 });
             fileBrowser.SelectionPatterns = new string[] { "*.tex", "*.png" };
@@ -289,36 +242,58 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             }
         }
 
-        private void ChangeTexFile(string dir, string filename, int matNo1, string propName)
+        private Texture ChangeTexFile(string dir, string filename, int matNo1, string propName)
         {
+            Texture tex;
             string extension = Path.GetExtension(filename).ToLower();
             if (extension.Length == 0 || extension == ".tex") {
-                if (extension.Length == 0) filename += ".tex";
+                string texName;
+                if (extension.Length == 0) {
+                    texName = filename;
+                    filename += ".tex";
+                } else {
+                    texName = filename.Substring(0, filename.Length - 4);
+                }
                 holder.maid.body0.ChangeTex(holder.currentSlot.Name, matNo1, propName, filename, null, MaidParts.PARTS_COLOR.NONE);
+
+                // ChangeTexは、Materialからロードした時と違い、nameにファイル名が設定されてしまうため、拡張子を除いた名前を再設定
+                tex = material.GetTexture(propName);
+                if (tex != null) {
+                    tex.name = texName;
+                }
 
             } else {
 
                 TBodySkin slot = holder.maid.body0.GetSlot(holder.currentSlot.Name);
                 // 直接イメージをロードして適用(要dir指定)
-                var material = holder.GetMaterial(slot, matNo1);
-                if (material == null) return;
+                var mat = holder.GetMaterial(slot, matNo1);
+                if (mat == null) return null;
 
                 byte[] img = UTY.LoadImage(Path.Combine(dir, filename));
-                var tex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+                var tex2d = new Texture2D(1, 1, TextureFormat.RGBA32, false);
 //                var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);                                                 
-                tex.LoadImage(img);
+                tex2d.LoadImage(img);
                 // tex.name = filename;
-                slot.listDEL.Add(tex);
+                slot.listDEL.Add(tex2d);
+                tex2d.name = Path.GetFileNameWithoutExtension(filename);
+                
 
-                material.SetTexture(propName, tex);
+                mat.SetTexture(propName, tex2d);
+                tex = tex2d;
             }
+
+            // テクスチャ変更後は、以前のFilterParamやキャッシュをリセット
+            textureModifier.RemoveFilter(holder.maid, holder.currentSlot.Name, material, propName);
+            return tex;
         }
+
         private void MulTexSet(string filename, int matNo1, string propName)
         {
             GameUty.SystemMaterial mat;
             try {
                 mat = (GameUty.SystemMaterial)Enum.Parse(typeof(GameUty.SystemMaterial), propName);
             } catch(ArgumentException e) {
+                LogUtil.DebugLog(e);
                 mat = GameUty.SystemMaterial.Alpha;
             }
 
@@ -329,28 +304,6 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             } else {
                 //TODO
             }
-        }
-    }
-    public class EditTarget
-    {
-        public string slotName;
-        public int matNo;
-        public string propName;
-
-        public EditTarget()
-        {
-            Clear();
-        }
-
-        // テクスチャエディット対象を無効にする
-        public void Clear()
-        {
-            slotName = string.Empty;
-            matNo = -1;
-            propName = string.Empty;
-        }
-        public bool IsValid() {
-            return (matNo >= 0 && slotName.Length != 0 && propName.Length != 0);
         }
     }
 }

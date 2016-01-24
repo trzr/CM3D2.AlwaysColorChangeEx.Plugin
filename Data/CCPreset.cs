@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace CM3D2.AlwaysColorChange.Plugin.Data
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 {
     /// <summary>
     /// Description of CCPreset.

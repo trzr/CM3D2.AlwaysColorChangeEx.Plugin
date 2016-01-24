@@ -3,34 +3,34 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 using System.Xml.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityInjector.Attributes;
-using CM3D2.AlwaysColorChange.Plugin.Data;
-using CM3D2.AlwaysColorChange.Plugin.UI;
-using CM3D2.AlwaysColorChange.Plugin.Util;
+using CM3D2.AlwaysColorChangeEx.Plugin.Data;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI;
+using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
-// 以下の AssemblyVersion は削除しないこと
 [assembly: AssemblyVersion("1.0.*")]
-namespace CM3D2.AlwaysColorChange.Plugin {
+namespace CM3D2.AlwaysColorChangeEx.Plugin {
 [PluginFilter("CM3D2x64"),
  PluginFilter("CM3D2x86"),
  PluginFilter("CM3D2VRx64"),
- PluginName("CM3D2 AlwaysColorChangeMod"),
- PluginVersion("0.0.5.2")]
-class AlwaysColorChange : UnityInjector.PluginBase
+ PluginName("CM3D2 AlwaysColorChangeEx"),
+ PluginVersion("0.1.0.0")]
+class AlwaysColorChangeEx : UnityInjector.PluginBase
 {
     // プラグイン名
     public static volatile string PluginName;
     // プラグインバージョン
     public static volatile string Version;
-    static AlwaysColorChange() {
+    static AlwaysColorChangeEx() {
         // 属性クラスからプラグイン名取得
         try {
-            var att = Attribute.GetCustomAttribute( typeof(AlwaysColorChange), typeof( PluginNameAttribute ) ) as PluginNameAttribute;
+            var att = Attribute.GetCustomAttribute( typeof(AlwaysColorChangeEx), typeof( PluginNameAttribute ) ) as PluginNameAttribute;
             if( att != null ) PluginName = att.Name;
         } catch( Exception e ) {
             LogUtil.ErrorLog( e );
@@ -38,14 +38,13 @@ class AlwaysColorChange : UnityInjector.PluginBase
         // プラグインバージョン取得
         try {
             // 属性クラスからバージョン番号取得
-            var att = Attribute.GetCustomAttribute( typeof(AlwaysColorChange), typeof( PluginVersionAttribute ) ) as PluginVersionAttribute;
+            var att = Attribute.GetCustomAttribute( typeof(AlwaysColorChangeEx), typeof( PluginVersionAttribute ) ) as PluginVersionAttribute;
             if( att != null ) Version = att.Version;
         } catch( Exception e ) {
             LogUtil.ErrorLog( e );
         }
     }
-
-
+    private const string TITLE_LABEL = "ACC  Ex";
 
     private enum TargetLevel {
         // ダンス:ドキドキ☆Fallin' Love
@@ -58,7 +57,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
         SceneADV = 15,
         // ダンス:entrance to you
         SceneDance_ETYL = 20,
-        // ダンス：scarlet leap
+        // ダンス:scarlet leap
         SceneDance_SCL_Leap = 22
     }
 
@@ -81,7 +80,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
 //    private bool visible;
 
     private bool cmrCtrlChanged = false;
-    private bool showSaveDialog = false;
+    //private bool showSaveDialog = false;
 
     private Settings settings = Settings.Instance;
     private OutputUtilEx outUtil = OutputUtilEx.Instance;
@@ -101,14 +100,17 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
     private string presetName = "";
     private bool bApplyChange = false;
-    private MenuInfo targetMenuInfo;
+    //private MenuInfo targetMenuInfo;
     private CCPreset targetPreset;
 
     private bool bClearMaskEnable = false;
     private bool bSaveBodyPreset  = false;
 
+    private bool isSavable;
     private bool isActive;
     private string SaveFileName;
+    private const int CHANGE_THRESHOLD = 10;
+    private int changeCount = 0;
 
     private Vector2 scrollViewPosition = Vector2.zero;
 
@@ -117,9 +119,9 @@ class AlwaysColorChange : UnityInjector.PluginBase
     private string targetMenu;
     private Material[] targetMaterials;
     private List<ACCMaterialsView> materialViews;
-    List<ACCTexturesView> texViews;
+    private List<ACCTexturesView> texViews;
+    private ACCSaveMenuView saveView;
 
-//    private Dictionary<string, List<Material>> slotMaterials = new Dictionary<string, List<Material>>(ACConstants.SlotNames.Count);
     #endregion
 
     #region MonoBehaviour methods
@@ -129,7 +131,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
         base.ReloadConfig();
         settings.Load((key) => base.Preferences["Config"][key].Value);
 
-        SaveFileName = Path.Combine(settings.configPath , "AlwaysColorChange.xml");
+        SaveFileName = Path.Combine(settings.configPath , "AlwaysColorChangeEx.xml");
         LogUtil.Log("SaveFileName", SaveFileName);
 
         LoadPresets();
@@ -139,7 +141,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
     public void OnDestroy() 
     {
         SetCameraControl(true);
-        dispose();
+        Dispose();
         if (presets != null) {
             presets.Clear();
         }
@@ -173,6 +175,11 @@ class AlwaysColorChange : UnityInjector.PluginBase
         if (Event.current.type == EventType.Layout) {
             if (ACCTexturesView.fileBrowser != null) {
                 uiParams.fileBrowserRect = GUI.Window(14, uiParams.fileBrowserRect, DoFileBrowser, Version, uiParams.winStyle);
+
+            } else if (saveView != null && saveView.showDialog) {
+                // uiParams.InitModalRect();
+                uiParams.modalRect = GUI.ModalWindow(13, uiParams.modalRect, DoSaveModDialog, "menuエクスポート");
+
             } else {
                 switch (menuType) {
                     case MenuType.Main:
@@ -200,13 +207,9 @@ class AlwaysColorChange : UnityInjector.PluginBase
                         break;
                 }
             }
-    
-            if (showSaveDialog) {
-                // uiParams.InitModalRect();
-                uiParams.modalRect = GUI.ModalWindow(13, uiParams.modalRect, DoSaveModDialog, "保存");
-            }
         }
     }
+
     private void SetCameraControl(bool enable) {
         if (cmrCtrlChanged == enable) {
             GameMain.Instance.MainCamera.SetControl(enable);
@@ -223,7 +226,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
         if (!initialized && (fPassedTimeOnLevel - fLastInitTime > 1f)) {
             fLastInitTime = fPassedTimeOnLevel;
-            initialized = initialize();
+            initialized = Initialize();
             LogUtil.Log("Initialize ", initialized);
         }
         if (!initialized) return ;
@@ -236,6 +239,11 @@ class AlwaysColorChange : UnityInjector.PluginBase
         if (menuType != MenuType.None) {
             var cursor = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
             isEnableControl = uiParams.winRect.Contains(cursor);
+            if (!isEnableControl) {
+                if (saveView != null && saveView.showDialog) {
+                    isEnableControl = uiParams.modalRect.Contains(cursor);
+                }
+            }
         }
 
         // カメラコントロールの有効化/無効化 (Windowの範囲外では、自身がコントロールを変更したケース以外は更新しない)
@@ -270,13 +278,14 @@ class AlwaysColorChange : UnityInjector.PluginBase
     #endregion
 
     #region Private methods
-    private void dispose() 
+    private void Dispose() 
     {
         ClearMaidData();
         SetCameraControl(true);
 
         initialized = false;
     }
+
     private void ClearMaidData() {
         // テクスチャキャッシュを開放する
         ACCMaterialsView.Clear();
@@ -285,9 +294,8 @@ class AlwaysColorChange : UnityInjector.PluginBase
         dDelNodeDisps.Clear();
         dMaskSlots.Clear();
     }
-        
 
-    private bool initialize() 
+    private bool Initialize() 
     {
         LogUtil.DebugLog("Initialize ",  Application.loadedLevel);
 
@@ -301,25 +309,14 @@ class AlwaysColorChange : UnityInjector.PluginBase
         if (holder.UpdateMaid()) {
             ClearMaidData();
         }
-        if (holder.maid == null) return false;
-
-//            dMaterial.Clear();
-//            foreach (string slotname in ACConstants.Slotnames.Keys) {
-//                dMaterial.Add(slotname, new CCMaterial());
-//            }
-
-        return initGUI();
+        return holder.maid != null;
     }
 
-    private bool initGUI() 
-    {
-        return true;
-    }
     #endregion
 
     private void DoMainMenu(int winID)
     {
-        GUI.Label(uiParams.labelRect, "強制カラーチェンジ", uiParams.lStyleB);
+        GUI.Label(uiParams.labelRect, TITLE_LABEL, uiParams.lStyleB);
 
         var outRect = uiParams.subRect;
         if (GUI.Button(outRect, "マスク選択", uiParams.bStyle)) {
@@ -331,7 +328,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
             menuType = MenuType.NodeSelect;
         }
         outRect.y += uiParams.unitHeight;
-        if (GUI.Button(outRect, "保存", uiParams.bStyle)) {
+        if (GUI.Button(outRect, "プリセット保存", uiParams.bStyle)) {
             menuType = MenuType.Save;
         }
         if (presets != null && presets.Any()) {
@@ -369,8 +366,6 @@ class AlwaysColorChange : UnityInjector.PluginBase
         GUI.DragWindow();
     }
 
-    // TODO 変更前の情報をメモリ上に保持
-
     private List<ACCMaterialsView> initMaterialView(Material[] materials) {
         var ret = new List<ACCMaterialsView>(materials.Length);
         foreach (Material material in materials) { 
@@ -379,22 +374,49 @@ class AlwaysColorChange : UnityInjector.PluginBase
         return ret;
     }
 
-    private void DoColorMenu(int winID)
-    {
+    private void DoColorMenu(int winID) {
+
         var scrollRect = uiParams.colorRect;
         GUI.Label(uiParams.labelRect, "強制カラーチェンジ: " + holder.currentSlot.DisplayName, uiParams.lStyleB);
 
         var outRect = uiParams.subRect;
         try {
-            // ターゲットのmenuファイルが変更された場合にビューを更新
+            if (holder.maid.IsBusy) return;
+            // **_del_.menuを選択の状態が続いたらメインメニューへ
+            // 衣装セットなどは内部的に一旦_del_.menuが選択されるため、一時的に選択された状態をスルー
             string menu = holder.GetCurrentMenuFile();
+            if (menu != null) {
+                if (menu.EndsWith("_del.menu", StringComparison.OrdinalIgnoreCase)) {
+                    if (changeCount++ > CHANGE_THRESHOLD) {
+                        menuType = MenuType.Main;
+                        LogUtil.DebugLog("衣装が外れたため、メインメニューに戻ります", menu);
+                        changeCount = 0;
+                    }
+                    return;
+                }
+            }
+
+            // ターゲットのmenuファイルが変更された場合にビューを更新
             if (targetMenu != menu) {
                 LogUtil.DebugLog("menufile changed.", targetMenu, "=>", menu);
-    
+
+                // .modファイルは未対応
+                isSavable = (menu != null)
+                    && !(menu.ToLower().EndsWith(FileConst.EXT_MOD, StringComparison.Ordinal));
+                
                 targetMenu = menu;
                 TBodySkin slot = holder.GetCurrentSlot();
                 targetMaterials = holder.GetMaterials(slot);
                 materialViews = initMaterialView(targetMaterials);
+
+                changeCount = 0;
+
+                if (isSavable) {
+                    // 保存未対応スロットを判定(身体は不可)
+                    if (holder.currentSlot.Id == TBody.SlotID.body) {
+                        isSavable = false;
+                    }
+                }
             }
     
             if ( GUI.Button(outRect, "テクスチャ変更", uiParams.bStyle) ) {
@@ -427,27 +449,54 @@ class AlwaysColorChange : UnityInjector.PluginBase
             outRect.x = uiParams.margin;
             outRect.y = uiParams.winRect.height - (uiParams.unitHeight) * 2;
             outRect.width = uiParams.subRect.width;
-            GUI.enabled = (targetMenu != null);
+            GUI.enabled = isSavable;
             try {
-                if (GUI.Button(outRect, "menu/mate保存", uiParams.bStyle)) {
+                if (GUI.Button(outRect, "menuエクスポート", uiParams.bStyle)) {
                     global::TBodySkin slot = holder.GetCurrentSlot();
-                    if (slot.obj == null) return;
+                    if (slot.obj == null) {
+                        var msg = "指定スロットが見つかりません。slot=" + holder.currentSlot.Name;
+                        NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
+                        return;
+                    }
         
                     // propは対応するMPNを指定
                     MaidProp prop = holder.maid.GetProp(holder.currentSlot.mpn);
                     if (prop != null) {
-                        if (prop.strFileName.EndsWith(FileConst.EXT_MOD, StringComparison.CurrentCulture)) {
-                            var msg = "modファイルの変更/保存は現在未対応です " + prop.strFileName;
+                        if (saveView == null) {
+                            saveView = new ACCSaveMenuView(uiParams);
+                        }
+                        //targetMenuInfo = new MenuInfo();
+                        //bool loaded = targetMenuInfo.LoadMenufile(prop.strFileName);
+                        // 変更可能なmenuファイルがない場合は保存画面へ遷移しない
+                        var targetSlots = saveView.Load(prop.strFileName);
+                        if (targetSlots == null) {
+                            var msg = "変更可能なmenuファイルがありません " + prop.strFileName;
                             NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
                         } else {
-                            targetMenuInfo = new MenuInfo();
-                            bool loaded = targetMenuInfo.LoadMenufile(prop.strFileName);
-                            // 変更可能なmenuファイルがない場合は保存画面へ遷移しない
-                            if (!loaded) {
-                                var msg = "変更可能なmenuファイルがありません " + prop.strFileName;
-                                NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
+                            // menuファイルで指定されているitemのスロットに関連するマテリアル情報を抽出
+                            foreach (var targetSlot in targetSlots.Keys) {
+
+                                List<ACCMaterial> edited;
+                                if (targetSlot == holder.currentSlot.Id) {
+                                    // カレントスロットの場合は、作成済のマテリアル情報を渡す
+                                    edited   = new List<ACCMaterial>(materialViews.Count);
+                                    foreach ( var matView in materialViews ) {
+                                        edited.Add(matView.edited);
+                                    }
+                                } else {
+                                    Material[] materials = holder.GetMaterials(targetSlot);
+                                    edited = new List<ACCMaterial>(materials.Length);
+                                    foreach (Material mat in materials) {
+                                        edited.Add(new ACCMaterial(mat));
+                                    }
+                                }
+                                saveView.SetEditedMaterials(targetSlot, edited);
+                                
                             }
-                            showSaveDialog |= loaded;
+                            //if (!saveView.CheckData()) {
+                            //    var msg = "保存可能なmenuファイルではありません " + prop.strFileName;
+                            //    NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
+                            //}
                         }
                     }
                 }
@@ -791,7 +840,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
     private void DoSaveMenu(int winID)
     {
-        GUI.Label(uiParams.labelRect, "保存", uiParams.lStyleB);
+        GUI.Label(uiParams.labelRect, "プリセット保存", uiParams.lStyleB);
 
         var outRect = uiParams.subRect;
         outRect.width = uiParams.winRect.width * 0.3f - uiParams.margin;
@@ -874,10 +923,10 @@ class AlwaysColorChange : UnityInjector.PluginBase
         } else {
             // 衣装チェンジ
             foreach (string key in targetPreset.mpns.Keys) {
-                if (targetPreset.mpns[key].EndsWith("_del.menu")) {
+                if (targetPreset.mpns[key].EndsWith("_del.menu", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
-                if (targetPreset.mpns[key].EndsWith(".mod")) {
+                if (targetPreset.mpns[key].EndsWith(".mod", StringComparison.OrdinalIgnoreCase)) {
                     string sFilePath = Path.GetFullPath(".\\") + "Mod\\" + targetPreset.mpns[key];
                     if (!File.Exists(sFilePath)) {
                         continue;
@@ -903,6 +952,7 @@ class AlwaysColorChange : UnityInjector.PluginBase
                     TBody.SlotID slotID = ACConstants.Slotnames[slotName];
                     slotName = slotID.ToString();
                 } catch(KeyNotFoundException e) {
+                    LogUtil.DebugLog(e);
                     continue;
                 }
             }
@@ -945,177 +995,16 @@ class AlwaysColorChange : UnityInjector.PluginBase
         presets = presetMgr.Load(SaveFileName);
     }
 
-    private ACCSaveModView saveView;
     private void DoSaveModDialog(int winId) {
-        if (targetMenuInfo == null ) {
-            LogUtil.DebugLog("target menu ('s material) is empty. Save dialog cannot be displayed.");
-            showSaveDialog = false;
-            return;
+        try {
+            saveView.Show();
+        } catch(Exception e) {
+            LogUtil.DebugLog("failed to display save dialog.", e);
         }
 
-        var outRect = uiParams.subRect;
-
-        outRect.x = uiParams.margin;
-        outRect.y = uiParams.unitHeight;
-        outRect.width = uiParams.modalRect.width * 0.2f - uiParams.margin;
-        GUI.Label(outRect, "メニュー", uiParams.lStyle);
-        outRect.x += outRect.width;
-        outRect.width = uiParams.modalRect.width * 0.8f - uiParams.margin;
-        targetMenuInfo.filename = GUI.TextField(outRect, targetMenuInfo.filename, uiParams.textStyle);
-
-        outRect.x = uiParams.margin;
-        outRect.y += outRect.height + uiParams.margin;
-        outRect.width = uiParams.modalRect.width * 0.2f - uiParams.margin;
-        GUI.Label(outRect, "アイコン", uiParams.lStyle);
-        outRect.x += outRect.width;
-        outRect.width = uiParams.modalRect.width * 0.8f - uiParams.margin;
-        targetMenuInfo.icons = GUI.TextField(outRect, targetMenuInfo.icons, uiParams.textStyle);
-
-        outRect.x = uiParams.margin;
-        outRect.y += outRect.height + uiParams.margin;
-        outRect.width = uiParams.modalRect.width * 0.2f - uiParams.margin;
-        GUI.Label(outRect, "名前", uiParams.lStyle);
-        outRect.x += outRect.width;
-        outRect.width = uiParams.modalRect.width * 0.8f - uiParams.margin;
-        targetMenuInfo.name = GUI.TextField(outRect, targetMenuInfo.name, uiParams.textStyle);
-
-        outRect.x = uiParams.margin;
-        outRect.y += outRect.height + uiParams.margin;
-        outRect.width = uiParams.modalRect.width * 0.2f - uiParams.margin;
-        GUI.Label(outRect, "説明", uiParams.lStyle);
-        outRect.x += outRect.width;
-        outRect.width = uiParams.modalRect.width * 0.8f - uiParams.margin;
-        outRect.height = uiParams.itemHeight * 4;
-        targetMenuInfo.setumei = GUI.TextArea(outRect, targetMenuInfo.setumei, uiParams.textAreaStyle);
-
-        outRect.y += outRect.height + uiParams.margin;
-        outRect.height = uiParams.itemHeight;
-
-        foreach ( TargetMaterial tm in targetMenuInfo.materials) {
-            outRect.x = uiParams.margin;
-            outRect.width = uiParams.modalRect.width * 0.2f - uiParams.margin;
-            GUI.Label(outRect, "マテリアル" + tm.matNo, uiParams.lStyle);
-
-            outRect.x += outRect.width;
-            outRect.width = uiParams.modalRect.width * 0.8f - uiParams.margin;
-            tm.editname = GUI.TextField(outRect, tm.editname, uiParams.textStyle);
-            outRect.y += outRect.height + uiParams.margin;
-        }
-
-        /*
-        for (int i = 0; i < targetMenuInfo.resources.Count(); i++)
-        {
-            outRect.x = margin;
-            outRect.width = modalRect.width * 0.2f - margin;
-            GUI.Label(outRect, targetMenuInfo.resources[i][0], lStyle);
-            outRect.x += outRect.width;
-            outRect.width = modalRect.width * 0.8f - margin;
-            targetMenuInfo.resources[i][1] = GUI.TextField(outRect, targetMenuInfo.resources[i][1], uiParams.textStyle);
-            outRect.y += outRect.height + margin;
-        }
-        */
-        foreach (string[] addItem in targetMenuInfo.addItems) {
-            outRect.x = uiParams.margin;
-            outRect.width = uiParams.modalRect.width * 0.2f - uiParams.margin;
-            GUI.Label(outRect, "addItem:" + addItem[1], uiParams.lStyle);
-            outRect.x += outRect.width;
-            outRect.width = uiParams.modalRect.width * 0.8f - uiParams.margin;
-            addItem[0] = GUI.TextField(outRect, addItem[0], uiParams.textStyle);
-            outRect.y += outRect.height + uiParams.margin;
-        }
-        outRect.x = uiParams.margin;
-        outRect.y += outRect.height + uiParams.margin;
-        outRect.width = uiParams.modalRect.width / 2 - uiParams.margin * 2;
-
-        if (GUI.Button(outRect, "保存", uiParams.bStyle)) {
-            var menufile = targetMenuInfo.filename + FileConst.EXT_MENU;
-            if (FileExists(menufile)) {
-                NUty.WinMessageBox(NUty.GetWindowHandle(), "メニューファイル[" + menufile+ "]が既に存在します", "エラー", NUty.MSGBOX.MB_OK);
-                return;
-            }
-            foreach (var mat in targetMenuInfo.materials) {
-                var matefile = mat.editname + FileConst.EXT_MATERIAL;
-                if (FileExists(matefile)) {
-                    NUty.WinMessageBox(NUty.GetWindowHandle(), "materialファイル[" + matefile + "]が既に存在します", "エラー", NUty.MSGBOX.MB_OK);
-                    return;
-                }
-            }
-            if (SaveMod(holder.currentSlot)) {
-                showSaveDialog = false;
-            }
-        }
-        outRect.x += outRect.width + uiParams.margin;
-
-        showSaveDialog &= !(GUI.Button(outRect, "閉じる", uiParams.bStyle));;
-        
         GUI.DragWindow();
     }
 
-    private bool SaveMod(SlotInfo si)
-    {
-        TBodySkin slot = holder.maid.body0.GetSlot((int)si.Id);
-        if (slot.obj == null) return false;
-
-        // TODO 画面で変更された情報を元にファイル重複がないかチェック
-        // menu, model, mate, tex
-        
-
-        MenuInfo menuInfo = targetMenuInfo;
-
-        MaidProp prop = holder.maid.GetProp(si.mpn);
-        String baseMenufile = prop.strFileName;
-
-        string outDir = outUtil.GetACCDirectory();
-        outDir = Path.Combine(outDir, menuInfo.filename);
-        if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
-
-        LogUtil.DebugLog("output path", outDir);
-
-        try {
-            // シェーダの変更されたマテリアルを抽出、matNoとmaterialのセット
-            // TODO 置換すべき情報を抽出
-
-            // menu
-            MenuWrite(baseMenufile, outDir, menuInfo);
-    
-            // material
-            foreach ( List<TargetMaterial> tmList in menuInfo.baseMaterials.Values) {
-                // カテゴリとマテリアル番号でマテリアルオブジェクトを参照
-                // menuInfo.materials[i];
-                foreach (TargetMaterial tm in tmList) {
-                    MateWrite(outDir, tm.filename, tm.editname, slot.obj);
-                }
-            }
-    
-            // model
-            for (int i = 0; i < menuInfo.baseAddItems.Count(); i++) {
-                if (!FileExists(menuInfo.addItems[i][0] + FileConst.EXT_MODEL)) {
-                    ModelWrite(outDir, menuInfo.baseAddItems[i][0], menuInfo.addItems[i][0]);
-                }
-            }
-            /*
-            for (int i = 0; i < menuInfo.baseResources.Count(); i++)
-            {
-                if (!FileExists(menuInfo.baseResources[i][1] + MenuInfo.EXT_MODEL))
-                {
-                    ModelWrite(path, menuInfo.baseResources[i][1], menuInfo.resources[i][1]);
-                }
-            }
-            */
-    
-            // TODO アイコンもカラー変更可能にすべきか？ _mainTexから変更情報を抽出
-            // icon
-            if (!FileExists(menuInfo.icons + FileConst.EXT_TEXTURE)) {
-                TexWrite(outDir, menuInfo.baseIcons, menuInfo.icons);
-            }
-
-        } catch(Exception e) {
-            var msg = "保存に失敗しました。\n  " + e.Message;
-            NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
-            return false;
-        }
-        return true;
-    }
 
     private float drawModValueSlider(Rect outRect, float value, float min, float max, string label)
     {
@@ -1132,317 +1021,6 @@ class AlwaysColorChange : UnityInjector.PluginBase
 
         return GUI.HorizontalSlider(outRect, value, min, max);
     }
-
-    private bool FileExists(string filename)
-    {
-        using (AFileBase aFileBase = global::GameUty.FileOpen(filename)) {
-            if (!aFileBase.IsValid()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private void MenuWrite(string basemenufile, string outDir, MenuInfo menu)
-    {
-        byte[] cd = null;
-        try {
-            using (AFileBase aFileBase = global::GameUty.FileOpen(basemenufile)) {
-                if (!aFileBase.IsValid()) {
-                    var msg = "アイテムメニューファイルが見つかりません。"+ basemenufile;
-                    LogUtil.ErrorLog(msg);
-                    throw new ACCException(msg);
-                }
-                cd = aFileBase.ReadAll();
-            }
-        } catch (Exception ex2) {
-            var msg = "アイテムメニューファイルが読み込めませんでした。"+ basemenufile;
-            LogUtil.ErrorLog(msg, ex2);
-            throw new ACCException(msg, ex2);
-        }
-
-        var materials = new Dictionary<string, string>();
-        try {
-            //.menuの保存
-            using (var headerMs = new MemoryStream())
-            using (var dataMs = new MemoryStream())
-            using (var headerWriter = new BinaryWriter(headerMs))
-            using (var dataWriter = new BinaryWriter(dataMs)) 
-            using (var binaryReader = new BinaryReader(new MemoryStream(cd), Encoding.UTF8)) {
-                string text = binaryReader.ReadString();
-                if (text != FileConst.HEAD_MENU) {
-                    var msg = "ヘッダーファイルが不正です。ヘッダ=" + text + ", file=" + basemenufile;
-                    LogUtil.ErrorLog(msg);
-                    throw new ACCException(msg);
-                }
-                headerWriter.Write(text);
-                int num = binaryReader.ReadInt32();
-                headerWriter.Write(num);
-                string txtpath = binaryReader.ReadString();
-                int pos = txtpath.LastIndexOf("/", StringComparison.CurrentCulture);
-                if (pos >= 0) {
-                    txtpath = txtpath.Substring(0, pos + 1) + Path.GetFileNameWithoutExtension(basemenufile) + ".txt";
-                }
-                headerWriter.Write(txtpath);
-                string menuName = binaryReader.ReadString(); // 名前を置き換え
-                headerWriter.Write(menu.name);
-                string category = binaryReader.ReadString();
-                headerWriter.Write(category);
-                string comment = binaryReader.ReadString();
-                headerWriter.Write(menu.setumei.Replace("\n", FileConst.RET));
-                int num2 = (int)binaryReader.ReadInt32();
-
-                bool materialWrited = false;
-                bool addItemWrited = false;
-
-                while (true) {
-                    byte b = binaryReader.ReadByte();
-                    int size = (int)b;
-                    if (size == 0) {
-                        dataWriter.Write((byte)0);
-                        break;
-                    }
-                    var param = new string[size];
-                    for (int i = 0; i < size; i++) {
-                        param[i] = binaryReader.ReadString();
-                    }
-
-                    switch (param[0]) {
-                    case "name":
-                        param[1] = menu.name;
-                        break;
-                    case "setumei":
-                        param[1] = menu.setumei.Replace("\n", FileConst.RET);
-                        break;
-                    case "priority":
-                        param[1] = "9999";
-                        break;
-                    case "icons":
-                        param[1] = menu.icons + FileConst.EXT_TEXTURE;
-                        break;
-                    case "マテリアル変更":
-                        if (!materialWrited) {
-                            materialWrited = true;
-                            foreach (var mat in menu.materials) {
-                                dataWriter.Write(b);
-                                dataWriter.Write("マテリアル変更");
-                                dataWriter.Write(mat.category);
-                                dataWriter.Write(mat.matNo.ToString());
-                                dataWriter.Write(mat.editname + FileConst.EXT_MATERIAL);
-                            }
-                        }
-                        continue;
-                    case "additem":
-                        if (!addItemWrited) {
-                            addItemWrited = true;
-                            foreach (var items in menu.addItems) {
-                                dataWriter.Write(b);
-                                dataWriter.Write("additem");
-                                dataWriter.Write(items[0] + FileConst.EXT_MODEL);
-                                for (int i = 1; i < items.Length; i++)
-                                    dataWriter.Write(items[i]);
-                            }
-                        }
-                        continue;
-                    }
-                    dataWriter.Write(b);
-                    for (int i = 0; i < size; i++) {
-                        dataWriter.Write(param[i]);
-                    }
-                }
-                using (var writer = new BinaryWriter(File.OpenWrite(Path.Combine(outDir, menu.filename + FileConst.EXT_MENU)))) {
-                    writer.Write(headerMs.ToArray());
-                    writer.Write((int)dataMs.Length);
-                    writer.Write(dataMs.ToArray());
-                }
-            }
-        } catch (Exception e) {
-            Debug.Log(e);
-            throw new ACCException(null, e);
-        }
-    }
-
-    private void TexWrite(string path, string infile, string outname)
-    {
-        string filename = infile + FileConst.EXT_TEXTURE;
-        try {
-            using (AFileBase aFileBase = global::GameUty.FileOpen(filename)) {
-                if (!aFileBase.IsValid()) {
-                    LogUtil.ErrorLog("テクスチャファイルが見つかりません。", filename);
-                    return;
-                }
-                byte[] cd = aFileBase.ReadAll();
-                using (var writer = new BinaryWriter(File.OpenWrite(Path.Combine(path, outname + FileConst.EXT_TEXTURE)))) {
-                    writer.Write(cd);
-                }
-            }
-        } catch (Exception ex2) {
-            LogUtil.ErrorLog("テクスチャファイルが読み込めませんでした。", filename, ex2.Message);
-        }
-    }
-
-    private void ModelWrite(string path, string infile, string outname)
-    {
-        string filename = infile + FileConst.EXT_MODEL;
-        try {
-            using (AFileBase infileBase = global::GameUty.FileOpen(filename)) {
-                if (!infileBase.IsValid()) {
-                    LogUtil.ErrorLog("入力ファイルが見つかりません。", infile);
-                    return;
-                }
-
-                string outfile = Path.Combine(path, outname + FileConst.EXT_MODEL);
-                outUtil.CopyModel(infileBase, outfile);
-                // TODO Shader変更
-            }
-
-        } catch (Exception ex2) {
-            LogUtil.ErrorLog("Modelファイルが読み込めませんでした。", filename, ex2.Message);
-        }
-    }
-
-    private void MateWrite(string path, string infile, string outname, GameObject gobj)
-    {
-        LogUtil.DebugLog("output material file", infile, outname);
-        byte[] cd = null;
-        if (!infile.EndsWith(FileConst.EXT_MATERIAL, StringComparison.CurrentCulture)) {
-            infile += FileConst.EXT_MATERIAL;
-        }
-        try {
-            using (AFileBase aFileBase = global::GameUty.FileOpen(infile)) {
-                if (!aFileBase.IsValid()) {
-                    var msg = "materialファイルが見つかりません。"+ infile;
-                    LogUtil.ErrorLog(msg);
-                    throw new ACCException(msg);
-                }
-                cd = aFileBase.ReadAll();
-            }
-        } catch (Exception e) {
-            var msg = "materialファイルが読み込めません。"+ infile + ".\n" + e.Message;
-            LogUtil.ErrorLog(msg, e);
-            throw new ACCException(msg, e);
-        }
-
-        try {
-            //.mateの保存
-            using (var headerMs = new MemoryStream())
-            using (var dataMs = new MemoryStream())
-            using (var headerWriter = new BinaryWriter(headerMs))
-            using (var dataWriter = new BinaryWriter(dataMs)) 
-            using (var binReader = new BinaryReader(new MemoryStream(cd), Encoding.UTF8)) {
-                string text = binReader.ReadString();
-                if (text != FileConst.HEAD_MATE) {
-                    var msg = "ファイルヘッダが正しくありません。ヘッダ="+ text +", file="+ infile;
-                    LogUtil.ErrorLog(msg);
-                    throw new ACCException(msg);
-                }
-                headerWriter.Write(text);
-                int num = binReader.ReadInt32();
-                headerWriter.Write(num);
-                string name1 = binReader.ReadString();
-                headerWriter.Write(outname);
-                string name2 = binReader.ReadString();
-
-                Material material = null;
-                // name2でマテリアル名を参照
-                Transform[] components = gobj.transform.GetComponentsInChildren<Transform>(true);
-                foreach (Transform tf in components) {
-                    Renderer r = tf.renderer;
-                    if (r != null && r.material != null && r.material.shader != null) {
-                        foreach (Material m in r.materials) {
-                            if (m.name.ToLower() == name2.ToLower()) {
-                                material = m;
-                                break;
-                            }
-                        }
-                    }
-                }
-                 if (material == null) {
-                    var msg = "mateファイルのmaterial nameに対応するマテリアルが見つかりません"+ name2;
-                    LogUtil.ErrorLog(msg);
-                    throw new ACCException(msg);
-                }
-                headerWriter.Write(name2);
-                string shader1 = binReader.ReadString();
-                headerWriter.Write(shader1);
-                string shader2 = binReader.ReadString();
-                headerWriter.Write(shader2);
-
-                while (true) {
-                    string key = binReader.ReadString();
-                    dataWriter.Write(key);
-                    if (key == "end") break;
-
-                    string propertyName = binReader.ReadString();
-                    dataWriter.Write(propertyName);
-                    switch(key) {
-                    case "tex":
-                        string type = binReader.ReadString();
-                        dataWriter.Write(type);
-                        switch (type) {
-                        case "null":
-                            break;
-                        case "tex2d":
-                            string tex = binReader.ReadString();
-                            dataWriter.Write(tex);
-                            string asset = binReader.ReadString();
-                            dataWriter.Write(asset);
-                            dataWriter.Write(binReader.ReadSingle());
-                            dataWriter.Write(binReader.ReadSingle());
-                            dataWriter.Write(binReader.ReadSingle());
-                            dataWriter.Write(binReader.ReadSingle());
-                            break;
-                        case "texRT":
-                            string text7 = binReader.ReadString();
-                            dataWriter.Write(text7);
-                            string text8 = binReader.ReadString();
-                            dataWriter.Write(text8);
-                            break;
-                        }
-                        break;
-                    case "col":
-                        Color mColor = material.GetColor(propertyName);
-                        if (mColor != null) {
-                            for (int i=0; i<4; i++) binReader.ReadSingle();
-                            dataWriter.Write(mColor.r);
-                            dataWriter.Write(mColor.g);
-                            dataWriter.Write(mColor.b);
-                            dataWriter.Write(mColor.a);
-                        } else {
-                            // color
-                            for (int i=0; i<4; i++)
-                                dataWriter.Write(binReader.ReadSingle());
-                        }
-                        break;
-                    case "vec":
-                        // vector4
-                        for (int i=0; i<4; i++)
-                            dataWriter.Write(binReader.ReadSingle());
-                        break;
-                    case "f":
-                        float value2 = binReader.ReadSingle();
-                        float val = material.GetFloat(propertyName);
-                        dataWriter.Write(val);
-                        break;
-                    default:
-                        LogUtil.ErrorLog("マテリアルが読み込めません。不正なマテリアルプロパティ型です ", key);
-                        break;
-                    }
-                }
-                using (var writer = new BinaryWriter(File.OpenWrite(Path.Combine(path, outname + FileConst.EXT_MATERIAL)))) {
-                    writer.Write(headerMs.ToArray());
-                    writer.Write(dataMs.ToArray());
-                }
-            }
-        } catch (ACCException e) {
-            throw;
-        } catch (Exception e) {
-            var msg = "materialファイルの出力に失敗しました。 " + outname;
-            LogUtil.ErrorLog(msg, e);
-            throw new ACCException(msg, e);
-        }
-    }
-
 }
 public class UIParams {
     private static UIParams instance = new UIParams();        
@@ -1465,9 +1043,14 @@ public class UIParams {
     public int fontSize2;
     public int itemHeight;
     public int unitHeight;
-    public readonly GUIStyle lStyleB   = new GUIStyle("label");
     public readonly GUIStyle lStyle    = new GUIStyle("label");
+    // bold
+    public readonly GUIStyle lStyleB   = new GUIStyle("label");
+    // colored
     public readonly GUIStyle lStyleC   = new GUIStyle("label");
+    // small
+    public readonly GUIStyle lStyleS   = new GUIStyle("label");
+
     public readonly GUIStyle bStyle    = new GUIStyle("button");
     public readonly GUIStyle bStyle2   = new GUIStyle("button");
     public readonly GUIStyle tStyle    = new GUIStyle("toggle");
@@ -1499,6 +1082,12 @@ public class UIParams {
     public GUILayoutOption buttonLWidth;
     public GUILayoutOption contentWidth;
     public GUILayoutOption modalLabelWidth;
+    //public GUILayoutOption modalLabelSWidth; // 拡張子用ラベル
+    public GUILayoutOption modalHalfWidth;
+    public GUILayoutOption modalSubLabelWidth;
+    public GUILayoutOption modalSubItemHeight;
+
+    public GUILayoutOption twoLineHeight;
 
     public UIParams() {
         listStyle.onHover.background = listStyle.hover.background = new Texture2D(2, 2);
@@ -1511,13 +1100,19 @@ public class UIParams {
 
         // Bold
         lStyleB.fontStyle        = FontStyle.Bold;
+
         lStyle.fontStyle         = FontStyle.Normal;
         lStyle.normal.textColor  = textColor;
+
+        lStyleS.fontStyle        = FontStyle.Normal;
+        lStyleS.normal.textColor = textColor;
+
         lStyleC.fontStyle        = FontStyle.Normal;
         lStyleC.normal.textColor = new Color(0.82f, 0.88f, 1f, 0.98f);
 
         bStyle.normal.textColor  = textColor;
         bStyle2.normal.textColor = textColor;
+        bStyle2.alignment = TextAnchor.MiddleCenter;  
         tStyle.normal.textColor        = textColor;
         textStyle.normal.textColor     = textColor;
         textStyle2.normal.textColor    = textColor;
@@ -1552,21 +1147,22 @@ public class UIParams {
 
         // 画面サイズが変更された場合にのみ更新
         fontSize   = FixPx(fontPx);
+        fontSize2  = FixPx(fontPx2);
         margin     = FixPx(marginPx);
         itemHeight = FixPx(itemHeightPx);
-        fontSize2  = FixPx(fontPx2);
         unitHeight = margin + itemHeight;
 
         lStyle.fontSize        = fontSize;
         lStyleC.fontSize       = fontSize;
         lStyleB.fontSize       = fontSize;
+        lStyleS.fontSize       = fontSize2;
         bStyle.fontSize        = fontSize;
         bStyle2.fontSize       = fontSize2;
         tStyle.fontSize        = fontSize;
         listStyle.fontSize     = fontSize2;
         textStyle.fontSize     = fontSize;
         textStyle.fontSize     = fontSize2;
-        textAreaStyle.fontSize = fontSize;
+        textAreaStyle.fontSize = fontSize2;
 
         LogUtil.DebugLogF("screen=({0},{1}),margin={2},height={3},ratio={4})", width, height, margin, itemHeight, ratio);
 
@@ -1575,6 +1171,8 @@ public class UIParams {
         InitWinRect();
         InitFBRect();
         InitModalRect();
+
+        twoLineHeight = GUILayout.MinHeight(unitHeight*2.5f);
 
         // sub
         mainRect.Set(      margin, unitHeight * 5 + margin, winRect.width - margin * 2, winRect.height - unitHeight * 5.5f);
@@ -1590,10 +1188,6 @@ public class UIParams {
         labelRect.Set(     0,      0,              winRect.width - margin * 2, itemHeight*1.2f);
         subRect.Set(       0,      itemHeight,     winRect.width - margin * 2, itemHeight);
         closeRect.Set(     margin, winRect.height - unitHeight,  winRect.width - margin * 2, itemHeight);
-
-        // modal
-        modalLabelWidth = GUILayout.Width(modalRect.width * 0.2f);
-        
     }
 
     public void InitWinRect() {
@@ -1604,6 +1198,11 @@ public class UIParams {
     }
     public void InitModalRect() {
         modalRect.Set(      width / 2 - FixPx(300), height / 2 - FixPx(300), FixPx(600), FixPx(600));                
+        // modal
+        modalLabelWidth    = GUILayout.Width(modalRect.width * 0.16f);
+        modalHalfWidth     = GUILayout.Width(modalRect.width * 0.34f);
+        modalSubLabelWidth = GUILayout.Width(modalRect.width * 0.22f);
+        modalSubItemHeight = GUILayout.MaxHeight(itemHeight*0.8f);
     }
     public int FixPx(int px) {
         return (int)(ratio * px);

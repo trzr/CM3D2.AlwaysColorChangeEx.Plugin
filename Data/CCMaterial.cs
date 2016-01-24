@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
-namespace CM3D2.AlwaysColorChange.Plugin.Data {
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     public class CCMaterial
     {
         public string name;

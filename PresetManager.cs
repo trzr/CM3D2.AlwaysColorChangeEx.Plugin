@@ -8,10 +8,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml.Linq;
 using UnityEngine;
-using CM3D2.AlwaysColorChange.Plugin.Data;
-using CM3D2.AlwaysColorChange.Plugin.Util;
+using CM3D2.AlwaysColorChangeEx.Plugin.Data;
+using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
-namespace CM3D2.AlwaysColorChange.Plugin
+namespace CM3D2.AlwaysColorChangeEx.Plugin
 {
     /// <summary>
     /// Description of SaveLoader.
@@ -102,9 +102,11 @@ namespace CM3D2.AlwaysColorChange.Plugin
                                 if (f != null) {
                                     material.floatVal3 = (float)f;
                                 }
-                                slot.materials.Add(material.name, material);
+                                //slot.materials.Add(material.name, material);
+                                slot.materials[material.name] = material;
                             }
-                            preset.slots.Add(slot.name, slot);
+                            //preset.slots.Add(slot.name, slot);
+                            preset.slots[slot.name] = slot;
                         }
                     }
                     
@@ -177,7 +179,7 @@ namespace CM3D2.AlwaysColorChange.Plugin
 
                 foreach (Material material in materialList) {
                     string shaderName = material.shader.name;
-                    ShaderMapper.MaterialFlag mate = ShaderMapper.resolve(shaderName);
+                    MaterialType mate = ShaderMapper.resolve(shaderName);
                     if (mate == null) continue;
 
                     var materialNode = new XElement("material",

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CM3D2.AlwaysColorChange.Plugin.Util;
+using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
-namespace CM3D2.AlwaysColorChange.Plugin.Data
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 {
     /// <summary>
     /// Description of SingletonClass1.
@@ -71,7 +71,20 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             {TBody.SlotID.chinko,      new SlotInfo(TBody.SlotID.chinko,   MPN.null_mpn, "チ○コ", false)},
             //{TBody.SlotID.moza,        new SlotInfo(TBody.SlotID.moza,   MPN.moza, "モザ", true)},
         };
-        
+        public static readonly Dictionary<TBody.SlotID, TBody.SlotID> OppositeSlotNames = new Dictionary<TBody.SlotID, TBody.SlotID>() {
+            {TBody.SlotID.accKami_2_,  TBody.SlotID.accKami_2_},  // アクセ：前髪：左
+            {TBody.SlotID.accKami_3_,  TBody.SlotID.accKami_2_},  // アクセ：前髪：右
+            {TBody.SlotID.accMiMiL,    TBody.SlotID.accMiMiR},    // アクセ：左耳
+            {TBody.SlotID.accMiMiR,    TBody.SlotID.accMiMiL},    // アクセ：右耳
+            {TBody.SlotID.accKamiSubL, TBody.SlotID.accKamiSubR}, // アクセ：左リボン
+            {TBody.SlotID.accKamiSubR, TBody.SlotID.accKamiSubL}, // アクセ：右リボン
+            {TBody.SlotID.accNipL,     TBody.SlotID.accNipR},     // アクセ：左乳首
+            {TBody.SlotID.accNipR,     TBody.SlotID.accNipL},     // アクセ：右乳首
+            {TBody.SlotID.HandItemL,   TBody.SlotID.HandItemR},   // 手持アイテム：左
+            {TBody.SlotID.HandItemR,   TBody.SlotID.HandItemL},   // 手持アイテム：右
+            //{TBody.SlotID.kousoku_upper, TBody.SlotID.kousoku_upper}, // 拘束具：上
+            //{TBody.SlotID.kousoku_lower, TBody.SlotID.kousoku_upper}, // 拘束具：下
+        };
         // マスク対象スロット
 //        public static readonly Dictionary<int, SlotInfo> MaskSlots = new Dictionary<int, SlotInfo>(Enum.GetNames(typeof(TBody.SlotID)).Length);
 
@@ -317,12 +330,12 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
     }
     public class SlotInfo {
         public TBody.SlotID Id        { get; private set; }
-        public MPN mpn             { get; private set; }
+        public MPN mpn                { get; private set; }
         public string Name            { get; private set; }
         public string DisplayName     { get; private set; }
         public bool   maskable        { get; private set; }
         private int no;
-        public int No                 { 
+        public int No {
             get {
                 if (no == -1) {
                     try {
@@ -335,6 +348,7 @@ namespace CM3D2.AlwaysColorChange.Plugin.Data
             }
             private set { no = value; }
         }
+
         public SlotInfo(TBody.SlotID id, MPN mpn, string displayName, bool mask) {
             this.Id = id;
             this.Name = Id.ToString();

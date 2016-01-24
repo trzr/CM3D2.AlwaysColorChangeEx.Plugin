@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace CM3D2.AlwaysColorChange.Plugin
+namespace CM3D2.AlwaysColorChangeEx.Plugin
 {
     public sealed class Settings
     {
@@ -30,6 +30,12 @@ namespace CM3D2.AlwaysColorChange.Plugin
         public float floatVal2Min    = -15f;// -20
         public float floatVal3Max    =   1f;
         public float floatVal3Min    =   0f;
+
+        public string menuPrefix     = "";
+        public string iconSuffix     = "_i_";
+        public string resSuffix      = "_mekure_";
+        public string txtPrefixMenu  = "Assets/menu/menu/";
+        public string txtPrefixTex   = "Assets/texture/texture/";
     
         // 設定の読み込み
         public void Load(Func<string, string> getValue)

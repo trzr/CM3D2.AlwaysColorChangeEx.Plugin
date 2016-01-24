@@ -4,7 +4,7 @@
 using System;
 using UnityEngine;
 
-namespace CM3D2.AlwaysColorChange.Plugin
+namespace CM3D2.AlwaysColorChangeEx.Plugin
 {
 public abstract class ComboBoxBase
 {
@@ -60,8 +60,9 @@ public abstract class ComboBoxBase
         }
     }
     public int SelectItem(string item) {
+        string itemLow = item.ToLower();
         for (int i=0; i< listContent.Length; i++) {
-            if (listContent[i].text == item) {
+            if (listContent[i].text.ToLower() == itemLow) {
                 selectedItemIndex = i;
                 return i;
             }

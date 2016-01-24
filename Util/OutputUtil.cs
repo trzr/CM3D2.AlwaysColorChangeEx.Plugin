@@ -4,10 +4,10 @@
 using System;
 using System.IO;
 using System.Text;
-using CM3D2.AlwaysColorChange.Plugin.Data;
-using CM3D2.AlwaysColorChange.Plugin.UI;
+using CM3D2.AlwaysColorChangeEx.Plugin.Data;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 
-namespace CM3D2.AlwaysColorChange.Plugin.Util
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 {
     /// <summary>
     /// Description of OutputUtil.
@@ -83,11 +83,10 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
                 }
             }
         }
-        public bool CopyModel(string infile, string outfile, string shader) {
+        public bool CopyModel(string infile, string outfile) {
             using ( var writer = new BinaryWriter(File.OpenWrite(outfile)) ) 
-            //using (AFileBase aFileBase = global::GameUty.FileOpen(infile)) {
             using (var reader = new BinaryReader(File.Open(infile, FileMode.Open), Encoding.UTF8)) {
-                return CopyModel(reader, writer, shader);
+                return CopyModel(reader, writer, null);
             }
         }
 
@@ -203,8 +202,9 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
             return true;
         }
 
-        private bool CopyMaterial(BinaryReader reader, BinaryWriter writer) {
-            writer.Write(reader.ReadString()); // name
+        // modelファイル内のマテリアル情報であり、通常のmaterialファイルのheader, version, name1は存在しない
+        public bool CopyMaterial(BinaryReader reader, BinaryWriter writer) {
+            writer.Write(reader.ReadString()); // name2
 
             // シェーダ名 TODO 
             string shaderName1 = reader.ReadString();
@@ -268,6 +268,46 @@ namespace CM3D2.AlwaysColorChange.Plugin.Util
             }
         }
 
+        public void TransferMenu(BinaryReader reader, BinaryWriter writer, string txtpath, Func<string, string[], string[]> replace) {
+            writer.Write(reader.ReadString()); // header
+            writer.Write(reader.ReadInt32());  // version
+
+            reader.ReadString();
+            writer.Write(txtpath);
+
+            writer.Write(reader.ReadString()); // headerName
+            writer.Write(reader.ReadString()); // headerCategory
+            writer.Write(reader.ReadString()); // headerDesc
+
+            using (var dataStream = new MemoryStream())
+                using (var dataWriter = new BinaryWriter(dataStream)) {
+                int num2 = (int)reader.ReadInt32();
+                while (true) {
+                    int size = (int) reader.ReadByte();
+                    if (size == 0) {
+                        dataWriter.Write((byte)0);
+                        break;
+                    }
+
+                    string key = reader.ReadString();
+                    var param = new string[size-1];
+                    for (int i = 0; i < size-1; i++) {
+                        param[i] = reader.ReadString();
+                    }
+                    param = replace(key, param);
+
+                    if (param != null) {
+                        dataWriter.Write((byte) (param.Length+1));
+                        dataWriter.Write(key);
+                        foreach (string wparam in param) {
+                            dataWriter.Write(wparam);
+                        }
+                    }
+                }
+                writer.Write((int)dataStream.Length);
+                writer.Write(dataStream.ToArray());
+            }
+        }
         public void WriteMenu(BinaryReader reader, BinaryWriter writer, ACCMenu menu) {
 //            using ( var writer = new BinaryWriter(File.OpenWrite(outpath)) ) {
 //                writer.Write(FileConst.HEAD_PMAT);
