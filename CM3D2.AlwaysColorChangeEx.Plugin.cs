@@ -19,8 +19,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 [PluginFilter("CM3D2x64"),
  PluginFilter("CM3D2x86"),
  PluginFilter("CM3D2VRx64"),
+ PluginFilter("CM3D2OHx86"),
+ PluginFilter("CM3D2OHx64"),
+ PluginFilter("CM3D2OHVRx64"),
  PluginName("CM3D2 AlwaysColorChangeEx"),
- PluginVersion("0.1.0.0")]
+ PluginVersion("0.1.0.1")]
 class AlwaysColorChangeEx : UnityInjector.PluginBase
 {
     // プラグイン名
@@ -44,21 +47,19 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
             LogUtil.ErrorLog( e );
         }
     }
-    private const string TITLE_LABEL = "ACC  Ex";
+    private const string TITLE_LABEL = "ACC Ex";
 
     private enum TargetLevel {
-        // ダンス:ドキドキ☆Fallin' Love
-        SceneDance_DDFL = 4,
-        // エディット
-        SceneEdit = 5,
-        // 夜伽
-        SceneYotogi = 14,
-        // ADVパート
-        SceneADV = 15,
-        // ダンス:entrance to you
-        SceneDance_ETYL = 20,
-        // ダンス:scarlet leap
-        SceneDance_SCL_Leap = 22
+        SceneDance_DDFL = 4,        // ダンス:ドキドキ☆Fallin' Love
+        SceneEdit = 5,              // エディット
+        SceneYotogi = 14,           // 夜伽
+        SceneADV = 15,              // ADVパート
+        SceneDance_ETYL = 20,       // ダンス:entrance to you
+        SceneDance_SCL_Leap = 22,   // ダンス:scarlet leap
+        SceneFreeModeSelect= 24,    // イベント回想
+        SceneDance_SMT_Release = 26, // ダンス:stellar my tears
+        
+        //ScenePhotoMode = 27,　　　　// 撮影モード
     }
 
     private enum MenuType {
@@ -83,10 +84,10 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     //private bool showSaveDialog = false;
 
     private Settings settings = Settings.Instance;
-    private OutputUtilEx outUtil = OutputUtilEx.Instance;
+    private FileUtilEx outUtil = FileUtilEx.Instance;
 
     private PresetManager presetMgr = new PresetManager();
-    private UIParams uiParams = UIParams.Instance;
+    private readonly UIParams uiParams = UIParams.Instance;
     private MaidHolder holder = MaidHolder.Instance;
    
     private MenuType menuType;
@@ -299,16 +300,18 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     {
         LogUtil.DebugLog("Initialize ",  Application.loadedLevel);
 
-        uiParams.Update();
-        ACCTexturesView.Init(uiParams);
-
-        LogUtil.DebugLogF("maid count:{0}, man count:{1}", 
+        LogUtil.DebugLogF("maid count:{0}, man count:{1}",
                           GameMain.Instance.CharacterMgr.GetMaidCount(),
                           GameMain.Instance.CharacterMgr.GetManCount());
 
         if (holder.UpdateMaid()) {
             ClearMaidData();
         }
+
+        uiParams.Update();
+        ACCTexturesView.Init(uiParams);
+        ACCMaterialsView.Init(uiParams);
+
         return holder.maid != null;
     }
 
@@ -369,19 +372,20 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     private List<ACCMaterialsView> initMaterialView(Material[] materials) {
         var ret = new List<ACCMaterialsView>(materials.Length);
         foreach (Material material in materials) { 
-            ret.Add(new ACCMaterialsView(material, uiParams));
+            ret.Add(new ACCMaterialsView(material));
         }
         return ret;
     }
 
     private void DoColorMenu(int winID) {
 
-        var scrollRect = uiParams.colorRect;
-        GUI.Label(uiParams.labelRect, "強制カラーチェンジ: " + holder.currentSlot.DisplayName, uiParams.lStyleB);
-
-        var outRect = uiParams.subRect;
+        GUILayout.Label("強制カラーチェンジ: " + holder.currentSlot.DisplayName, uiParams.lStyleB);
+        scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition, 
+                                                       GUILayout.Width(uiParams.colorRect.width),
+                                                       GUILayout.Height(uiParams.colorRect.height));
         try {
             if (holder.maid.IsBusy) return;
+
             // **_del_.menuを選択の状態が続いたらメインメニューへ
             // 衣装セットなどは内部的に一旦_del_.menuが選択されるため、一時的に選択された状態をスルー
             string menu = holder.GetCurrentMenuFile();
@@ -389,7 +393,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 if (menu.EndsWith("_del.menu", StringComparison.OrdinalIgnoreCase)) {
                     if (changeCount++ > CHANGE_THRESHOLD) {
                         menuType = MenuType.Main;
-                        LogUtil.DebugLog("衣装が外れたため、メインメニューに戻ります", menu);
+                        LogUtil.DebugLog("選択スロットのアイテムが外れたため、メインメニューに戻ります", menu);
                         changeCount = 0;
                     }
                     return;
@@ -419,101 +423,80 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 }
             }
     
-            if ( GUI.Button(outRect, "テクスチャ変更", uiParams.bStyle) ) {
+            if ( GUILayout.Button("テクスチャ変更", uiParams.bStyle) ) {
                 texViews = InitTexView(targetMaterials);
 
                 menuType = MenuType.Texture;
                 return;
             }
     
-            outRect.y = 0;
-            outRect.width -= uiParams.margin * 2 + 20;
             if (targetMaterials.Length > 0) {
-                // 表示アイテム数に基づいて、スクロール内の領域を算出
-                int itemCount = 0;
                 foreach (ACCMaterialsView view in materialViews) {
-                    itemCount += view.itemCount();
+                    view.Show();
                 }
-                var conRect = new Rect(0, 0, scrollRect.width - 20, 
-                                       uiParams.unitHeight * itemCount + uiParams.margin);
-                scrollViewPosition = GUI.BeginScrollView(scrollRect, scrollViewPosition, conRect);
-                try {
-                    foreach (ACCMaterialsView view in materialViews) {
-                        view.Show(ref outRect);
-                    }
-                } finally {
-                    GUI.EndScrollView();
-                }
-            }
-    
-            outRect.x = uiParams.margin;
-            outRect.y = uiParams.winRect.height - (uiParams.unitHeight) * 2;
-            outRect.width = uiParams.subRect.width;
-            GUI.enabled = isSavable;
-            try {
-                if (GUI.Button(outRect, "menuエクスポート", uiParams.bStyle)) {
-                    global::TBodySkin slot = holder.GetCurrentSlot();
-                    if (slot.obj == null) {
-                        var msg = "指定スロットが見つかりません。slot=" + holder.currentSlot.Name;
-                        NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
-                        return;
-                    }
-        
-                    // propは対応するMPNを指定
-                    MaidProp prop = holder.maid.GetProp(holder.currentSlot.mpn);
-                    if (prop != null) {
-                        if (saveView == null) {
-                            saveView = new ACCSaveMenuView(uiParams);
-                        }
-                        //targetMenuInfo = new MenuInfo();
-                        //bool loaded = targetMenuInfo.LoadMenufile(prop.strFileName);
-                        // 変更可能なmenuファイルがない場合は保存画面へ遷移しない
-                        var targetSlots = saveView.Load(prop.strFileName);
-                        if (targetSlots == null) {
-                            var msg = "変更可能なmenuファイルがありません " + prop.strFileName;
-                            NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
-                        } else {
-                            // menuファイルで指定されているitemのスロットに関連するマテリアル情報を抽出
-                            foreach (var targetSlot in targetSlots.Keys) {
-
-                                List<ACCMaterial> edited;
-                                if (targetSlot == holder.currentSlot.Id) {
-                                    // カレントスロットの場合は、作成済のマテリアル情報を渡す
-                                    edited   = new List<ACCMaterial>(materialViews.Count);
-                                    foreach ( var matView in materialViews ) {
-                                        edited.Add(matView.edited);
-                                    }
-                                } else {
-                                    Material[] materials = holder.GetMaterials(targetSlot);
-                                    edited = new List<ACCMaterial>(materials.Length);
-                                    foreach (Material mat in materials) {
-                                        edited.Add(new ACCMaterial(mat));
-                                    }
-                                }
-                                saveView.SetEditedMaterials(targetSlot, edited);
-                                
-                            }
-                            //if (!saveView.CheckData()) {
-                            //    var msg = "保存可能なmenuファイルではありません " + prop.strFileName;
-                            //    NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
-                            //}
-                        }
-                    }
-                }
-            } finally {
-                GUI.enabled = true;
             }
 
         } catch (Exception e) {
             LogUtil.ErrorLog("強制カラーチェンジ画面でエラーが発生しました。メイン画面へ移動します", e);
             menuType = MenuType.Main;
         } finally {
-            outRect.y += uiParams.unitHeight;
-            if (GUI.Button(outRect, "閉じる", uiParams.bStyle)) {
+            GUILayout.EndScrollView();
+
+            GUI.enabled = isSavable;
+            if (GUILayout.Button("menuエクスポート", uiParams.bStyle)) ExportMenu();
+            GUI.enabled = true;
+
+            if (GUILayout.Button("閉じる", uiParams.bStyle)) {
                 menuType = MenuType.Main;
             }
             GUI.DragWindow();
         }
+    }
+    private void ExportMenu() {
+        global::TBodySkin slot = holder.GetCurrentSlot();
+        if (slot.obj == null) {
+            var msg = "指定スロットが見つかりません。slot=" + holder.currentSlot.Name;
+            NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
+            return;
+        }
+
+        // propは対応するMPNを指定
+        MaidProp prop = holder.maid.GetProp(holder.currentSlot.mpn);
+        if (prop != null) {
+            if (saveView == null) saveView = new ACCSaveMenuView(uiParams);
+
+            // 変更可能なmenuファイルがない場合は保存画面へ遷移しない
+            var targetSlots = saveView.Load(prop.strFileName);
+            if (targetSlots == null) {
+                var msg = "変更可能なmenuファイルがありません " + prop.strFileName;
+                NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
+            } else {
+                // menuファイルで指定されているitemのスロットに関連するマテリアル情報を抽出
+                foreach (var targetSlot in targetSlots.Keys) {
+
+                    List<ACCMaterial> edited;
+                    if (targetSlot == holder.currentSlot.Id) {
+                        // カレントスロットの場合は、作成済のマテリアル情報を渡す
+                        edited   = new List<ACCMaterial>(materialViews.Count);
+                        foreach ( var matView in materialViews ) {
+                            edited.Add(matView.edited);
+                        }
+                    } else {
+                        Material[] materials = holder.GetMaterials(targetSlot);
+                        edited = new List<ACCMaterial>(materials.Length);
+                        foreach (Material mat in materials) {
+                            edited.Add(new ACCMaterial(mat));
+                        }
+                    }
+                    saveView.SetEditedMaterials(targetSlot, edited);
+                    
+                }
+                //if (!saveView.CheckData()) {
+                //    var msg = "保存可能なmenuファイルではありません " + prop.strFileName;
+                //    NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
+                //}
+            }
+        }        
     }
 
     private List<ACCTexturesView> InitTexView(Material[] materials) {
@@ -522,7 +505,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         int matNo = 0;
         foreach (Material material in materials) {
             try {               
-                ret.Add(new ACCTexturesView(material, matNo++, uiParams));
+                ret.Add(new ACCTexturesView(material, matNo++));
             } catch(Exception e) {
                 LogUtil.ErrorLog(material.name, e);
             }
@@ -1005,22 +988,6 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         GUI.DragWindow();
     }
 
-
-    private float drawModValueSlider(Rect outRect, float value, float min, float max, string label)
-    {
-        float conWidth = outRect.width;
-
-        float margin = uiParams.margin*3;
-        outRect.x += margin;
-        outRect.width = conWidth * 0.35f -margin;
-        GUI.Label(outRect, label, uiParams.lStyle);
-        outRect.x += outRect.width - margin;
-
-        outRect.width = conWidth * 0.65f;
-        outRect.y += uiParams.FixPx(7);
-
-        return GUI.HorizontalSlider(outRect, value, min, max);
-    }
 }
 public class UIParams {
     private static UIParams instance = new UIParams();        
@@ -1056,11 +1023,10 @@ public class UIParams {
     public readonly GUIStyle tStyle    = new GUIStyle("toggle");
     public readonly GUIStyle listStyle = new GUIStyle("list");
     public readonly GUIStyle textStyle = new GUIStyle("textField");
-    public readonly GUIStyle textStyle2 = new GUIStyle("textField");
+    public readonly GUIStyle textStyleC = new GUIStyle("textField");
     public readonly GUIStyle textAreaStyle = new GUIStyle("textArea");
 
     public readonly GUIStyle boxStyle      = new GUIStyle("box");
-    public readonly GUIStyle inboxStyle    = new GUIStyle("box");
     public readonly GUIStyle winStyle      = new GUIStyle("box");
 
     public readonly Color textColor = new Color(1f, 1f, 1f, 0.98f);
@@ -1079,13 +1045,7 @@ public class UIParams {
     public Rect subRect          = new Rect();
     public Rect closeRect        = new Rect();
     public GUILayoutOption buttonWidth;
-    public GUILayoutOption buttonLWidth;
     public GUILayoutOption contentWidth;
-    public GUILayoutOption modalLabelWidth;
-    //public GUILayoutOption modalLabelSWidth; // 拡張子用ラベル
-    public GUILayoutOption modalHalfWidth;
-    public GUILayoutOption modalSubLabelWidth;
-    public GUILayoutOption modalSubItemHeight;
 
     public GUILayoutOption twoLineHeight;
 
@@ -1098,36 +1058,32 @@ public class UIParams {
             listStyle.active.textColor = listStyle.onActive.textColor =
             listStyle.focused.textColor = listStyle.onFocused.textColor = Color.white;
 
+        TextAnchor txtAlignment = TextAnchor.UpperLeft;
         // Bold
         lStyleB.fontStyle        = FontStyle.Bold;
+        lStyleB.alignment        = txtAlignment;
 
         lStyle.fontStyle         = FontStyle.Normal;
         lStyle.normal.textColor  = textColor;
+        lStyle.alignment         = txtAlignment;
 
         lStyleS.fontStyle        = FontStyle.Normal;
         lStyleS.normal.textColor = textColor;
+        lStyleS.alignment        = txtAlignment;
 
         lStyleC.fontStyle        = FontStyle.Normal;
         lStyleC.normal.textColor = new Color(0.82f, 0.88f, 1f, 0.98f);
+        lStyleC.alignment        = txtAlignment;
 
         bStyle.normal.textColor  = textColor;
         bStyle2.normal.textColor = textColor;
         bStyle2.alignment = TextAnchor.MiddleCenter;  
         tStyle.normal.textColor        = textColor;
         textStyle.normal.textColor     = textColor;
-        textStyle2.normal.textColor    = textColor;
+        textStyleC.normal.textColor    = textColor;
+        textStyleC.alignment = TextAnchor.MiddleCenter; 
         textAreaStyle.normal.textColor = textColor;
 
-        // 背景設定
-        inboxStyle.normal.background = new Texture2D(1, 1);
-        var color = new Color(0.3f, 0.3f, 0.3f, 0.3f);
-        var colorArray = inboxStyle.normal.background.GetPixels();
-        for(int i=0; i<colorArray.Length; i++) {
-            colorArray[i] = color;
-        }
-        inboxStyle.normal.background.SetPixels(colorArray);
-        inboxStyle.normal.background.Apply();
-        inboxStyle.padding.left = inboxStyle.padding.right = 2;
     }
 
     public void Update() {
@@ -1158,10 +1114,10 @@ public class UIParams {
         lStyleS.fontSize       = fontSize2;
         bStyle.fontSize        = fontSize;
         bStyle2.fontSize       = fontSize2;
-        tStyle.fontSize        = fontSize;
+        tStyle.fontSize        = fontSize2;
         listStyle.fontSize     = fontSize2;
         textStyle.fontSize     = fontSize;
-        textStyle.fontSize     = fontSize2;
+        textStyleC.fontSize    = fontSize2;
         textAreaStyle.fontSize = fontSize2;
 
         LogUtil.DebugLogF("screen=({0},{1}),margin={2},height={3},ratio={4})", width, height, margin, itemHeight, ratio);
@@ -1180,14 +1136,16 @@ public class UIParams {
         textureRect.Set(   margin, unitHeight,     winRect.width - margin * 2, winRect.height - unitHeight * 2.5f);
         float baseWidth = textureRect.width - 20;
         buttonWidth  = GUILayout.Width(baseWidth * 0.09f);
-        buttonLWidth = GUILayout.Width(baseWidth * 0.2f);
         contentWidth = GUILayout.MaxWidth(baseWidth * 0.69f);
         nodeSelectRect.Set(margin, unitHeight * 2, winRect.width - margin * 2, winRect.height - unitHeight * 4.5f);
-
         colorRect.Set(     margin, unitHeight * 2, winRect.width - margin * 3, winRect.height - unitHeight * 4);
         labelRect.Set(     0,      0,              winRect.width - margin * 2, itemHeight*1.2f);
         subRect.Set(       0,      itemHeight,     winRect.width - margin * 2, itemHeight);
         closeRect.Set(     margin, winRect.height - unitHeight,  winRect.width - margin * 2, itemHeight);
+
+        foreach (var func in updaters) {
+            func(this);
+        }
     }
 
     public void InitWinRect() {
@@ -1198,17 +1156,24 @@ public class UIParams {
     }
     public void InitModalRect() {
         modalRect.Set(      width / 2 - FixPx(300), height / 2 - FixPx(300), FixPx(600), FixPx(600));                
-        // modal
-        modalLabelWidth    = GUILayout.Width(modalRect.width * 0.16f);
-        modalHalfWidth     = GUILayout.Width(modalRect.width * 0.34f);
-        modalSubLabelWidth = GUILayout.Width(modalRect.width * 0.22f);
-        modalSubItemHeight = GUILayout.MaxHeight(itemHeight*0.8f);
+
     }
     public int FixPx(int px) {
         return (int)(ratio * px);
     }
-}
 
+    readonly List<Action<UIParams>> updaters = new List<Action<UIParams>>();
+    public void Add(Action<UIParams> action) {
+        action(this);
+        updaters.Add(action);
+    }
+
+    public bool Remove(Action<UIParams> action) {
+        return updaters.Remove(action);
+    }
+
+}
+    
 public enum SlotState {
     Displayed,
     NonDisplay,

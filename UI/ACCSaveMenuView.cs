@@ -19,22 +19,70 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
     public class ACCSaveMenuView
     {
         private static readonly Settings settings = Settings.Instance;
-        private static readonly OutputUtilEx outUtil = OutputUtilEx.Instance;
+        private static readonly FileUtilEx outUtil = FileUtilEx.Instance;
 
-        public static void Clear() { }
+        public static void Init(UIParams uiparams) {
+            if (uiParams == null) {
+                uiParams = uiparams;
+                uiParams.Add(updateUI);
 
-        private readonly UIParams uiParams;
+                InitUIParams(uiparams);
+            }
+        }
+
+        public static void Clear() {
+            if (uiParams != null) uiParams.Remove(updateUI);
+        }
+
+        private static UIParams uiParams;
+
+        private static int fontSize;
+        private static int fontSizeS;
+        private static GUILayoutOption optLabelWidth;
+        private static GUILayoutOption modalHalfWidth;
+        private static GUILayoutOption optSubLabelWidth;
+        private static GUILayoutOption optSubItemHeight;
+        private static GUILayoutOption optExtLabelWidth;
+        private static GUILayoutOption optShaderWidth;
+        private static GUILayoutOption optPropNameWidth;
+        private static GUILayoutOption optScrlWidth;
+        private static GUILayoutOption optScrlHeight;
+        private static float indentWidth;
+
+        private static void InitUIParams(UIParams uiparam) {
+
+        }
+        private static Action<UIParams> updateUI = (uiparams) => {
+            // opt
+            optLabelWidth    = GUILayout.Width(uiparams.modalRect.width * 0.16f);
+            modalHalfWidth   = GUILayout.Width(uiparams.modalRect.width * 0.34f);
+            optSubLabelWidth = GUILayout.Width(uiparams.modalRect.width * 0.22f);
+            optSubItemHeight = GUILayout.MaxHeight(uiparams.itemHeight*0.8f);
+
+
+            fontSize  = uiparams.fontSize;
+            fontSizeS = uiparams.fontSize2;
+            optExtLabelWidth = GUILayout.Width(fontSizeS*3);
+            optShaderWidth   = GUILayout.Width(fontSizeS*ShaderMapper.MaxNameLength()*0.68f);
+            optPropNameWidth = GUILayout.Width(fontSizeS*14*0.68f);
+            indentWidth = uiparams.margin*8f;
+
+            optScrlWidth  = GUILayout.Width(uiparams.modalRect.width-20);
+            optScrlHeight = GUILayout.Height(uiparams.modalRect.height-55);
+        };
+
         public ComboBox shaderCombo;
         public bool showDialog;
 
         private Vector2 scrollViewPosition = Vector2.zero;
         private bool nameInterlocked;
         private bool nameChanged;
+        private bool ignoreExist;
         private Color changedColor = Color.red;
 
         public ACCMenu trgtMenu;
-        public ACCSaveMenuView(UIParams uiParams) {
-            this.uiParams = uiParams;
+        public ACCSaveMenuView(UIParams up) {
+            Init(up);
         }
         public Dictionary<TBody.SlotID, Item> Load(string filename) {
             trgtMenu = ACCMenu.Load(filename);
@@ -47,7 +95,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         }
 
         public void SetEditedMaterials(TBody.SlotID slot, List<ACCMaterial> edited) {
-            LogUtil.DebugLog("setEditedMaterials", slot, edited.Count);
+            LogUtil.DebugLogF("Set edited Materials. slot={0}, edited count={1}", slot, edited.Count);
             
             string slotName = slot.ToString();
             trgtMenu.InitMaterials(slotName, edited);
@@ -66,43 +114,37 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         public void Show() {
             if (trgtMenu == null) return;
 
-            scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition, 
-                                           GUILayout.Width(uiParams.modalRect.width-20),
-                                           GUILayout.Height(uiParams.modalRect.height-55));
-
+            scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition, optScrlWidth, optScrlHeight);
             float indentWidth = uiParams.margin*8f;
-            GUILayoutOption extLabelWidth = GUILayout.Width(uiParams.fontSize2*3);
-            GUILayoutOption shaderWidth   = GUILayout.Width(uiParams.fontSize2*ShaderMapper.MaxNameLength()*0.68f);
-            GUILayoutOption propNameWidth = GUILayout.Width(uiParams.fontSize2*14*0.68f);
 
             GUILayout.BeginVertical();
             Color txtColr = uiParams.textStyle.normal.textColor;
             Color errColr = Color.red;
             try {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("メニュー", uiParams.lStyle, uiParams.modalLabelWidth);
+                GUILayout.Label("メニュー", uiParams.lStyle, optLabelWidth);
                 string before = trgtMenu.editfile;
                 if (trgtMenu.editfileExist) uiParams.textStyle.normal.textColor = errColr;
                 trgtMenu.editfile = GUILayout.TextField(trgtMenu.editfile, uiParams.textStyle);
                 if (trgtMenu.editfileExist) uiParams.textStyle.normal.textColor = txtColr;;
                 nameChanged |= (trgtMenu.editfile != before);
-                GUILayout.Label(FileConst.EXT_MENU, uiParams.lStyleS, extLabelWidth);
+                GUILayout.Label(FileConst.EXT_MENU, uiParams.lStyleS, optExtLabelWidth);
 
                 bool src = nameInterlocked;
-                nameInterlocked = GUILayout.Toggle(nameInterlocked, "名前連動", uiParams.tStyle, uiParams.modalLabelWidth);
+                nameInterlocked = GUILayout.Toggle(nameInterlocked, "名前連動", uiParams.tStyle, optLabelWidth);
                 if (nameInterlocked && src != nameInterlocked) {
                     nameChanged = true;
                 }
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("内部パス", uiParams.lStyle, uiParams.modalLabelWidth);
+                GUILayout.Label("内部パス", uiParams.lStyle, optLabelWidth);
                 trgtMenu.txtpath = GUILayout.TextField(trgtMenu.txtpath, uiParams.textStyle);
                 GUILayout.EndHorizontal();
                 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("優先度", uiParams.lStyle, uiParams.modalLabelWidth);
-                var editedPriority = GUILayout.TextField(trgtMenu.priority, 10, uiParams.textStyle, uiParams.modalHalfWidth);
+                GUILayout.Label("優先度", uiParams.lStyle, optLabelWidth);
+                var editedPriority = GUILayout.TextField(trgtMenu.priority, 10, uiParams.textStyle, modalHalfWidth);
                 if (trgtMenu.priority != editedPriority ) {
                     // float?
                     int v;
@@ -122,7 +164,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 GUILayout.EndHorizontal();
                 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("アイコン", uiParams.lStyle, uiParams.modalLabelWidth);
+                GUILayout.Label("アイコン", uiParams.lStyle, optLabelWidth);
                 GUI.enabled = !nameInterlocked;
                 if (nameInterlocked && nameChanged) {
                     if (!trgtMenu.editfile.ToLower().EndsWith(settings.iconSuffix, StringComparison.Ordinal)) {
@@ -136,16 +178,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 if (trgtMenu.editfileExist) uiParams.textStyle.normal.textColor = txtColr;
                 GUI.enabled = true;
 
-                GUILayout.Label(FileConst.EXT_TEXTURE, uiParams.lStyleS, extLabelWidth);
+                GUILayout.Label(FileConst.EXT_TEXTURE, uiParams.lStyleS, optExtLabelWidth);
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("名前", uiParams.lStyle, uiParams.modalLabelWidth);
+                GUILayout.Label("名前", uiParams.lStyle, optLabelWidth);
                 trgtMenu.name = GUILayout.TextField(trgtMenu.name, uiParams.textStyle);
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal(uiParams.twoLineHeight);
-                GUILayout.Label("説明", uiParams.lStyle, uiParams.modalLabelWidth);
+                GUILayout.Label("説明", uiParams.lStyle, optLabelWidth);
                 trgtMenu.desc = GUILayout.TextArea(trgtMenu.desc, uiParams.textAreaStyle, uiParams.twoLineHeight);
                 GUILayout.EndHorizontal();
 
@@ -161,7 +203,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                             try {
                                 GUILayout.Space(indentWidth);
                                 if (trgtMat.onlyModel) uiParams.lStyleS.normal.textColor = Color.cyan;
-                                GUILayout.Label("マテリアル" + trgtMat.matNo, uiParams.lStyleS, uiParams.modalSubLabelWidth);
+                                GUILayout.Label("マテリアル" + trgtMat.matNo, uiParams.lStyleS, optSubLabelWidth);
                                 if (trgtMat.onlyModel) uiParams.lStyleS.normal.textColor = txtColr;
     
                                 // マテリアルファイル名
@@ -176,9 +218,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                                     trgtMat.editfile = GUILayout.TextField(trgtMat.editfile, uiParams.textStyle);
                                     if (trgtMat.editfileExist) uiParams.textStyle.normal.textColor = txtColr;
                                     GUI.enabled = true;
-                                    GUILayout.Label(FileConst.EXT_MATERIAL, uiParams.lStyleS, extLabelWidth);
+                                    GUILayout.Label(FileConst.EXT_MATERIAL, uiParams.lStyleS, optExtLabelWidth);
                                     if (trgtMat.needPmat && trgtMat.needPmatChange) {
-                                        GUILayout.Label("|"+FileConst.EXT_PMAT, uiParams.lStyleS, extLabelWidth);
+                                        GUILayout.Label("|"+FileConst.EXT_PMAT, uiParams.lStyleS, optExtLabelWidth);
                                     }
                                 }
     
@@ -213,21 +255,21 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                                 }
                                 string shaderName = trgtMat.ShaderNameOrDefault("不明");
                                 
-                                GUILayout.Label("シェーダ : " + shaderName, uiParams.lStyleS, shaderWidth);
+                                GUILayout.Label("シェーダ : " + shaderName, uiParams.lStyleS, optShaderWidth);
                                 GUILayout.Space(indentWidth);
                                 uiParams.lStyleS.normal.textColor = changedColor;
                                 GUILayout.Label(trgtMat.shaderChanged? "変更有":"" , uiParams.lStyleS);
                                 uiParams.lStyleS.normal.textColor = txtColr;
                                 // TODO pmat出力の有無指定
                                 if (!trgtMat.needPmat) {
-                                    GUILayout.Label("pmat不要(透過無)", uiParams.lStyleS, uiParams.modalLabelWidth);
+                                    GUILayout.Label("pmat不要(透過無)", uiParams.lStyleS, optLabelWidth);
                                 } else {
                                     if (trgtMat.needPmatChange) {                                        
                                         GUI.enabled = false;
-                                        trgtMat.pmatExport = GUILayout.Toggle(trgtMat.pmatExport, "pmat出力", uiParams.lStyleS, uiParams.modalLabelWidth);
+                                        trgtMat.pmatExport = GUILayout.Toggle(trgtMat.pmatExport, "pmat出力", uiParams.lStyleS, optLabelWidth);
                                         GUI.enabled = true;
                                     } else {
-                                        GUILayout.Label("既存pmat利用", uiParams.lStyleS, uiParams.modalLabelWidth);
+                                        GUILayout.Label("既存pmat利用", uiParams.lStyleS, optLabelWidth);
                                     }
                                 }
                             } catch(Exception e) {
@@ -242,12 +284,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                                     // 現在のマテリアルからテクスチャ取得
                                     Material mat = trgtMat.editedMat.material;
                                     foreach (var propName in trgtMat.editedMat.type.texPropNames) {
-                                        var trgtTex = trgtMat.texDic[propName];
+                                        TargetTexture trgtTex;
+                                        if (!trgtMat.texDic.TryGetValue(propName, out trgtTex)) {
+                                            continue;
+                                        }
                                         if (trgtTex.tex == null) continue;
 
-                                        GUILayout.BeginHorizontal(uiParams.modalSubItemHeight);
+                                        GUILayout.BeginHorizontal(optSubItemHeight);
                                         GUILayout.Space(indentWidth*4);
-                                        GUILayout.Label(propName, uiParams.lStyleS, propNameWidth);
+                                        GUILayout.Label(propName, uiParams.lStyleS, optPropNameWidth);
                                         if (trgtTex.needOutput) {
                                             GUI.enabled = !nameInterlocked;
                                             if (nameInterlocked && nameChanged) {
@@ -264,12 +309,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 
                                             if (trgtTex.colorChanged) {
                                                 uiParams.lStyleS.normal.textColor = changedColor;
-                                                GUILayout.Label("色変更", uiParams.lStyleS, extLabelWidth);
+                                                GUILayout.Label("色変更", uiParams.lStyleS, optExtLabelWidth);
                                                 uiParams.lStyleS.normal.textColor = txtColr;
                                             } else {
                                                 if (trgtTex.fileChanged) {
                                                     uiParams.lStyleS.normal.textColor = changedColor;
-                                                    GUILayout.Label("変更有" , uiParams.lStyleS, extLabelWidth);
+                                                    GUILayout.Label("変更有" , uiParams.lStyleS, optExtLabelWidth);
                                                     uiParams.lStyleS.normal.textColor = txtColr;
                                                 }
                                             }
@@ -286,7 +331,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                                         GUILayout.EndHorizontal();
                                     }
                                 } catch(Exception e) {
-                                    LogUtil.DebugLog("display failed for tex", e);
+                                    LogUtil.DebugLog("failed to display for tex", e);
                                 } finally {
                                     GUI.enabled = true;
                                     GUILayout.EndVertical();
@@ -294,7 +339,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                             } else if (nameInterlocked && nameChanged) {
                                 // 非表示でもデータは更新
                                 foreach (var propName in trgtMat.editedMat.type.texPropNames) {
-                                    var trgtTex = trgtMat.texDic[propName];
+                                    TargetTexture trgtTex;
+                                    if (!trgtMat.texDic.TryGetValue(propName, out trgtTex)) continue;
                                     if (trgtTex.tex == null) continue;
 
                                     if (trgtTex.needOutput) {
@@ -321,7 +367,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                             if (item.HasSlot()) {
                                 GUILayout.BeginHorizontal();
                                 GUILayout.Space(indentWidth);
-                                GUILayout.Label(item.slot, uiParams.lStyleS, uiParams.modalLabelWidth);
+                                GUILayout.Label(item.slot, uiParams.lStyleS, optLabelWidth);
 
                                 if (item.editnameExist) {
                                     uiParams.textStyle.normal.textColor = errColr;
@@ -346,7 +392,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                                     item.editname = GUILayout.TextField(item.editname, uiParams.textStyle);
                                     GUI.enabled = true;
 
-                                    GUILayout.Label(FileConst.EXT_MODEL, uiParams.lStyleS, extLabelWidth);
+                                    GUILayout.Label(FileConst.EXT_MODEL, uiParams.lStyleS, optExtLabelWidth);
                                 }
                                 if (item.editnameExist) {
                                     uiParams.textStyle.normal.textColor = txtColr;
@@ -357,7 +403,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                                 if (item.info.Length >=3) {
                                     GUILayout.BeginHorizontal();
                                     GUILayout.Space(indentWidth);
-                                    GUILayout.Label("追加情報", uiParams.lStyleS, uiParams.modalLabelWidth);
+                                    GUILayout.Label("追加情報", uiParams.lStyleS, optLabelWidth);
                                     var sb = new StringBuilder();
                                     for (int i=2; i< item.info.Length; i++) {
                                         sb.Append(item.info[i]).Append(", ");
@@ -381,7 +427,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                         foreach (var resRef in trgtMenu.resources) {
                             GUILayout.BeginHorizontal();
                             GUILayout.Space(indentWidth);
-                            GUILayout.Label(resRef.key, uiParams.lStyleS, uiParams.modalSubLabelWidth);
+                            GUILayout.Label(resRef.key, uiParams.lStyleS, optSubLabelWidth);
                             if (nameInterlocked && nameChanged) {
                                 resRef.editname = trgtMenu.editfile + resRef.suffix;
                             }
@@ -390,7 +436,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                             resRef.editname = GUILayout.TextField(resRef.editname, uiParams.textStyle);
                             if (resRef.editfileExist) uiParams.textStyle.normal.textColor = txtColr;
                             GUI.enabled = true;
-                            GUILayout.Label(FileConst.EXT_MENU, uiParams.lStyleS, extLabelWidth);
+                            GUILayout.Label(FileConst.EXT_MENU, uiParams.lStyleS, optExtLabelWidth);
                             GUILayout.EndHorizontal();
                         }
 
@@ -407,13 +453,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 GUILayout.EndScrollView();
             }
 
+            
             GUILayout.BeginHorizontal();
+
+            ignoreExist = !GUILayout.Toggle(!ignoreExist, "登録済チェック", uiParams.tStyle, optLabelWidth);
             if (GUILayout.Button("保存", uiParams.bStyle)) {
-                if (IsWritable(trgtMenu)) {
+                if (IsWritable(trgtMenu, ignoreExist)) {
                     if (SaveFiles(trgtMenu)) {
                         var logmsg = "エクスポートが完了しました。出力先=" +  outUtil.GetACCDirectory(trgtMenu.editfile);
                         NUty.WinMessageBox(NUty.GetWindowHandle(), logmsg, "情報", NUty.MSGBOX.MB_OK);
-                        showDialog = false;
+                        //showDialog = false;
                     }
                 } else {
                     const string logmsg = "出力ファイルが登録済みか重複が存在するため、保存処理を行いませんでした。";
@@ -427,14 +476,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         }
 
         // ファイルの重複確認
-        private bool IsWritable(ACCMenu menu) {
+        private bool IsWritable(ACCMenu menu, bool ignoreExists) {
             if (menu.editfile.Length == 0) {
                 return false;
             }
+            bool registed = false;;
 
             string outDir = outUtil.GetACCDirectory();
             outDir = Path.Combine(outDir, trgtMenu.editfile);
-            if (Directory.Exists(outDir)) {
+            if (!ignoreExists && Directory.Exists(outDir)) {
                 LogUtil.DebugLog("出力ディレクトリが既に存在します。", outDir);
                 menu.editfileExist = true;
                 return false;
@@ -449,7 +499,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             menu.editfileExist = false;
             if (outUtil.Exists(menufile)) {
                 LogUtil.DebugLog("既に登録済みのファイル有り", menufile);
-                hasDuplicate = true;
+                registed = true;
                 menu.editfileExist = true;
             }
 
@@ -458,7 +508,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             string iconfilepath = menu.EditIconFileName();
             if (outUtil.Exists(iconfilepath)) {
                 LogUtil.LogF("アイコンファイル({0})は既に登録済み", iconfilepath);
-                hasDuplicate = true;
+                registed = true;
                 menu.editiconExist = true;
             }
             writeFiles.Add(iconfilepath);
@@ -477,7 +527,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     }
                     if (outUtil.Exists(filename)) {
                         LogUtil.DebugLog("既に登録済みのファイル有り", filename);
-                        hasDuplicate = true;
+                        registed = true;
                         item.editnameExist = true;
                     }
                 }
@@ -498,7 +548,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     }
                     if (outUtil.Exists(filename)) {
                         LogUtil.DebugLog("既に登録済みのファイル有り", filename);
-                        hasDuplicate = true;
+                        registed = true;
                         trgtMat.editfileExist = true;
                     }
                     // pmat
@@ -513,7 +563,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                         }
                         if (outUtil.Exists(pmatfile)) {
                             LogUtil.DebugLog("既に登録済みのファイル有り", pmatfile);
-                            hasDuplicate = true;
+                            registed = true;
                             trgtMat.editfileExist = true;
                         }
                     }
@@ -532,7 +582,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                         }
                         if (outUtil.Exists(texfilename)) {
                             LogUtil.DebugLog("既に登録済みのファイル有り", texfilename);
-                            hasDuplicate = true;
+                            registed = true;
                             trgtTex.editnameExist = true;
                         }
                     }
@@ -552,11 +602,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 }
                 if (outUtil.Exists(filename)) {
                     LogUtil.DebugLog("既に登録済みのファイル有り", filename);
-                    hasDuplicate = true;
+                    registed = true;
                     res.editfileExist = true;
                 }
             }
-            return !hasDuplicate;
+            // 出力ファイルの重複は無視できない
+            if (hasDuplicate) return false;
+            return ignoreExists || !registed;
         }
 
         public bool SaveFiles(ACCMenu menu) {
@@ -610,7 +662,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                         string matefilepath = Path.Combine(outDir, filename);
                         outUtil.WriteMateFile(trgtMat.filename, matefilepath, trgtMat);
                         LogUtil.DebugLog("mateファイルを出力しました。", matefilepath);
-    
+
                         if (trgtMat.needPmatChange) {
                             var name = Path.GetFileNameWithoutExtension(filename);
                             var pmatfile = name + FileConst.EXT_PMAT;

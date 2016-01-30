@@ -221,7 +221,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 //        }
     }
     public class ACCMaterialEx : ACCMaterial {
-        private static readonly OutputUtilEx outUtil = OutputUtilEx.Instance;
+        private static readonly FileUtilEx outUtil = FileUtilEx.Instance;
         public Dictionary<string, ACCTextureEx> texDic = new Dictionary<string, ACCTextureEx>(5);
         public string name1;
         public string name2;
@@ -229,7 +229,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
         public static ACCMaterialEx Load(string file) {
 
-            using ( var reader = new BinaryReader(OutputUtilEx.Instance.GetStream(file), Encoding.UTF8)) {
+            using ( var reader = new BinaryReader(FileUtilEx.Instance.GetStream(file), Encoding.UTF8)) {
                 string header = reader.ReadString(); // hader
                 if (header != FileConst.HEAD_MATE) {
                     var msg = LogUtil.Log("指定されたファイルのヘッダが不正です。", header, file);

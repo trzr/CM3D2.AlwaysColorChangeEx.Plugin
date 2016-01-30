@@ -12,24 +12,82 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public static EditTarget editTarget = new EditTarget();
         public static readonly string[] TOON_NAMES = {
             "noTex",
-            "toonBlackA1",
             "toonBlueA1",   "toonBlueA2",   "toonBrownA1",
             "toonGrayA1",
             "toonGreenA1",  "toonGreenA2",  "toonOrangeA1",
             "toonPinkA1",   "toonPinkA2",   "toonPurpleA1",
             "toonRedA1",    "toonRedA2",
             "toonYellowA1", "toonYellowA2", "toonYellowA3",
+            "toonFace", "toonFace002",
+            "toonSkin", "toonSkin002",
+            "toonBlackA1",
+            "toonFace_Shadow",
             "toonDress_Shadow",
-            "toonFace", "toonFace_Shadow",  "toonFace002",
-            "toonSkin", "toonSkin_Shadow",  "toonSkin002",
+            "toonSkin_Shadow",
         };
         private const float EPSILON = 0.00001f;
         private static Settings settings = Settings.Instance;
         static TextureModifier textureModifier = new TextureModifier();
 
-        public static void Init(UIParams uiParams) {
-            TextureModifier.uiParams = uiParams;
+        public static void Init(UIParams uiparams) {
+            TextureModifier.uiParams = uiparams;
+            if (uiParams == null) {
+                uiParams = uiparams;
+                uiParams.Add(updateUI);
+
+                InitUIParams(uiparams);
+            }
         }
+
+        // TODO メイドが変わると呼び出されるため、保持すべきデータとクリアすべきデータを整理
+        // textureModifier上は一部、メイド毎のフィルタデータを保持できる構造
+        public static void Clear() {
+            textureModifier.Clear();
+            if (uiParams != null) uiParams.Remove(updateUI);
+        }
+        private static UIParams uiParams;
+        private static GUILayoutOption buttonWidth;
+        private static GUILayoutOption buttonLWidth;
+        private static GUILayoutOption contentWidth;
+        private static float comboWidth;
+        private static readonly GUIStyle inboxStyle = new GUIStyle("box");
+        private static readonly GUIStyle listStyle = new GUIStyle("list");
+        private static int fontSize;
+        private static int fontSizeS;
+
+        private static void InitUIParams(UIParams uiparam) {
+            // 背景設定
+            inboxStyle.normal.background = new Texture2D(1, 1);
+            var color = new Color(0.3f, 0.3f, 0.3f, 0.3f);
+            var colorArray = inboxStyle.normal.background.GetPixels();
+            for(int i=0; i<colorArray.Length; i++) {
+                colorArray[i] = color;
+            }
+            inboxStyle.normal.background.SetPixels(colorArray);
+            inboxStyle.normal.background.Apply();
+            inboxStyle.padding.left = inboxStyle.padding.right = 2;
+
+            // コンボ用リスト
+            listStyle.onHover.background = listStyle.hover.background = new Texture2D(2, 2);
+            listStyle.padding.left = listStyle.padding.right = 4;
+            listStyle.padding.top = listStyle.padding.bottom = 1;
+            listStyle.normal.textColor = listStyle.onNormal.textColor =
+                listStyle.hover.textColor = listStyle.onHover.textColor =
+                listStyle.active.textColor = listStyle.onActive.textColor =
+                listStyle.focused.textColor = listStyle.onFocused.textColor = Color.white;
+        }
+
+        private static Action<UIParams> updateUI = (uiparams) => {
+            float baseWidth = uiparams.textureRect.width - 20;
+            buttonWidth  = GUILayout.Width(baseWidth * 0.09f);
+            buttonLWidth = GUILayout.Width(baseWidth * 0.2f);
+            contentWidth = GUILayout.MaxWidth(baseWidth * 0.69f);
+
+            comboWidth = uiparams.textureRect.width*0.65f;
+            fontSize  = uiparams.fontSize;
+            fontSizeS = uiparams.fontSize2;
+            listStyle.fontSize = fontSizeS;
+        };
 
         public static bool IsChangeTarget() {
             return editTarget.IsValid();
@@ -53,25 +111,44 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             return textureModifier.Filter(srcTex, filterParam);
         }
 
-        // TODO メイドが変わると呼び出されるため、保持すべきデータとクリアすべきデータを整理
-        // textureModifier上は一部、メイド毎のフィルタデータを保持できる構造
-        public static void Clear() {
-            textureModifier.Clear();
-        }
-
+        private static FileUtilEx outUtil = FileUtilEx.Instance;
         // ComboBox用アイテムリスト
         private static GUIContent[] itemNames;
         private static GUIContent[] ItemNames {
             get {
                 if (itemNames == null) {
-                    itemNames = new GUIContent[TOON_NAMES.Length];
-                    int idx = 0;
+                    var list = new List<GUIContent>();
                     foreach (string name in TOON_NAMES) {
-                        itemNames[idx++] = new GUIContent(name, name);
+                        var texfile = name + FileConst.EXT_TEXTURE;
+                        Texture2D tex = load(texfile);
+                        list.Add(new GUIContent(name, tex, name));
                     }
+
+                    foreach (var texfile in settings.toonTexAddon) {
+                        var filename = texfile;
+                        if (!texfile.EndsWith(FileConst.EXT_TEXTURE, StringComparison.OrdinalIgnoreCase)) {
+                            filename += FileConst.EXT_TEXTURE;
+                        }
+                        Texture2D tex = load(filename);
+                        if (tex != null) {
+                            list.Add(new GUIContent(texfile, tex, texfile));
+                        }
+                    }
+                    itemNames = list.ToArray();
+
                 }
                 return itemNames;
             }
+        }
+        private static Texture2D load(string texfile) {
+            Texture2D tex = null;
+            if (outUtil.Exists(texfile)) {
+                tex = outUtil.LoadTexture(texfile);
+                TextureScale.Bilinear(tex, 100, 5); // サイズ変更
+                //TextureScale.Bilinear(tex, 84, 4);
+                //TextureScale.Bilinear(tex, 126, 7);
+            }
+            return tex;
         }
 
         private static int GetIndex(string rampName) {
@@ -103,12 +180,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         List<ACCTexture> original;
         List<ACCTexture> edited;
         private Dictionary<string, ComboBoxLO> combos = new Dictionary<string, ComboBoxLO>(2);
-        readonly UIParams uiParams;
         Material material;
         MaterialType matType;
 
-        public ACCTexturesView(Material m, int matNo, UIParams uiParams) {
-            this.uiParams = uiParams;
+        public ACCTexturesView(Material m, int matNo) {
             this.material = m;
             this.matType = ShaderMapper.resolve(m.shader.name);
 
@@ -123,7 +198,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
         public void Show() {
 
-            GUILayout.BeginVertical(uiParams.inboxStyle);
+            GUILayout.BeginVertical(inboxStyle);
             try {
                 GUILayout.Label(material.name, uiParams.lStyleC);
                 foreach (ACCTexture editTex in edited) {                
@@ -137,16 +212,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                             // あきらめて何もしない。無理やり書いても良いのかもしれないけど……
                             var tmp = GUI.enabled;
                             GUI.enabled = false;
-                            GUILayout.Button("+変更", uiParams.bStyle, uiParams.buttonLWidth);
+                            GUILayout.Button("+変更", uiParams.bStyle, buttonLWidth);
                             GUI.enabled = tmp;
                         } else if (bTargetElement) {
                             // エディット中のテクスチャの場合
-                            if (GUILayout.Button("-変更", uiParams.bStyle, uiParams.buttonLWidth)) {
+                            if (GUILayout.Button("-変更", uiParams.bStyle, buttonLWidth)) {
                                 editTarget.Clear();
                             }
                         } else {
                             // エディット中以外のテクスチャの場合
-                            if (GUILayout.Button("+変更", uiParams.bStyle, uiParams.buttonLWidth)) {
+                            if (GUILayout.Button("+変更", uiParams.bStyle, buttonLWidth)) {
                                 editTarget.slotName = holder.currentSlot.Name;
                                 editTarget.matNo = matNo;
                                 editTarget.propName = editTex.propName;
@@ -159,7 +234,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                                 textureModifier.DuplicateFilter(holder.maid, holder.currentSlot.Name, material, editTex.propName, "_ShadowTex");
                             }
                         }
-    
     
                     } finally {
                         GUILayout.EndHorizontal();
@@ -178,25 +252,31 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                                 height = combo.ItemCount*uiParams.itemHeight*0.8f;
                             }
                         } else {
-                            combo = new ComboBoxLO(new GUIContent("選"), ItemNames, uiParams.bStyle, uiParams.boxStyle, uiParams.listStyle, true);
+                            combo = new ComboBoxLO(new GUIContent("選"), ItemNames, uiParams.bStyle, uiParams.boxStyle, listStyle, true);
+                            combo.SetItemWidth(comboWidth);
                             combos[editTex.propName] = combo;
                             combo.SelectItem(editTex.editname);
                         }
                     }
                     GUILayout.BeginHorizontal(GUILayout.Height(height));
                     try {
-                        string old = editTex.editname;
-                        string editName = GUILayout.TextField(editTex.editname, uiParams.textStyle, uiParams.contentWidth);
+                        bool hideField = false;
+                        string editName = editTex.editname;
                         if (editTex.toonType != ACCTexture.NONE) {
                             // 偽コンボボックス
                             int prevSelected = combo.SelectedItemIndex;
                             int selected = combo.Show(uiParams.buttonWidth);
                             if (selected != prevSelected) {
                                 editName = ItemNames[selected].text;
-                                // 上記textFieldの更新は次回描画時に任せる
                             }
+                            hideField = combo.IsClickedComboButton;
                         }
+                        if (hideField) uiParams.textStyle.fontSize = (int)(fontSizeS*0.8);
+                        editName = GUILayout.TextField(editName, uiParams.textStyle, contentWidth);
                         editTex.SetName(editName);
+
+                        if (hideField) uiParams.textStyle.fontSize = fontSize;
+                        
     
                         GUI.enabled = editTex.dirty;
                         if (GUILayout.Button("適", uiParams.bStyle, uiParams.buttonWidth)) {
@@ -246,11 +326,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         {
             Texture tex;
             string extension = Path.GetExtension(filename).ToLower();
-            if (extension.Length == 0 || extension == ".tex") {
+            if (extension.Length == 0 || extension == FileConst.EXT_TEXTURE) {
                 string texName;
                 if (extension.Length == 0) {
                     texName = filename;
-                    filename += ".tex";
+                    filename += FileConst.EXT_TEXTURE;
                 } else {
                     texName = filename.Substring(0, filename.Length - 4);
                 }
@@ -298,7 +378,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             }
 
             // 合成
-            if (Path.GetExtension(filename).ToLower() == ".tex") {
+            if (filename.EndsWith(FileConst.EXT_TEXTURE, StringComparison.OrdinalIgnoreCase)) {
                 holder.maid.body0.MulTexSet(holder.currentSlot.Name, matNo1, "_MainTex", 1, filename, mat, false, 0, 0, 0, 0);
                 holder.maid.body0.MulTexSet(holder.currentSlot.Name, matNo1, "_ShadowTex", 1, filename, mat, false, 0, 0, 0, 0);
             } else {

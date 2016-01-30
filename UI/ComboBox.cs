@@ -1,5 +1,5 @@
 ﻿/*
- * this code's original:  http://wiki.unity3d.com/index.php?title=PopupList
+ * this class is reference form :  http://wiki.unity3d.com/index.php?title=PopupList
  */
 using System;
 using UnityEngine;
@@ -156,8 +156,11 @@ public class ComboBoxLO : ComboBoxBase
         : base(buttonContent, listContent, buttonStyle, boxStyle, listStyle) {
         this.labelFixed = labelFixed;
     }
+    public void SetItemWidth(float itemWidth) {
+        this.itemWidth = itemWidth;
+    }
 
-    public int Show(GUILayoutOption buttonWidth)
+    public int Show(GUILayoutOption buttonOpt)
     {
         if( forceToUnShow ) {
             forceToUnShow = false;
@@ -174,11 +177,9 @@ public class ComboBoxLO : ComboBoxBase
         }       
  
         bool expand = isClickedComboButton;
-        if (expand) {
-            GUILayout.BeginVertical(boxStyle, GUILayout.Width(itemWidth));
-        }
+        if (expand) GUILayout.BeginVertical(boxStyle, GUILayout.Width(itemWidth));
         try {
-            if( GUILayout.Button(buttonContent, buttonStyle, buttonWidth ) ) {
+            if( GUILayout.Button(buttonContent, buttonStyle, buttonOpt ) ) {
                 if( useControlID == -1 ) {
                     useControlID = controlID;
                     isClickedComboButton = false;
@@ -192,10 +193,6 @@ public class ComboBoxLO : ComboBoxBase
             }
      
             if( isClickedComboButton ) {
-                //var listRect = new Rect( rect.x, rect.y + listStyle.CalcHeight(listContent[0], 1.0f),
-                //          rect.width, listStyle.CalcHeight(listContent[0], 1.0f) * listContent.Length );
-                //GUI.Box( listRect, "", boxStyle );
-                //int newSelectedItemIndex = GUI.SelectionGrid( listRect, selectedItemIndex, listContent, 1, listStyle );
                 float height = itemHeight * listContent.Length;
                 int newSelectedItemIndex = GUILayout.SelectionGrid(selectedItemIndex, listContent, 1, listStyle, 
                                                                    GUILayout.Width(itemWidth), GUILayout.Height(height));

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin
@@ -36,6 +37,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
         public string resSuffix      = "_mekure_";
         public string txtPrefixMenu  = "Assets/menu/menu/";
         public string txtPrefixTex   = "Assets/texture/texture/";
+        public string[] toonTexAddon = new string[0];
     
         // 設定の読み込み
         public void Load(Func<string, string> getValue)
@@ -60,6 +62,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             GetFloat(getValue("SliderFloatVal2Min"),    ref floatVal2Min);
             GetFloat(getValue("SliderFloatVal3Max"),    ref floatVal3Max);
             GetFloat(getValue("SliderFloatVal3Min"),    ref floatVal3Min);
+            var texlist = string.Empty;
+            GetString(getValue("ToonTexAddon"),    ref texlist);
+            if (texlist.Length > 0) {
+                // カンマで分割後trm
+                toonTexAddon = texlist.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
+            }
+            
         }
        
         static void GetBool(string boolString, ref bool output) {

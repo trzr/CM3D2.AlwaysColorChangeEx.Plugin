@@ -15,20 +15,18 @@ using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 {
     /// <summary>
-    /// Description of OutputUtilEx.
+    /// Description of FileUtilEx.
     /// </summary>
-    public sealed class OutputUtilEx
+    public sealed class FileUtilEx
     {
-        private static OutputUtilEx instance = new OutputUtilEx();
+        private static FileUtilEx instance = new FileUtilEx();
         
-        public static OutputUtilEx Instance {
-            get {
-                return instance;
-            }
+        public static FileUtilEx Instance {
+            get { return instance; }
         }
         private static readonly OutputUtil util = OutputUtil.Instance;
         
-        private OutputUtilEx() { }
+        private FileUtilEx() { }
 
         public string GetModDirectory() {
             return util.GetModDirectory();
