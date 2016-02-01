@@ -569,7 +569,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             }
 
             this.editname = editedMat.material.name;
-            var maid = MaidHolder.Instance.maid;
+            var maid = MaidHolder.Instance.currentMaid;
 
             // テクスチャの変更フラグチェック
             foreach (string propName in editedMat.type.texPropNames) {

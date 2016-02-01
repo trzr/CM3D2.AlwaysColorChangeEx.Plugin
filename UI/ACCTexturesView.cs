@@ -39,9 +39,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             }
         }
 
-        // TODO メイドが変わると呼び出されるため、保持すべきデータとクリアすべきデータを整理
-        // textureModifier上は一部、メイド毎のフィルタデータを保持できる構造
+        // テクスチャキャッシュをクリアする
+        // メイドが変わっても保持すべき情報であるため、基本的にはPluginを破棄するタイミングでクリアが望ましい
         public static void Clear() {
+            // textureModifierのFilterやテクスチャキャッシュは一部、メイド毎に保持できる構造
             textureModifier.Clear();
             if (uiParams != null) uiParams.Remove(updateUI);
         }
@@ -85,7 +86,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
             comboWidth = uiparams.textureRect.width*0.65f;
             fontSize  = uiparams.fontSize;
-            fontSizeS = uiparams.fontSize2;
+            fontSizeS = uiparams.fontSizeS;
             listStyle.fontSize = fontSizeS;
         };
 
@@ -144,7 +145,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             Texture2D tex = null;
             if (outUtil.Exists(texfile)) {
                 tex = outUtil.LoadTexture(texfile);
-                TextureScale.Bilinear(tex, 100, 5); // サイズ変更
+                CM3D2.AlwaysColorChangeEx.Plugin.Util.TextureScale.Bilinear(tex, 100, 5); // サイズ変更
                 //TextureScale.Bilinear(tex, 84, 4);
                 //TextureScale.Bilinear(tex, 126, 7);
             }
@@ -207,7 +208,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     GUILayout.BeginHorizontal();
                     try {
                         // エディット用スライダーの開閉
-                        if (!textureModifier.IsValidTarget(holder.maid, holder.currentSlot.Name, material, editTex.propName)) {
+                        if (!textureModifier.IsValidTarget(holder.currentMaid, holder.currentSlot.Name, material, editTex.propName)) {
                             // 参照先が Texture2D が取れなかった (例 : RenderTexture だった) 場合はとりあえず
                             // あきらめて何もしない。無理やり書いても良いのかもしれないけど……
                             var tmp = GUI.enabled;
@@ -229,9 +230,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         }
                         GUILayout.Label(editTex.propName, uiParams.lStyle);
                         if (bTargetElement && editTex.type.isToony && editTex.propName == "_MainTex") {
-                            if ( GUILayout.Button("_ShadowTexに反映", uiParams.bStyle2) ) {
+                            if ( GUILayout.Button("_ShadowTexに反映", uiParams.bStyleSC) ) {
                                 // 現在のFilterを_ShadowTexにも反映 
-                                textureModifier.DuplicateFilter(holder.maid, holder.currentSlot.Name, material, editTex.propName, "_ShadowTex");
+                                textureModifier.DuplicateFilter(holder.currentMaid, holder.currentSlot.Name, material, editTex.propName, "_ShadowTex");
                             }
                         }
     
@@ -241,7 +242,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
     
                     // テクスチャエディット用スライダー
                     if (bTargetElement) {
-                        textureModifier.ProcGUI(holder.maid, holder.currentSlot.Name, material, editTex.propName);
+                        textureModifier.ProcGUI(holder.currentMaid, holder.currentSlot.Name, material, editTex.propName);
                     }
         
                     float height = uiParams.itemHeight;
@@ -265,7 +266,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         if (editTex.toonType != ACCTexture.NONE) {
                             // 偽コンボボックス
                             int prevSelected = combo.SelectedItemIndex;
-                            int selected = combo.Show(uiParams.buttonWidth);
+                            int selected = combo.Show(uiParams.optBtnWidth);
                             if (selected != prevSelected) {
                                 editName = ItemNames[selected].text;
                             }
@@ -279,13 +280,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         
     
                         GUI.enabled = editTex.dirty;
-                        if (GUILayout.Button("適", uiParams.bStyle, uiParams.buttonWidth)) {
+                        if (GUILayout.Button("適", uiParams.bStyle, uiParams.optBtnWidth)) {
                             Texture tex = ChangeTexFile(textureDir, editTex.editname, matNo, editTex.propName);
                             if (tex != null) editTex.tex = tex;
                             editTex.dirty = false;
                         }
                         GUI.enabled = true;
-                        if (GUILayout.Button("...", uiParams.bStyle, uiParams.buttonWidth)) {
+                        if (GUILayout.Button("...", uiParams.bStyle, uiParams.optBtnWidth)) {
                             OpenFileBrowser(matNo, editTex);
                         }
                     } finally {
@@ -322,9 +323,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             }
         }
 
-        private Texture ChangeTexFile(string dir, string filename, int matNo1, string propName)
+        private Texture ChangeTexFile(string dir, string filename, int matNo1, string propName) 
         {
-            Texture tex;
+            Texture changedTex;
+            // キャッシュ削除用に変更前のテクスチャを取得
+            var srcTex = material.GetTexture(propName) as Texture2D;
             string extension = Path.GetExtension(filename).ToLower();
             if (extension.Length == 0 || extension == FileConst.EXT_TEXTURE) {
                 string texName;
@@ -334,39 +337,38 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 } else {
                     texName = filename.Substring(0, filename.Length - 4);
                 }
-                holder.maid.body0.ChangeTex(holder.currentSlot.Name, matNo1, propName, filename, null, MaidParts.PARTS_COLOR.NONE);
+                holder.currentMaid.body0.ChangeTex(holder.currentSlot.Name, matNo1, propName, filename, null, MaidParts.PARTS_COLOR.NONE);
 
-                // ChangeTexは、Materialからロードした時と違い、nameにファイル名が設定されてしまうため、拡張子を除いた名前を再設定
-                tex = material.GetTexture(propName);
-                if (tex != null) {
-                    tex.name = texName;
+                // ChangeTexは、Materialからロードした時と違い、nameにファイル名が設定されてしまうため、
+                // 拡張子を除いた名前を再設定
+                changedTex = material.GetTexture(propName);
+                if (changedTex != null) {
+                    changedTex.name = texName;
                 }
-
             } else {
-
-                TBodySkin slot = holder.maid.body0.GetSlot(holder.currentSlot.Name);
+                TBodySkin slot = holder.currentMaid.body0.GetSlot(holder.currentSlot.Name);
                 // 直接イメージをロードして適用(要dir指定)
                 var mat = holder.GetMaterial(slot, matNo1);
                 if (mat == null) return null;
 
                 byte[] img = UTY.LoadImage(Path.Combine(dir, filename));
                 var tex2d = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-//                var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);                                                 
                 tex2d.LoadImage(img);
-                // tex.name = filename;
                 slot.listDEL.Add(tex2d);
-                tex2d.name = Path.GetFileNameWithoutExtension(filename);
-                
+                // tex以外は拡張子を付与したままとする
+                tex2d.name = filename;   //Path.GetFileNameWithoutExtension(filename);
 
                 mat.SetTexture(propName, tex2d);
-                tex = tex2d;
+                changedTex = tex2d;
             }
 
             // テクスチャ変更後は、以前のFilterParamやキャッシュをリセット
-            textureModifier.RemoveFilter(holder.maid, holder.currentSlot.Name, material, propName);
-            return tex;
+            if (srcTex != null) {
+                textureModifier.RemoveCache(srcTex);
+                textureModifier.RemoveFilter(holder.currentMaid, holder.currentSlot.Name, material, srcTex);
+            }
+            return changedTex;
         }
-
         private void MulTexSet(string filename, int matNo1, string propName)
         {
             GameUty.SystemMaterial mat;
@@ -379,8 +381,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
             // 合成
             if (filename.EndsWith(FileConst.EXT_TEXTURE, StringComparison.OrdinalIgnoreCase)) {
-                holder.maid.body0.MulTexSet(holder.currentSlot.Name, matNo1, "_MainTex", 1, filename, mat, false, 0, 0, 0, 0);
-                holder.maid.body0.MulTexSet(holder.currentSlot.Name, matNo1, "_ShadowTex", 1, filename, mat, false, 0, 0, 0, 0);
+                holder.currentMaid.body0.MulTexSet(holder.currentSlot.Name, matNo1, "_MainTex", 1, filename, mat, false, 0, 0, 0, 0);
+                holder.currentMaid.body0.MulTexSet(holder.currentSlot.Name, matNo1, "_ShadowTex", 1, filename, mat, false, 0, 0, 0, 0);
             } else {
                 //TODO
             }

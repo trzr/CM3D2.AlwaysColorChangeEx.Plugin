@@ -32,12 +32,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
         public float floatVal3Max    =   1f;
         public float floatVal3Min    =   0f;
 
+        public string fmtColor = "F3";
+        
         public string menuPrefix     = "";
         public string iconSuffix     = "_i_";
         public string resSuffix      = "_mekure_";
         public string txtPrefixMenu  = "Assets/menu/menu/";
         public string txtPrefixTex   = "Assets/texture/texture/";
         public string[] toonTexAddon = new string[0];
+        public bool displaySlotName  = false;
     
         // 設定の読み込み
         public void Load(Func<string, string> getValue)
@@ -68,7 +71,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 // カンマで分割後trm
                 toonTexAddon = texlist.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
             }
-            
+            GetBool(getValue("DisplaySlotName"),    ref displaySlotName);            
         }
        
         static void GetBool(string boolString, ref bool output) {

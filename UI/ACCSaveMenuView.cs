@@ -45,8 +45,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         private static GUILayoutOption optExtLabelWidth;
         private static GUILayoutOption optShaderWidth;
         private static GUILayoutOption optPropNameWidth;
+        private static GUILayoutOption optSLabelWidth;
         private static GUILayoutOption optScrlWidth;
         private static GUILayoutOption optScrlHeight;
+        private static GUILayoutOption optTwoLineHeight;
         private static float indentWidth;
 
         private static void InitUIParams(UIParams uiparam) {
@@ -61,7 +63,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 
 
             fontSize  = uiparams.fontSize;
-            fontSizeS = uiparams.fontSize2;
+            fontSizeS = uiparams.fontSizeS;
+            optSLabelWidth   = GUILayout.Width(fontSizeS * 6f);
             optExtLabelWidth = GUILayout.Width(fontSizeS*3);
             optShaderWidth   = GUILayout.Width(fontSizeS*ShaderMapper.MaxNameLength()*0.68f);
             optPropNameWidth = GUILayout.Width(fontSizeS*14*0.68f);
@@ -69,6 +72,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 
             optScrlWidth  = GUILayout.Width(uiparams.modalRect.width-20);
             optScrlHeight = GUILayout.Height(uiparams.modalRect.height-55);
+            
+            optTwoLineHeight = GUILayout.MinHeight(uiparams.unitHeight*2.5f);
+
         };
 
         public ComboBox shaderCombo;
@@ -111,6 +117,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         // 　現状は、他方へリンクを張り、同一modelとして出力
         //   シェーダが異なる場合は別modelとして出力する必要がある(TODO)
 
+        // TODO 汚すぎるため、要リファクタ
         public void Show() {
             if (trgtMenu == null) return;
 
@@ -118,6 +125,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             float indentWidth = uiParams.margin*8f;
 
             GUILayout.BeginVertical();
+            GUILayout.Space(uiParams.unitHeight);
             Color txtColr = uiParams.textStyle.normal.textColor;
             Color errColr = Color.red;
             try {
@@ -131,7 +139,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 GUILayout.Label(FileConst.EXT_MENU, uiParams.lStyleS, optExtLabelWidth);
 
                 bool src = nameInterlocked;
-                nameInterlocked = GUILayout.Toggle(nameInterlocked, "名前連動", uiParams.tStyle, optLabelWidth);
+                nameInterlocked = GUILayout.Toggle(nameInterlocked, "名前連動", uiParams.tStyleS, optSLabelWidth);
                 if (nameInterlocked && src != nameInterlocked) {
                     nameChanged = true;
                 }
@@ -186,9 +194,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 trgtMenu.name = GUILayout.TextField(trgtMenu.name, uiParams.textStyle);
                 GUILayout.EndHorizontal();
 
-                GUILayout.BeginHorizontal(uiParams.twoLineHeight);
+                GUILayout.BeginHorizontal(optTwoLineHeight);
                 GUILayout.Label("説明", uiParams.lStyle, optLabelWidth);
-                trgtMenu.desc = GUILayout.TextArea(trgtMenu.desc, uiParams.textAreaStyle, uiParams.twoLineHeight);
+                trgtMenu.desc = GUILayout.TextArea(trgtMenu.desc, uiParams.textAreaStyleS, optTwoLineHeight);
                 GUILayout.EndHorizontal();
 
                 const string gname = "material";
@@ -250,7 +258,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                             try {
                                 GUILayout.Space(indentWidth*2);
                                 string blabel = trgtMat.uiTexViewed? "－": "＋";
-                                if (GUILayout.Button(blabel, uiParams.buttonWidth)) {
+                                if (GUILayout.Button(blabel, uiParams.optBtnWidth)) {
                                     trgtMat.uiTexViewed = !trgtMat.uiTexViewed;
                                 }
                                 string shaderName = trgtMat.ShaderNameOrDefault("不明");
@@ -455,8 +463,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 
             
             GUILayout.BeginHorizontal();
-
-            ignoreExist = !GUILayout.Toggle(!ignoreExist, "登録済チェック", uiParams.tStyle, optLabelWidth);
+            GUILayout.Space(uiParams.marginL);
+            ignoreExist = !GUILayout.Toggle(!ignoreExist, "登録済確認", uiParams.tStyleS, optSLabelWidth);
             if (GUILayout.Button("保存", uiParams.bStyle)) {
                 if (IsWritable(trgtMenu, ignoreExist)) {
                     if (SaveFiles(trgtMenu)) {
@@ -472,6 +480,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             if (GUILayout.Button("閉じる", uiParams.bStyle)) {
                 showDialog = false;
             }
+            GUILayout.Space(uiParams.marginL);
             GUILayout.EndHorizontal();
         }
 
@@ -749,25 +758,29 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                             if (HasAlreadyWritten(writeFiles, texfilename)) continue;
 
                             // テクスチャをロードし、フィルタを適用
-                            Texture2D srcTex;
-                            if (tex.fileChanged) { // texファイル変更済の場合はロードされたデータ済みから出力
-                                srcTex = tex2d;
-                            } else {
-                                srcTex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+                            Texture2D loadedTex   = null;
+                            Texture2D filteredTex = null;
+                            if (!tex.fileChanged) { // texファイル変更済の場合はロードされたデータ済みから出力（そのままtex2dを使用)
+                                loadedTex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
                                 string texfile = tex.workfilename + FileConst.EXT_TEXTURE;
                                 if (!outUtil.Exists(texfile)) {
                                     LogUtil.LogF("リソース参照で使用されているtexファイル({0})が見つかりません。このため、texファイルを出力できませんでした。, ", texfile);
                                     continue;
                                 }
-                                srcTex.LoadImage( ImportCM.LoadTexture(texfile) );
+                                loadedTex.LoadImage( ImportCM.LoadTexture(texfile) );
+                                tex2d = loadedTex;
                             }
 
                             if (tex.colorChanged) {
-                                srcTex = ACCTexturesView.Filter(srcTex, tex.filter);
+                                filteredTex = ACCTexturesView.Filter(tex2d, tex.filter);
+                                tex2d = filteredTex;
                             }
                             string texfilepath = Path.Combine(outDir, texfilename);
-                            outUtil.WriteTexFile(texfilepath, tex.EditTxtPath(), srcTex.EncodeToPNG());
+                            outUtil.WriteTexFile(texfilepath, tex.EditTxtPath(), tex2d.EncodeToPNG());
                             LogUtil.DebugLog("texファイルを出力しました。", texfilepath);
+
+                            if (loadedTex != null)   UnityEngine.Object.DestroyImmediate(loadedTex);
+                            if (filteredTex != null) UnityEngine.Object.DestroyImmediate(filteredTex);
                         }
                     }
                 }

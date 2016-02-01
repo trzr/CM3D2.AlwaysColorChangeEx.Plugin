@@ -262,7 +262,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             if (bSaveBodyPreset) {
                 for (int i = (int)MPN_TYPE_RANGE.BODY_START; i <= (int)MPN_TYPE_RANGE.BODY_END; i++) {
                     var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
-                    MaidProp mp = holder.maid.GetProp(mpn);
+                    MaidProp mp = holder.currentMaid.GetProp(mpn);
                     if (mp != null && !String.IsNullOrEmpty(mp.strFileName)) {
                         var mpnNode = new XElement("mpn",
                             new XAttribute("name", Enum.GetName(typeof(MPN), mpn)),
@@ -274,7 +274,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
 
             for (int i = (int)MPN_TYPE_RANGE.WEAR_START; i <= (int)MPN_TYPE_RANGE.WEAR_END; i++) {
                 var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
-                MaidProp mp = holder.maid.GetProp(mpn);
+                MaidProp mp = holder.currentMaid.GetProp(mpn);
                 if (mp != null && !String.IsNullOrEmpty(mp.strFileName)) {
                     var mpnNode = new XElement("mpn",
                         new XAttribute("name", Enum.GetName(typeof(MPN), mpn)),

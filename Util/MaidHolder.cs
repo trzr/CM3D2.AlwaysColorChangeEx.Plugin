@@ -22,27 +22,62 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         private static readonly Material[] EmptyList = new Material[0];
         private static readonly List<Material>   EmptyList1 = new List<Material>(0);
         
-        private MaidHolder() { }
-
+        public string MaidName { get; private set; }
         // 選択中のメイド
-        public Maid maid { get; set; }
+        public Maid currentMaid { get; set; }
         // 選択中のスロット
         public SlotInfo currentSlot { get; set; }
 
+        private MaidHolder() {
+            MaidName = string.Empty;
+        }
+
+        public bool CurrentActivated() {
+            return currentMaid != null && currentMaid.isActiveAndEnabled;
+        }
+
+        // enabledであればデータ参照可
+        public bool CurrentEnabled() {
+            return currentMaid != null && currentMaid.enabled;
+        }
         // メイドの更新
         // 
         // @return 別のメイドに変更された場合はtrueを返す
-        public bool UpdateMaid() {
-            Maid maid0 = GameMain.Instance.CharacterMgr.GetMaid(0);
-            if (maid == maid0) {
-                return false;
+        public bool UpdateMaid(Maid maid0, Action act) 
+        {
+            if (maid0 == null) {
+                // メイドリストから最初に有効なメイドを取得
+                int count = GameMain.Instance.CharacterMgr.GetMaidCount();
+                for (int i=0; i< count; i++) {
+                    Maid m = GameMain.Instance.CharacterMgr.GetMaid(i);
+                    if (m != null && m.enabled) {
+                        maid0 = m;
+                        break;
+                    }
+                }            
             }
-            maid = maid0;
+            if (currentMaid == maid0) return false;
+            currentMaid = maid0;
+            if (maid0 != null) {
+                MaidName = currentMaid.Param.status.last_name + " " + currentMaid.Param.status.first_name;                
+            } else {
+                MaidName = "(not selected)";
+            }
+
+            act();
             return true;
         }
-        public string GetCurrentMenuFile() {
-            if (maid != null) {
-                MaidProp prop = maid.GetProp(currentSlot.mpn);
+        // メイドの更新
+        // 
+        // @return 別のメイドに変更された場合はtrueを返す
+        public bool UpdateMaid(Action act) 
+        {
+            return UpdateMaid(null, act);
+        }
+        public string GetCurrentMenuFile() 
+        {
+            if (currentMaid != null) {
+                MaidProp prop = currentMaid.GetProp(currentSlot.mpn);
                 if (prop != null) return prop.strFileName;
 
                 LogUtil.Log("maid prop is null", currentSlot.mpn);
@@ -53,22 +88,22 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         /// <summary>選択中のスロットを取得する</summary>
         /// <returns>スロット</returns>
         public TBodySkin GetCurrentSlot() {
-            return maid.body0.GetSlot((int)currentSlot.Id);
+            return currentMaid.body0.GetSlot((int)currentSlot.Id);
         }
 
         public Material[] GetMaterials() {
-            return GetMaterials( maid.body0.GetSlot((int)currentSlot.Id) );
+            return GetMaterials( currentMaid.body0.GetSlot((int)currentSlot.Id) );
         }
 
         public Material[] GetMaterials(SlotInfo slot) {
             return GetMaterials(slot.Id);
         }
         public Material[] GetMaterials(TBody.SlotID slotID) {
-            return GetMaterials(maid.body0.GetSlot((int)slotID));
+            return GetMaterials(currentMaid.body0.GetSlot((int)slotID));
         }
 
         public Material[] GetMaterials(string slotName) {
-            return GetMaterials(maid.body0.GetSlot(slotName));
+            return GetMaterials(currentMaid.body0.GetSlot(slotName));
         }
 
         public Material[] GetMaterials(TBodySkin slot)
@@ -94,7 +129,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             return EmptyList;
         }
         public Material GetMaterial(int matNo) {
-            return GetMaterial(maid.body0.GetSlot(currentSlot.Name), matNo);
+            return GetMaterial(currentMaid.body0.GetSlot(currentSlot.Name), matNo);
         }
         public Material GetMaterial(TBodySkin slot, int matNo)
         {
@@ -119,7 +154,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         /// <returns>マテリアル　ただし、見つからない場合はnullを返す</returns>
         public Material GetMaterial(string slotName, int matNo)
         {
-            global::TBodySkin slot = maid.body0.GetSlot(slotName);
+            global::TBodySkin slot = currentMaid.body0.GetSlot(slotName);
             if (slot.obj == null) return null;
 
             Transform[] componentsInChildren = slot.obj.transform.GetComponentsInChildren<Transform>(true);
@@ -134,7 +169,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 
         private List<Renderer> GetRenderers(string slotName)
         {
-            TBody body = maid.body0;
+            TBody body = currentMaid.body0;
             List<TBodySkin> goSlot = body.goSlot;
             int index = (int)global::TBody.hashSlotName[slotName];
             global::TBodySkin tBodySkin = goSlot[index];
@@ -153,10 +188,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             return rendererList;
         }
 
-        public void SetDelNodes(Dictionary<string, bool> dDelNodes, bool bApply) {
+        public void SetDelNodes(Dictionary<string, bool> dDelNodes, bool bApply) 
+        {
             if (!dDelNodes.Any()) return;
 
-            foreach (TBodySkin slot in maid.body0.goSlot) {
+            foreach (TBodySkin slot in currentMaid.body0.goSlot) {
                 slot.boVisible = true;
                 foreach (KeyValuePair<string, bool> entry in dDelNodes) {
                     if (slot.m_dicDelNodeBody.ContainsKey(entry.Key)) {
@@ -167,39 +203,52 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             if (bApply) FixFlag();
         }
             
-        private Hashtable GetMaskTable() {
-            if (maid == null) return null;
-            return PrivateAccessor.Get<Hashtable>(maid.body0, "m_hFoceHide");
-//            try {
-//                var field = maid.body0.GetType().GetField("m_hFoceHide", BindingFlags.NonPublic | BindingFlags.Instance);//  | BindingFlags.GetField | BindingFlags.SetField
-//                return (Hashtable)field.GetValue(maid.body0);
-//            } catch(Exception e) {
-//                LogUtil.DebugLog(e);
-//            }
-//            return null;
+        private Hashtable GetMaskTable() 
+        {
+            return currentMaid == null 
+                ? null
+                : PrivateAccessor.Get<Hashtable>(currentMaid.body0, "m_hFoceHide");
         }
 
-        public void SetSlotVisibles(Dictionary<TBody.SlotID, MaskInfo> maskDic) {
-            Hashtable m_foceHide = GetMaskTable();
-            if (m_foceHide == null) {
-                LogUtil.ErrorLog("cannot take MaskTable");
-                return;
-            }
-
+        public void SetSlotVisibles(Dictionary<TBody.SlotID, MaskInfo> maskDic, bool tmp) 
+        {
+//            Hashtable m_foceHide = GetMaskTable();
+//            if (m_foceHide == null) {
+//                LogUtil.ErrorLog("cannot take MaskTable");
+//                return;
+//            }
+            
             foreach (KeyValuePair<TBody.SlotID, MaskInfo> pair in maskDic) {
                 MaskInfo maskInfo = pair.Value;
                 // 未読み込みの場合はスキップ
+            
                 if (maskInfo.state == SlotState.NotLoaded) continue;
 
                 maskInfo.slot.boVisible = maskInfo.value;
-//                m_foceHide[pair.Key] = maskInfo.value;
+
+                if (!tmp) {
+                    TBodySkin slot = currentMaid.body0.GetSlot((int)pair.Key);
+                    if (!maskInfo.value) {
+                        slot.listMaskSlot.Add((int)pair.Key);
+                    } else {
+                        // 全スロットから削除する
+                        //slot.listMaskSlot.Remove((int)pair.Key);
+                        foreach (TBodySkin tBodySkin in currentMaid.body0.goSlot) {
+                            tBodySkin.listMaskSlot.Remove((int)pair.Key);
+                        }
+                    }
+                    // 下記の情報はGetMaskで取得されるフラグに関するものであるが、
+                    // maskItemとは別で、下着モード、ヌードモードなどの指定で使われるフラグ
+                    //if (!tmp) m_foceHide[pair.Key] = !maskInfo.value;
+                }
             }
         }
 
         // 表示状態を変更するのみ。
         // フラグを適用することで元に戻せる
-        public void SetAllVisible() {
-            foreach (TBodySkin tBodySkin in maid.body0.goSlot) {
+        public void SetAllVisible() 
+        {
+            foreach (TBodySkin tBodySkin in currentMaid.body0.goSlot) {
                 tBodySkin.boVisible = true;
             }
         }
@@ -207,17 +256,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         // マスク情報をすべてクリアして反映
         public void ClearMasks()
         {
-            foreach (TBodySkin tBodySkin in maid.body0.goSlot) {
+            foreach (TBodySkin tBodySkin in currentMaid.body0.goSlot) {
                 tBodySkin.boVisible = true;
                 tBodySkin.listMaskSlot.Clear();
             }
             FixFlag();
         }
 
-        public void FixFlag() {
-            maid.body0.FixMaskFlag();
-            maid.body0.FixVisibleFlag(false);
-            maid.AllProcPropSeqStart();
+        public void FixFlag() 
+        {
+            currentMaid.body0.FixMaskFlag();
+            currentMaid.body0.FixVisibleFlag(false);
+            currentMaid.AllProcPropSeqStart();
         }
     }
 }

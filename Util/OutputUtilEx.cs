@@ -479,8 +479,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
         }
 
-        public void CopyTex(string infile, string outfilepath, string txtpath, TextureModifier.FilterParam filter) {
-
+        public void CopyTex(string infile, string outfilepath, string txtpath, TextureModifier.FilterParam filter) 
+        {
             // テクスチャをロードし、フィルタを適用
             var srcTex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
             srcTex.LoadImage( ImportCM.LoadTexture(infile) );
@@ -488,6 +488,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             dstTex = (filter != null) ? ACCTexturesView.Filter(srcTex, filter) : srcTex;
 
             WriteTexFile(outfilepath, txtpath, dstTex.EncodeToPNG());
+            if (srcTex != dstTex) UnityEngine.Object.DestroyImmediate(dstTex);
+            UnityEngine.Object.DestroyImmediate(srcTex);
         }
     }
 }

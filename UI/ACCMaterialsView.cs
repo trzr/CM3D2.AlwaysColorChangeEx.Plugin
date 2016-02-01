@@ -64,7 +64,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             sliderMargin  = uiparams.margin*4.5f; // GUILayout.Space(uiParams.FixPx(7));
 
             buttonMargin  = uiparams.margin*3f;
-            sliderInputWidth = uiparams.fontSize2 *0.5625f * 8; // 最大8文字分としてフォントサイズの比率
+            sliderInputWidth = uiparams.fontSizeS *0.5625f * 8; // 最大8文字分としてフォントサイズの比率
 
             optInputWidth = GUILayout.Width(sliderInputWidth);
             optItemHeight = GUILayout.Height(uiparams.itemHeight);
@@ -84,7 +84,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             if (shader != null) {
                 material.shader = shader;
                 var mat = ShaderMapper.resolve(shaderName);
-                // 未設定の項目を有効にする際は、デフォルト値を使うべき？
                 edited.Update(mat);
                 LogUtil.DebugLog("selected shader updated");
             }
@@ -101,7 +100,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 int idx = GetIndex(shaderName);
     
                 GUIContent selected = (idx != -1)? ShaderNames[idx] : ShaderNames[4];
-                shaderCombo = shaderCombo ?? new ComboBoxLO(selected, ShaderNames, uiParams.bStyle2, uiParams.boxStyle, uiParams.listStyle, false);
+                shaderCombo = shaderCombo ?? new ComboBoxLO(selected, ShaderNames, uiParams.bStyleSC, uiParams.boxStyle, uiParams.listStyle, false);
                 shaderCombo.Show(GUILayout.ExpandWidth(true));//uiParams.optInsideWidth);
     
                 int selectedIdx = shaderCombo.SelectedItemIndex;
@@ -143,37 +142,37 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 }
     
                 if (mat.isLighted) {
-                    SetupFloatSlider(material, "Shininess", "_Shininess", "{0:F2}", ref edited.shininess, 
+                    SetupFloatSlider(material, "Shininess", "_Shininess", "F2", ref edited.shininess, 
                                     -1000f, 1000f, settings.shininessMin, settings.shininessMax);
                 }
                 if (mat.isOutlined) {
-                    SetupFloatSlider(material, "OutLineWidth", "_OutlineWidth", "{0:F5}", ref edited.outlineWidth, 
+                    SetupFloatSlider(material, "OutLineWidth", "_OutlineWidth", "F5", ref edited.outlineWidth, 
                                     0f, 1f, settings.outlineWidthMin, settings.outlineWidthMax);
                 }
                 if (mat.isToony) {
-                    SetupFloatSlider(material, "RimPower", "_RimPower", "{0:F3}", ref edited.rimPower, 
+                    SetupFloatSlider(material, "RimPower", "_RimPower", "F3", ref edited.rimPower, 
                                     0f, 100f, settings.rimPowerMin, settings.rimPowerMax);
 
-                    SetupFloatSlider(material, "RimShift", "_RimShift", "{0:F3}", ref edited.rimShift,
+                    SetupFloatSlider(material, "RimShift", "_RimShift", "F3", ref edited.rimShift,
                                     -10f, 10f, settings.rimShiftMin, settings.rimShiftMax);
                 }
                 if (mat.isHair) {
-                    SetupFloatSlider(material, "HiRate", "_HiRate", "{0:F2}", ref edited.hiRate,
+                    SetupFloatSlider(material, "HiRate", "_HiRate", "F2", ref edited.hiRate,
                                      0f, 100f, settings.hiRateMin, settings.hiRateMax);
     
-                    SetupFloatSlider(material, "HiPow", "_HiPow", "{0:F4}", ref edited.hiPow,
+                    SetupFloatSlider(material, "HiPow", "_HiPow", "F4", ref edited.hiPow,
                                      0.001f, 100f, settings.hiPowMin, settings.hiPowMax);
                 }
                 if (mat.hasFloat1) {
-                    SetupFloatSlider(material, "FloatValue1", "_FloatValue1", "{0:F2}", ref edited.floatVal1,
+                    SetupFloatSlider(material, "FloatValue1", "_FloatValue1", "F2", ref edited.floatVal1,
                                      0f, 500f, settings.floatVal1Min, settings.floatVal1Max);
                 }
                 if (mat.hasFloat2) {
-                    SetupFloatSlider(material, "FloatValue2", "_FloatValue2", "{0:F2}", ref edited.floatVal2,
+                    SetupFloatSlider(material, "FloatValue2", "_FloatValue2", "F2", ref edited.floatVal2,
                                      -50f, 50f, settings.floatVal2Min, settings.floatVal2Max);
                 }
                 if (mat.hasFloat3) {
-                    SetupFloatSlider(material, "FloatValue3", "_FloatValue3", "{0:F3}", ref edited.floatVal3,
+                    SetupFloatSlider(material, "FloatValue3", "_FloatValue3", "F3", ref edited.floatVal3,
                                      0f, 50f, settings.floatVal3Min, settings.floatVal3Max);
                 }
 
@@ -196,33 +195,35 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
         private void setColorSlider(string label, ref Color color, bool isTrans) {
             GUILayout.Label(label, uiParams.lStyle, optItemHeight);
-    
-            drawValueSlider("R", String.Format("{0:F3}", color.r), 0f, 2f, ref color.r, 0f, 2f);
-            drawValueSlider("G", String.Format("{0:F3}", color.g), 0f, 2f, ref color.g, 0f, 2f);
-            drawValueSlider("B", String.Format("{0:F3}", color.b), 0f, 2f, ref color.b, 0f, 2f);
+
+            drawValueSlider("R", color.r.ToString(settings.fmtColor), 0f, 2f, ref color.r, 0f, 2f);
+            drawValueSlider("G", color.g.ToString(settings.fmtColor), 0f, 2f, ref color.g, 0f, 2f);
+            drawValueSlider("B", color.b.ToString(settings.fmtColor), 0f, 2f, ref color.b, 0f, 2f);
             if (isTrans) {
-                drawValueSlider("A", String.Format("{0:F3}", color.a), 0f, 2f, ref color.a, 0f, 2f);
+                drawValueSlider("A", color.a.ToString(settings.fmtColor), 0f, 2f, ref color.a, 0f, 2f);
             }
         }
 
         private void setValueSlider(string label, string valFormat, float val, float minVal, float maxVal, ref float sliderVal, float min, float max) {
             GUILayout.Label(label, uiParams.lStyle, optItemHeight);
-            drawValueSlider(null, string.Format(valFormat, val), minVal, maxVal, ref sliderVal, min, max);
+            drawValueSlider(null, val.ToString(valFormat), minVal, maxVal, ref sliderVal, min, max);
         }
+
         private void setValueSlider(string label, string valLabel, string valFormat, float val, float minVal, float maxVal, ref float sliderVal, float min, float max) {
             GUILayout.Label(label, uiParams.lStyle, optItemHeight);
-            drawValueSlider(valLabel, string.Format(valFormat, val), minVal, maxVal, ref sliderVal, min, max);
+            drawValueSlider(valLabel, val.ToString(valFormat), minVal, maxVal, ref sliderVal, min, max);
         }
 
         private void drawValueSlider(string label, string val, float minVal, float maxVal, ref float sliderVal) {
             drawValueSlider(label, val, minVal, maxVal, ref sliderVal, minVal, maxVal);
         }
+
         private void drawValueSlider(string label, string val, float minVal, float maxVal, ref float sliderVal, float min, float max) {
             GUILayout.BeginHorizontal(optItemHeight);
             try {
                 if(label != null) {
                     //float lWidth = 13*label.Length;
-                    float lWidth = uiParams.fontSize2*label.Length;
+                    float lWidth = uiParams.fontSizeS*label.Length;
                     float space = labelWidth - sliderInputWidth - lWidth;  //- uiParams.labelSpace ;
                     if (space > 0) GUILayout.Space(space);
                     GUILayout.Label(label, uiParams.lStyleS, GUILayout.Width(lWidth));
@@ -230,7 +231,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     GUILayout.Space(labelWidth - sliderInputWidth);
                 }
     
-                var val2 = GUILayout.TextField(val, uiParams.textStyleC, optInputWidth);
+                var val2 = GUILayout.TextField(val, uiParams.textStyleSC, optInputWidth);
                 if (val != val2) { // 直接書き換えされたケース
                     float v;
                     if (float.TryParse(val2, out v)) {

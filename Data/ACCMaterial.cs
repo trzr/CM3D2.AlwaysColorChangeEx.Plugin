@@ -18,6 +18,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         private const float DEFAULT_FV1 = 10f;
         private const float DEFAULT_FV2 = 1f;
         private const float DEFAULT_FV3 = 1f;
+        public static readonly string PROP_COLOR    = PropName._Color.ToString();
+        public static readonly string PROP_SHADOWC  = PropName._ShadowColor.ToString();
+        public static readonly string PROP_OUTLINEC = PropName._OutlineColor.ToString();
+        public static readonly string PROP_RIMC     = PropName._RimColor.ToString();
+
         public ACCMaterial original {get; private set;}
         public Material material;
         public string name;
@@ -40,23 +45,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
         protected ACCMaterial() {}
 
-        public ACCMaterial(string matName, MaterialType matType) {
-            this.name = matName;
-            this.type = matType;
-            this.shader = matType.shader;
-
-            renderQueue = 2000;
-            if (matType.hasColor) color = Color.white;
-            if (matType.isLighted) {
-                shadowColor = Color.white;
-            }
-            if (matType.isOutlined) {
-                outlineColor = Color.black;
-            }
-            if (matType.isToony) {
-                rimColor = Color.white;
-            }
-        }
+//        public ACCMaterial(string matName, MaterialType matType) {
+//            this.name = matName;
+//            this.type = matType;
+//            this.shader = matType.shader;
+//
+//            renderQueue = 2000;
+//            if (matType.hasColor) color = Color.white;
+//            if (matType.isLighted) {
+//                shadowColor = Color.white;
+//            }
+//            if (matType.isOutlined) {
+//                outlineColor = Color.black;
+//            }
+//            if (matType.isToony) {
+//                rimColor = Color.white;
+//            }
+//        }
         public ACCMaterial(ACCMaterial src) {
             this.original = src;
             this.material = src.material;
@@ -86,17 +91,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             shader = type.shader;
             renderQueue = m.renderQueue;
 
-            if (type.hasColor) color = m.GetColor("_Color");
+            if (type.hasColor) color = m.GetColor(PROP_COLOR);
             if (type.isLighted) {
-                shadowColor = m.GetColor("_ShadowColor");
+                shadowColor = m.GetColor(PROP_SHADOWC);
                 shininess = m.GetFloat("_Shininess");
             }
             if (type.isOutlined) {
-                outlineColor = m.GetColor("_OutlineColor");
+                outlineColor = m.GetColor(PROP_OUTLINEC);
                 outlineWidth = m.GetFloat("_OutlineWidth");
             }
             if (type.isToony) {
-                rimColor = m.GetColor("_RimColor");
+                rimColor = m.GetColor(PROP_RIMC);
                 rimPower = m.GetFloat("_RimPower");
                 rimShift = m.GetFloat("_RimShift");
             }
@@ -120,26 +125,39 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             this.type = matType;
             this.shader = matType.shader;
             if (matType.hasColor) {
-                if (!color.HasValue) color = Color.white;
+                if (!color.HasValue) {
+                    if (material != null) color = material.GetColor(PROP_COLOR);
+                    else {
+                        color = (original != null && original.color.HasValue) ? original.color: Color.white;
+                    }
+                }
             } else {
                 color = null;
             }
             if (matType.isLighted) {
-                if (!shadowColor.HasValue) shadowColor = Color.white;
+                if (!shadowColor.HasValue) {
+                    if (material != null) shadowColor = material.GetColor(PROP_SHADOWC);
+                    else shadowColor = (original != null && original.shadowColor.HasValue) ? original.shadowColor : Color.white;
+                }
             } else {
                 shadowColor = null;
             }
             if (matType.isOutlined) {
-                if (!outlineColor.HasValue) outlineColor = Color.black;
+                if (!outlineColor.HasValue) {
+                    if (material != null) outlineColor = material.GetColor(PROP_OUTLINEC);
+                    else outlineColor = (original != null && original.outlineColor.HasValue) ? original.outlineColor : Color.black;
+                }
             } else {
                 outlineColor = null;
             }
             if (matType.isToony) {
-                if (!rimColor.HasValue) rimColor = Color.white;
+                if (!rimColor.HasValue) {
+                    if (material != null) rimColor = material.GetColor(PROP_RIMC);
+                    else rimColor = (original != null && original.rimColor.HasValue) ? original.rimColor: Color.white;
+                }
             } else {
                 rimColor = null;
             }
-            
             // TODO テクスチャ情報の初期化
         }
         public void ReflectTo(Material m) {
@@ -147,18 +165,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             m.renderQueue = renderQueue;
 
             if (type.hasColor) {
-                m.SetColor("_Color", color.Value);
+                m.SetColor(PROP_COLOR, color.Value);
             }
             if (type.isLighted) {
-                m.SetColor("_ShadowColor", shadowColor.Value);
+                m.SetColor(PROP_SHADOWC, shadowColor.Value);
                 m.SetFloat("_Shininess", shininess);
             }
             if (type.isOutlined) {
-                m.SetColor("_OutlineColor", outlineColor.Value);
+                m.SetColor(PROP_OUTLINEC, outlineColor.Value);
                 m.SetFloat("_OutlineWidth", outlineWidth);
             }
             if (type.isToony) {
-                m.SetColor("_RimColor", rimColor.Value);
+                m.SetColor(PROP_RIMC, rimColor.Value);
                 m.SetFloat("_RimPower", rimPower);
                 m.SetFloat("_RimShift", rimShift);
             }
@@ -186,7 +204,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
         public bool hasChanged(ACCMaterial mate) {
             // 同一シェーダを想定
-            
             if (type.hasColor) {
                 if (color != mate.color) return true;
             }
@@ -276,52 +293,61 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     case "vec":
                         var c = new Color(reader.ReadSingle(), reader.ReadSingle(),
                                           reader.ReadSingle(), reader.ReadSingle());
-                        switch (propName) {
-                        case "_Color":
-                            created.color = c;
-                            break;
-                        case "_ShadowColor":
-                            created.shadowColor = c;
-                            break;
-                        case "_RimColor":
-                            created.rimColor = c;
-                            break;
-                        case "_OutlineColor":
-                            created.outlineColor = c;
-                            break;
+                        try {
+                            var pnc = (PropName)Enum.Parse(typeof(PropName), propName);
+                            switch (pnc) {
+                            case PropName._Color:
+                                created.color = c;
+                                break;
+                            case PropName._ShadowColor:
+                                created.shadowColor = c;
+                                break;
+                            case PropName._RimColor:
+                                created.rimColor = c;
+                                break;
+                            case PropName._OutlineColor:
+                                created.outlineColor = c;
+                                break;
+                            }
+                        } catch(Exception e) {
+                            LogUtil.DebugLog("unsupported propName found", propName, e);
                         }
-                            
                         break;
                     case "f":
                         float f = reader.ReadSingle();
-                        switch (propName) {
-                        case "_Shininess":
-                            created.shininess = f;
-                            break;
-                        case "_OutlineWidth":
-                            created.outlineWidth = f;
-                            break;
-                        case "_RimPower":
-                            created.rimPower = f;
-                            break;
-                        case "_RimShift":
-                            created.rimShift = f;
-                            break;
-                        case "_HiRate":
-                            created.hiRate = f;
-                            break;
-                        case "_HiPow":
-                            created.hiPow = f;
-                            break;
-                        case "_FloatValue1":
-                            created.floatVal1 = f;
-                            break;
-                        case "_FloatValue2":
-                            created.floatVal2 = f;
-                            break;
-                        case "_FloatValue3":
-                            created.floatVal3 = f;
-                            break;
+                        try {
+                            var pnf = (PropName)Enum.Parse(typeof(PropName), propName);
+                            switch (pnf) {
+                            case PropName._Shininess:
+                                created.shininess = f;
+                                break;
+                            case PropName._OutlineWidth:
+                                created.outlineWidth = f;
+                                break;
+                            case PropName._RimPower:
+                                created.rimPower = f;
+                                break;
+                            case PropName._RimShift:
+                                created.rimShift = f;
+                                break;
+                            case PropName._HiRate:
+                                created.hiRate = f;
+                                break;
+                            case PropName._HiPow:
+                                created.hiPow = f;
+                                break;
+                            case PropName._FloatValue1:
+                                created.floatVal1 = f;
+                                break;
+                            case PropName._FloatValue2:
+                                created.floatVal2 = f;
+                                break;
+                            case PropName._FloatValue3:
+                                created.floatVal3 = f;
+                                break;
+                            }
+                        } catch(Exception e) {
+                            LogUtil.DebugLog("unsupported propName found", propName, e);
                         }
                         break;
                     }
