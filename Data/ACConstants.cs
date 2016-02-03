@@ -333,6 +333,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public MPN mpn                { get; private set; }
         public string Name            { get; private set; }
         public string DisplayName     { get; private set; }
+        public string LongName        { get; private set; }
         public bool   maskable        { get; private set; }
         private int no;
         public int No {
@@ -354,6 +355,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             this.Name = Id.ToString();
             this.mpn = mpn;
             this.DisplayName = displayName;
+            this.LongName = displayName + " [" + Name + "]";
             this.no = -1;
             this.maskable = mask;
         }

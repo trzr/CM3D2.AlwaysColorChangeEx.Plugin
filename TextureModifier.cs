@@ -454,9 +454,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                     if (endTicks <= DateTime.Now.Ticks) {
                         message = string.Empty;
                     }
+                } else {
+                    GUILayout.Space(margin * 2f);
                 }
-                    
-                GUILayout.Space(margin * 2f);
             }
 
             private bool guiSlider(float margin, DirtyValue dirtyValue) {

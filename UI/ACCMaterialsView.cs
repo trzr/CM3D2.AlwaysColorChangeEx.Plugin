@@ -200,7 +200,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             drawValueSlider("G", color.g.ToString(settings.fmtColor), 0f, 2f, ref color.g, 0f, 2f);
             drawValueSlider("B", color.b.ToString(settings.fmtColor), 0f, 2f, ref color.b, 0f, 2f);
             if (isTrans) {
-                drawValueSlider("A", color.a.ToString(settings.fmtColor), 0f, 2f, ref color.a, 0f, 2f);
+                drawValueSlider("A", color.a.ToString(settings.fmtColor), 0f, 1f, ref color.a, 0f, 1f);
             }
         }
 

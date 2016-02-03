@@ -235,7 +235,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                                 textureModifier.DuplicateFilter(holder.currentMaid, holder.currentSlot.Name, material, editTex.propName, "_ShadowTex");
                             }
                         }
-    
                     } finally {
                         GUILayout.EndHorizontal();
                     }

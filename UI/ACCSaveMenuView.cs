@@ -45,7 +45,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         private static GUILayoutOption optExtLabelWidth;
         private static GUILayoutOption optShaderWidth;
         private static GUILayoutOption optPropNameWidth;
-        private static GUILayoutOption optSLabelWidth;
         private static GUILayoutOption optScrlWidth;
         private static GUILayoutOption optScrlHeight;
         private static GUILayoutOption optTwoLineHeight;
@@ -64,7 +63,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 
             fontSize  = uiparams.fontSize;
             fontSizeS = uiparams.fontSizeS;
-            optSLabelWidth   = GUILayout.Width(fontSizeS * 6f);
             optExtLabelWidth = GUILayout.Width(fontSizeS*3);
             optShaderWidth   = GUILayout.Width(fontSizeS*ShaderMapper.MaxNameLength()*0.68f);
             optPropNameWidth = GUILayout.Width(fontSizeS*14*0.68f);
@@ -139,7 +137,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 GUILayout.Label(FileConst.EXT_MENU, uiParams.lStyleS, optExtLabelWidth);
 
                 bool src = nameInterlocked;
-                nameInterlocked = GUILayout.Toggle(nameInterlocked, "名前連動", uiParams.tStyleS, optSLabelWidth);
+                nameInterlocked = GUILayout.Toggle(nameInterlocked, "名前連動", uiParams.tStyleS, uiParams.optSLabelWidth);
                 if (nameInterlocked && src != nameInterlocked) {
                     nameChanged = true;
                 }
@@ -464,7 +462,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             
             GUILayout.BeginHorizontal();
             GUILayout.Space(uiParams.marginL);
-            ignoreExist = !GUILayout.Toggle(!ignoreExist, "登録済確認", uiParams.tStyleS, optSLabelWidth);
+            ignoreExist = !GUILayout.Toggle(!ignoreExist, "登録済確認", uiParams.tStyleS, uiParams.optSLabelWidth);
             if (GUILayout.Button("保存", uiParams.bStyle)) {
                 if (IsWritable(trgtMenu, ignoreExist)) {
                     if (SaveFiles(trgtMenu)) {
@@ -516,7 +514,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             menu.editiconExist = false;
             string iconfilepath = menu.EditIconFileName();
             if (outUtil.Exists(iconfilepath)) {
-                LogUtil.LogF("アイコンファイル({0})は既に登録済み", iconfilepath);
+                LogUtil.DebugLogF("アイコンファイル({0})は既に登録済み", iconfilepath);
                 registed = true;
                 menu.editiconExist = true;
             }
@@ -764,7 +762,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                                 loadedTex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
                                 string texfile = tex.workfilename + FileConst.EXT_TEXTURE;
                                 if (!outUtil.Exists(texfile)) {
-                                    LogUtil.LogF("リソース参照で使用されているtexファイル({0})が見つかりません。このため、texファイルを出力できませんでした。, ", texfile);
+                                    LogUtil.DebugLogF("リソース参照で使用されているtexファイル({0})が見つかりません。このため、texファイルを出力できませんでした。, ", texfile);
                                     continue;
                                 }
                                 loadedTex.LoadImage( ImportCM.LoadTexture(texfile) );

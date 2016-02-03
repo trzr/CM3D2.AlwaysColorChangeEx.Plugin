@@ -19,7 +19,7 @@
 @set LOADER_DIR=%CM3D2_DIR%\Sybaris\Loader
 @set UI_DIR=%CM3D2_DIR%\Sybaris\Plugins\UnityInjector
 @set OUT_NAME=CM3D2.AlwaysColorChangeEx.Plugin.dll
-@set OPTS=/optimize /t:library /lib:%CM3D2_MANAED% /r:UnityEngine.dll /r:UnityEngine.UI.dll /lib:%LOADER_DIR% /r:UnityInjector.dll /r:ExIni.dll /r:Assembly-CSharp.dll /r:Assembly-CSharp-firstpass.dll /lib:%UI_DIR%
+@set OPTS=/optimize+ /t:library /lib:%CM3D2_MANAED% /r:UnityEngine.dll /r:UnityEngine.UI.dll /lib:%LOADER_DIR% /r:UnityInjector.dll /r:ExIni.dll /r:Assembly-CSharp.dll /r:Assembly-CSharp-firstpass.dll /lib:%UI_DIR%
 @set OPTS=%OPTS% /nowarn:618,168
 @rem %windir%\Microsoft.NET\Framework\v3.5\csc %OPTS% /define:DEBUG /out:%OUT_NAME% /recurse:*.cs
 @rem @%windir%\Microsoft.NET\Framework\v3.5\csc %OPTS% /out:%OUT_NAME% /recurse:Util\*.cs /recurse:Data\*.cs *.cs

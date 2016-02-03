@@ -712,8 +712,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                                     param[0] = editfile;
                                 }
                             } catch(Exception e) {
-                                LogUtil.Log("対応するスロットが見つかりませんでした。", slot0, e);
-                                // LogUtil.Log("failed to parse additem slot", slot0, e);
+                                LogUtil.DebugLog("対応するスロットが見つかりませんでした。", slot0, e);
+                                // LogUtil.DebugLog("failed to parse additem slot", slot0, e);
                             }
                         }
                         break;

@@ -23,7 +23,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
  PluginFilter("CM3D2OHx64"),
  PluginFilter("CM3D2OHVRx64"),
  PluginName("CM3D2 AlwaysColorChangeEx"),
- PluginVersion("0.1.1.0")]
+ PluginVersion("0.1.1.1")]
 class AlwaysColorChangeEx : UnityInjector.PluginBase
 {
     // プラグイン名
@@ -52,6 +52,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     private enum TargetLevel {
         SceneDance_DDFL = 4,         // ダンス:ドキドキ☆Fallin' Love
         SceneEdit = 5,               // エディット
+        SceneUserEdit = 12,          // 男エディット
         SceneYotogi = 14,            // 夜伽
         SceneADV = 15,               // ADVパート
         SceneDance_ETYL = 20,        // ダンス:entrance to you
@@ -114,6 +115,8 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     private int changeCount = 0;
 
     private Vector2 scrollViewPosition = Vector2.zero;
+    // 表示名切り替え
+    private bool switchedName;
 
     // テクスチャ変更用
     //  現在のターゲットのslotに関するメニューが変更されたらGUIを更新。それ以外は更新しない
@@ -185,7 +188,6 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 uiParams.fileBrowserRect = GUI.Window(WINID_DIALOG, uiParams.fileBrowserRect, DoFileBrowser, Version, uiParams.winStyle);
 
             } else if (saveView != null && saveView.showDialog) {
-                // uiParams.InitModalRect();
                 uiParams.modalRect = GUI.ModalWindow(WINID_MAIN, uiParams.modalRect, DoSaveModDialog, "menuエクスポート", uiParams.dialogStyle);
 
             } else {
@@ -220,7 +222,6 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
             }
         }
     }
-
     private void SetCameraControl(bool enable) 
     {
         if (cmrCtrlChanged == enable) {
@@ -235,7 +236,15 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
      */
     private void UpdateCameraControl() {
         bool isEnableControl = false;
-        if (menuType != MenuType.None) {
+        if (ACCTexturesView.fileBrowser != null) {
+            var cursor = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+            isEnableControl = uiParams.fileBrowserRect.Contains(cursor);
+            if (!isEnableControl) {
+                if (saveView != null && saveView.showDialog) {
+                    isEnableControl = uiParams.modalRect.Contains(cursor);
+                }
+            }
+        } else if (menuType != MenuType.None) {
             var cursor = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
             isEnableControl = uiParams.winRect.Contains(cursor);
             if (!isEnableControl) {
@@ -335,24 +344,24 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
 
     // 選択画面の一時選択状態のメイド情報
     private Maid selectedMaid;
-    private Dictionary<int, GUIContent> contentDic = new Dictionary<int, GUIContent>();
     // thumcache等
-    private void InitSelectMaid() {
-        int count = GameMain.Instance.CharacterMgr.GetMaidCount();
-        for (int i=0; i< count; i++) {
-            Maid m = GameMain.Instance.CharacterMgr.GetMaid(i);
-            if (m != null) AddMaidInfo(m);
-        }
-    }
-    private GUIContent AddMaidInfo(Maid m) 
+    private Dictionary<int, GUIContent> contentDic = new Dictionary<int, GUIContent>();
+
+    private GUIContent GetOrAddMaidInfo(Maid m) 
     {
-        var status = m.Param.status;
-        var maidName = status.last_name + " " + status.first_name;
-        Texture2D icon = m.GetThumIcon();
-        var cont = new GUIContent(maidName, icon);
-        contentDic[m.gameObject.GetInstanceID()] = cont;
-        return cont;
+        GUIContent content;
+        int id = m.gameObject.GetInstanceID();
+        if (!contentDic.TryGetValue(id, out content)) {
+            var status = m.Param.status;
+            LogUtil.DebugLog("maid:", m.name);
+            var maidName = status.last_name + " " + status.first_name;
+            Texture2D icon = m.GetThumIcon();
+            content = new GUIContent(maidName, icon);
+            contentDic[id] = content;
+        }
+        return content;
     }
+
     private void DoSelectMaid(int winID)
     {
         if (selectedMaid == null) selectedMaid = holder.currentMaid;
@@ -361,18 +370,17 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
 　　    scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition, uiParams.optSubConWidth, uiParams.optSubConHeight);
         bool hasSelected = false;
         try {
+            bool hasMaid = false;
             int count = GameMain.Instance.CharacterMgr.GetMaidCount();
             for (int i=0; i< count; i++) {
                 Maid m = GameMain.Instance.CharacterMgr.GetMaid(i);
                 if (m != null) {
+                    hasMaid = true;
                     GUI.enabled = m.isActiveAndEnabled;
                     bool selected = (selectedMaid == m);
                     if (GUI.enabled && selected) hasSelected = true;
 
-                    GUIContent content;
-                    if (!contentDic.TryGetValue(m.gameObject.GetInstanceID(), out content)) {
-                        content = AddMaidInfo(m);
-                    }
+                    var content = GetOrAddMaidInfo(m);
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(uiParams.marginL);
                     bool changed = GUILayout.Toggle(selected, content, uiParams.tStyleL);
@@ -382,6 +390,29 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 }
             }
             GUI.enabled = true;
+            if (!hasMaid) GUILayout.Label("　なし", uiParams.lStyleB);
+
+            GUILayout.Space(uiParams.marginL);
+            bool hasMan = false;
+
+            count = GameMain.Instance.CharacterMgr.GetManCount();
+            for (int i=0; i< count; i++) {
+                Maid m = GameMain.Instance.CharacterMgr.GetMan(i);
+                if (m != null && m.isActiveAndEnabled) {
+                    if (!hasMan) GUILayout.Label("男選択", uiParams.lStyleB);
+                    hasMan = true;
+                    bool selected = (selectedMaid == m);
+                    if (GUI.enabled && selected) hasSelected = true;
+
+                    var content = GetOrAddMaidInfo(m);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(uiParams.marginL);
+                    bool changed = GUILayout.Toggle(selected, content, uiParams.tStyleL);
+                    GUILayout.Space(uiParams.marginL);
+                    GUILayout.EndHorizontal();
+                    if (changed != selected) selectedMaid = m;
+                }
+            }
 
         } finally {
             GUILayout.EndScrollView();
@@ -402,20 +433,23 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     {
         GUILayout.BeginVertical();
         try {
+            Maid maid = holder.currentMaid;
             GUILayout.Label(TITLE_LABEL + holder.MaidName, uiParams.lStyle);
     
-            if (GUILayout.Button("メイド選択", uiParams.bStyle)) {
+            if (GUILayout.Button("メイド/男 選択", uiParams.bStyle)) {
                 menuType = MenuType.MaidSelect;
             }
+            GUI.enabled = !maid.boMAN;
             GUILayout.BeginHorizontal();
             try {
-                if (GUILayout.Button( "マスク選択", uiParams.bStyle, uiParams.optSubConHalfWidth)) {
+                if (GUILayout.Button("マスク選択", uiParams.bStyle, uiParams.optSubConHalfWidth)) {
                     menuType = MenuType.MaskSelect;
                     InitMaskSlots();
                 }
                 if (GUILayout.Button("表示ノード選択", uiParams.bStyle, uiParams.optSubConHalfWidth)) {
                     menuType = MenuType.NodeSelect;
                 }
+                
             } finally {
                 GUILayout.EndHorizontal();
             }
@@ -432,9 +466,13 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
             } finally {
                 GUILayout.EndHorizontal();
             }
+            GUI.enabled = true;
 
             GUILayout.Space(uiParams.margin);
+            GUILayout.BeginHorizontal();
             GUILayout.Label("カラーチェンジ スロット選択", uiParams.lStyleC);
+            switchedName = GUILayout.Toggle(switchedName, "表示切替", uiParams.tStyleS, uiParams.optSLabelWidth);
+            GUILayout.EndHorizontal();
             scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition, 
                                                            GUILayout.Width(uiParams.mainRect.width),
                                                            GUILayout.Height(uiParams.mainRect.height));
@@ -450,12 +488,12 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(uiParams.marginL);
                     
-                    if (GUILayout.Button(slot.DisplayName, uiParams.bStyleL, GUILayout.ExpandWidth(true))) {
+                    if (GUILayout.Button(!switchedName?slot.DisplayName: slot.Name, uiParams.bStyleL, GUILayout.ExpandWidth(true))) {
                         holder.currentSlot = slot;
                         menuType = MenuType.Color;
                     }
                     if (settings.displaySlotName) {
-                        GUILayout.Label(slot.Name, uiParams.lStyleS, uiParams.optSlotNameWidth);
+                        GUILayout.Label(slot.Name, uiParams.lStyleS, uiParams.optCategoryWidth);
                     }
                     GUILayout.Space(uiParams.marginL);
                     GUILayout.EndHorizontal();
@@ -640,12 +678,12 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 view.Show();
             }
         } catch(Exception e) {
-            LogUtil.ErrorLog("failed to create texture change view", e);
+            LogUtil.DebugLog("failed to create texture change view. ", e);
         } finally {
             GUILayout.EndScrollView();
 
             if (GUILayout.Button( "閉じる", uiParams.bStyle, 
-                                 GUILayout.Width(uiParams.closeRect.width), GUILayout.Height(uiParams.closeRect.height))) {
+                                 uiParams.optSubConWidth, uiParams.optBtnHeight)) {
                 menuType = MenuType.Color;
             }
             GUI.DragWindow();
@@ -661,7 +699,6 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         if (holder.currentMaid == null) return false;
 
 //        List<int> maskSlots = holder.maid.listMaskSlot;
-
         foreach (SlotInfo si  in ACConstants.SlotNames.Values) {
             if (!si.maskable) continue;
 
@@ -679,14 +716,18 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     }
     private void DoMaskSelectMenu(int winID)
     {
-        GUILayoutOption bHeight = GUILayout.Height(uiParams.closeRect.height);
-        GUILayoutOption bWidth  = GUILayout.Width(uiParams.closeRect.width*0.33f);
-        GUILayoutOption bWidthS = GUILayout.Width(uiParams.closeRect.width*0.24f);
+        GUILayoutOption bWidth  = GUILayout.Width(uiParams.subConWidth*0.32f);
+        GUILayoutOption bWidthS = GUILayout.Width(uiParams.subConWidth*0.24f);
+        GUILayoutOption lStateWidth = GUILayout.Width(uiParams.fontSize*4f);
+        GUILayoutOption titleWidth = GUILayout.Width(uiParams.fontSize*10f);
         GUILayout.BeginVertical();
         try {
             // falseがマスクの模様
-            GUILayout.Label("マスクアイテム選択", uiParams.lStyleB);
-    
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("マスクアイテム選択", uiParams.lStyleB, titleWidth);
+            switchedName = GUILayout.Toggle(switchedName, "表示切替", uiParams.tStyleS, uiParams.optSLabelWidth);
+            GUILayout.EndHorizontal();
+
             if (holder.currentMaid == null) return ;
 
             // 身体からノード一覧と表示状態を取得
@@ -697,16 +738,16 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
 
             GUILayout.BeginHorizontal();
             try {
-                if (GUILayout.Button("同期", uiParams.bStyle, bHeight, bWidth)) { 
+                if (GUILayout.Button("同期", uiParams.bStyle, uiParams.optBtnHeight, bWidth)) { 
                     InitMaskSlots();
                 }
-                if (GUILayout.Button("すべてON", uiParams.bStyle, bHeight, bWidth)) {
+                if (GUILayout.Button("すべてON", uiParams.bStyle, uiParams.optBtnHeight, bWidth)) {
                     var keys = new List<TBody.SlotID>(dMaskSlots.Keys);
                     foreach (TBody.SlotID key in keys) {
                         dMaskSlots[key].value = false;
                     }
                 }
-                if (GUILayout.Button("すべてOFF", uiParams.bStyle, bHeight, bWidth)) { 
+                if (GUILayout.Button("すべてOFF", uiParams.bStyle, uiParams.optBtnHeight, bWidth)) { 
                     var keys = new List<TBody.SlotID>(dMaskSlots.Keys);
                     foreach (TBody.SlotID key in keys) {
                         dMaskSlots[key].value = true;
@@ -724,48 +765,49 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
             try {
                 foreach (KeyValuePair<TBody.SlotID, MaskInfo> pair in dMaskSlots) {
                     if (pair.Key <= TBody.SlotID.eye) continue;
-                    GUILayout.BeginHorizontal();
-                    try {
-                        MaskInfo maskInfo = pair.Value;
-                        string state;
-                        // 下着、ヌードモードなどによる非表示
-                        if (!holder.currentMaid.body0.GetMask(maskInfo.slotInfo.Id)) {
-                            state = "[非表示]";
-                            labelStyle.normal.textColor = Color.magenta;
-                        } else {
-                            maskInfo.UpdateState();
-                            switch(maskInfo.state) {
-                                case SlotState.NotLoaded:
-                                    state = "[未読込]";
-                                    labelStyle.normal.textColor = Color.red;
-                                    GUI.enabled = false;
-                                    break;
-                                case SlotState.Masked:
-                                    state = "[マスク]";
-                                    labelStyle.normal.textColor = Color.cyan;
-                                    break;
-                                case SlotState.Displayed:
-                                    state = "[表示中]";
-                                    labelStyle.normal.textColor = bkColor;
-                                    break;
-                                default:
-                                    state = "unknown";
-                                    labelStyle.normal.textColor = Color.red;
-                                    GUI.enabled = false;
-                                    break;
-                            }
+                    MaskInfo maskInfo = pair.Value;
+                    string state;
+                    // 下着、ヌードモードなどによる非表示
+                    if (!holder.currentMaid.body0.GetMask(maskInfo.slotInfo.Id)) {
+                        state = "[非表示]";
+                        labelStyle.normal.textColor = Color.magenta;
+                    } else {
+                        maskInfo.UpdateState();
+                        switch(maskInfo.state) {
+                            case SlotState.NotLoaded:
+                                //continue;
+                                state = "[未読込]";
+                                labelStyle.normal.textColor = Color.red;
+                                GUI.enabled = false;
+                                break;
+                            case SlotState.Masked:
+                                state = "[マスク]";
+                                labelStyle.normal.textColor = Color.cyan;
+                                break;
+                            case SlotState.Displayed:
+                                state = "[表示中]";
+                                labelStyle.normal.textColor = bkColor;
+                                break;
+                            default:
+                                state = "unknown";
+                                labelStyle.normal.textColor = Color.red;
+                                GUI.enabled = false;
+                                break;
                         }
-                        GUILayout.Label(state, labelStyle);
-                        // dMaskSlotsはCM3D2のデータと合わせてマスクオン=falseとし、画面上はマスクオン=選択(true)とする
-                        maskInfo.value = !GUILayout.Toggle( !maskInfo.value, maskInfo.slotInfo.DisplayName, 
-                                                           uiParams.tStyle, uiParams.optContentWidth);
-                        GUI.enabled = true;
-                    } finally {
-                        GUILayout.EndHorizontal();
                     }
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(state, labelStyle, lStateWidth);
+                    // dMaskSlotsはCM3D2のデータと合わせてマスクオン=falseとし、画面上はマスクオン=選択(true)とする
+                    maskInfo.value = !GUILayout.Toggle( !maskInfo.value, !switchedName?maskInfo.slotInfo.DisplayName:maskInfo.slotInfo.Name,
+                                                       uiParams.tStyle, uiParams.optContentWidth
+                                                       ,GUILayout.ExpandWidth(true)
+                                                      );
+                    //GUILayout.Label( maskInfo.slotInfo.Name, uiParams.lStyleRS, uiParams.optSlotWidth);
+                    GUI.enabled = true;
+                    GUILayout.EndHorizontal();
                 }
             } finally {
-                uiParams.lStyle.normal.textColor = bkColor;
+                labelStyle.normal.textColor = bkColor;
                 GUI.EndScrollView();
             }
         } finally {
@@ -774,24 +816,24 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
 
         GUILayout.BeginHorizontal();
         try {
-            if (GUILayout.Button("一時適用", uiParams.bStyle, bWidthS, bHeight)) {
+            if (GUILayout.Button("一時適用", uiParams.bStyle, bWidthS, uiParams.optBtnHeight)) {
                 holder.SetSlotVisibles(dMaskSlots, true);
             }
-            if (GUILayout.Button("適用", uiParams.bStyle, bWidthS, bHeight)) {
+            if (GUILayout.Button("適用", uiParams.bStyle, bWidthS, uiParams.optBtnHeight)) {
                 holder.SetSlotVisibles(dMaskSlots, false);
                 holder.FixFlag();
             }
-            if (GUILayout.Button("全クリア", uiParams.bStyle, bWidthS, bHeight)) {
+            if (GUILayout.Button("全クリア", uiParams.bStyle, bWidthS, uiParams.optBtnHeight)) {
                 holder.SetAllVisible();
             }
-            if (GUILayout.Button("戻す", uiParams.bStyle, bWidthS, bHeight)) {
+            if (GUILayout.Button("戻す", uiParams.bStyle, bWidthS, uiParams.optBtnHeight)) {
                 holder.FixFlag();
             }
         } finally {
             GUILayout.EndHorizontal();
         }
 
-        if (GUILayout.Button( "閉じる", uiParams.bStyle, GUILayout.Width(uiParams.closeRect.width), bHeight)) {
+        if (GUILayout.Button( "閉じる", uiParams.bStyle, uiParams.optSubConWidth, uiParams.optBtnHeight)) {
             menuType = MenuType.Main;
         }
 
@@ -842,12 +884,17 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
 
     private void DoNodeSelectMenu(int winID)
     {
-        GUILayoutOption bHeight = GUILayout.Height(uiParams.closeRect.height);
         GUILayout.BeginVertical();
         TBodySkin body;
+        GUILayoutOption titleWidth = GUILayout.Width(uiParams.fontSize*10f);
+        GUILayoutOption lStateWidth = GUILayout.Width(uiParams.fontSize*4f);
         try {
-            GUILayout.Label("表示ノード選択", uiParams.lStyleB);
-    
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("表示ノード選択", uiParams.lStyleB, titleWidth);
+            GUILayout.Space(uiParams.margin);
+            switchedName = GUILayout.Toggle(switchedName, "表示切替", uiParams.tStyleS, uiParams.optSLabelWidth);
+            GUILayout.EndHorizontal();
+
             if (holder.currentMaid == null) return ;
 
             // 身体からノード一覧と表示状態を取得
@@ -859,17 +906,17 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
 
             GUILayout.BeginHorizontal();
             try {
-                GUILayoutOption bWidth = GUILayout.Width(uiParams.closeRect.width*0.33f);
-                if (GUILayout.Button("同期", uiParams.bStyle, bHeight, bWidth)) { 
+                GUILayoutOption bWidth = GUILayout.Width(uiParams.subConWidth*0.33f);
+                if (GUILayout.Button("同期", uiParams.bStyle, uiParams.optBtnHeight, bWidth)) { 
                     InitDelNode(body);
                 }
-                if (GUILayout.Button("すべてON", uiParams.bStyle, bHeight, bWidth)) {
+                if (GUILayout.Button("すべてON", uiParams.bStyle, uiParams.optBtnHeight, bWidth)) {
                     var keys = new List<string>(dDelNodes.Keys);
                     foreach (string key in keys) {
                         dDelNodes[key] = true;
                     }
                 }
-                if (GUILayout.Button("すべてOFF", uiParams.bStyle, bHeight, bWidth)) { 
+                if (GUILayout.Button("すべてOFF", uiParams.bStyle, uiParams.optBtnHeight, bWidth)) { 
                     var keys = new List<string>(dDelNodes.Keys);
                     foreach (string key in keys) {
                         dDelNodes[key] = false;
@@ -904,9 +951,10 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                             labelStyle.normal.textColor = Color.red;
                             isValid = false;
                         }
-                        GUILayout.Label(state, labelStyle);
+                        GUILayout.Label(state, labelStyle, lStateWidth);
                         GUI.enabled = isValid;
-                        dDelNodes[pair.Key] = GUILayout.Toggle( dDelNodes[pair.Key], pair.Value, uiParams.tStyle, uiParams.optContentWidth);
+                        dDelNodes[pair.Key] = GUILayout.Toggle( dDelNodes[pair.Key], !switchedName?pair.Value: pair.Key,
+                                                               uiParams.tStyle, uiParams.optContentWidth);
                         GUI.enabled = true;
                     } finally {
                         GUILayout.EndHorizontal();
@@ -916,17 +964,17 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 uiParams.lStyle.normal.textColor = bkColor;
                 GUI.EndScrollView();
             }
+
         } finally {
             GUILayout.EndVertical();
         }
-        if (GUILayout.Button("適用", uiParams.bStyle, GUILayout.Width(uiParams.closeRect.width), bHeight)) {
+        if (GUILayout.Button("適用", uiParams.bStyle, uiParams.optSubConWidth, uiParams.optBtnHeight)) {
             holder.SetDelNodes(dDelNodes, true);
             dDelNodeDisps = new Dictionary<string, bool>(body.m_dicDelNodeBody);
         }
-        if (GUILayout.Button( "閉じる", uiParams.bStyle, GUILayout.Width(uiParams.closeRect.width), bHeight)) {
+        if (GUILayout.Button( "閉じる", uiParams.bStyle, uiParams.optSubConWidth, uiParams.optBtnHeight)) {
             menuType = MenuType.Main;
         }
-
         GUI.DragWindow();
     }
 
@@ -1116,6 +1164,7 @@ public class UIParams {
     public readonly GUIStyle lStyleC   = new GUIStyle("label");
     // small
     public readonly GUIStyle lStyleS   = new GUIStyle("label");
+    public readonly GUIStyle lStyleRS  = new GUIStyle("label");
 
     public readonly GUIStyle bStyle    = new GUIStyle("button");
     public readonly GUIStyle bStyleSC  = new GUIStyle("button");
@@ -1146,12 +1195,16 @@ public class UIParams {
     public Rect textureRect      = new Rect();
     public Rect labelRect        = new Rect();
     public Rect subRect          = new Rect();
-    public Rect closeRect        = new Rect();
+    public GUILayoutOption optBtnHeight;
+    public float subConWidth;
     public GUILayoutOption optSubConWidth;
     public GUILayoutOption optSubConHeight;
     public GUILayoutOption optSubConHalfWidth;
     public GUILayoutOption optBtnWidth;
-    public GUILayoutOption optSlotNameWidth;
+    public GUILayoutOption optCategoryWidth;
+    public GUILayoutOption optSlotWidth;
+    public GUILayoutOption optSLabelWidth;
+
     public GUILayoutOption optContentWidth;
 
     public UIParams() {
@@ -1176,6 +1229,10 @@ public class UIParams {
         lStyleS.normal.textColor = textColor;
         lStyleS.alignment        = txtAlignment;
 
+        lStyleRS.fontStyle        = FontStyle.Normal;
+        lStyleRS.normal.textColor = textColor;
+        lStyleRS.alignment        = TextAnchor.MiddleRight;
+
         lStyleC.fontStyle        = FontStyle.Normal;
         lStyleC.normal.textColor = new Color(0.82f, 0.88f, 1f, 0.98f);
         lStyleC.alignment        = txtAlignment;
@@ -1188,7 +1245,7 @@ public class UIParams {
         
         tStyle.normal.textColor         = textColor;
         tStyleS.normal.textColor        = textColor;
-        tStyleS.alignment               = txtAlignment;
+        tStyleS.alignment               = TextAnchor.LowerLeft;
         tStyleL.normal.textColor        = textColor;
         tStyleL.alignment               = txtAlignment;
 //        var tex2D = new Texture2D(2, 2);
@@ -1200,7 +1257,7 @@ public class UIParams {
 //        var tex2 = new Texture2D(2, 2);
 //        tex2.SetPixels(new Color[]{Color.gray, Color.grey});
 //        tStyleL.active.background = tStyleL.onActive.background = tex2;
-        tStyle.stretchWidth = true;
+        //tStyle.stretchWidth = true;
 
         textStyle.normal.textColor      = textColor;
         textStyleSC.normal.textColor    = textColor;
@@ -1241,6 +1298,7 @@ public class UIParams {
         lStyleB.fontSize       = fontSize;
 
         lStyleS.fontSize       = fontSizeS;
+        lStyleRS.fontSize      = fontSizeS;
 
         bStyle.fontSize        = fontSize;
         bStyleSC.fontSize      = fontSizeS;
@@ -1261,23 +1319,26 @@ public class UIParams {
         InitFBRect();
         InitModalRect();
 
+        subConWidth = winRect.width - margin * 2;
+        optBtnHeight = GUILayout.Height(itemHeight);
         // sub
-        optSubConWidth  = GUILayout.Width(winRect.width - margin * 2);
+        optSubConWidth  = GUILayout.Width(subConWidth);
         optSubConHeight = GUILayout.Height(winRect.height - unitHeight *3f);
         optSubConHalfWidth = GUILayout.Width((winRect.width - marginL*2)*0.5f); // margin値が小さい前提になってしまっている
+        optSLabelWidth   = GUILayout.Width(fontSizeS * 6f);
 
         mainRect.Set(      margin, unitHeight * 5 + margin, winRect.width - margin * 2, winRect.height - unitHeight *6.5f);
         textureRect.Set(   margin, unitHeight,     winRect.width - margin * 2, winRect.height - unitHeight * 2.5f);
         float baseWidth = textureRect.width - 20;
         optBtnWidth   = GUILayout.Width(baseWidth * 0.09f);
         optContentWidth  = GUILayout.MaxWidth(baseWidth * 0.69f);
-        optSlotNameWidth = GUILayout.MaxWidth(fontSize * 12f * 0.47f);
+        optCategoryWidth = GUILayout.MaxWidth(fontSize * 12f * 0.47f);
+        optSlotWidth     = GUILayout.Width(fontSizeS * 14f * 0.6f);// nouse
 
         nodeSelectRect.Set(margin, unitHeight * 2, winRect.width - margin * 2, winRect.height - unitHeight * 4.5f);
         colorRect.Set(     margin, unitHeight * 2, winRect.width - margin * 3, winRect.height - unitHeight * 4);
         labelRect.Set(     0,      0,              winRect.width - margin * 2, itemHeight*1.2f);
         subRect.Set(       0,      itemHeight,     winRect.width - margin * 2, itemHeight);
-        closeRect.Set(     margin, winRect.height - unitHeight,  winRect.width - margin * 2, itemHeight);
 
         foreach (var func in updaters) {
             func(this);
