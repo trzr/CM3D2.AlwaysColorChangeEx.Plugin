@@ -124,5 +124,6 @@ CustomJsonWriter.csのみ、[MITライセンス](http://www.jsonfx.net/license/)
     - 未読み込みのスロットは除外
 
 #### 以前の更新履歴
- * [Releases](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/Releases)を参照
+ * [Releases](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/releases)
+ を参照
  * プロジェクトリネーム( **0.1.0.0** )以前の履歴は、[旧プロジェクト](https://github.com/trzr/CM3D2.AlwaysColorChange.Plugin#-%E6%9B%B4%E6%96%B0%E5%B1%A5%E6%AD%B4)を参照
