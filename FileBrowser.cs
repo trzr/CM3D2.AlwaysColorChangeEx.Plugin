@@ -2,328 +2,252 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
+namespace CM3D2.AlwaysColorChangeEx.Plugin {
 /*
-    File browser for selecting files or folders at runtime.
+ *   File browser for selecting files or folders at runtime.
  */
-
-public enum FileBrowserType
-{
+public enum FileBrowserType {
     File,
     Directory
 }
 
 public class FileBrowser
 {
-
     // Called when the user clicks cancel or select
     public delegate void FinishedCallback(string path);
     // Defaults to working directory
-    public string CurrentDirectory
-    {
-        get
-        {
-            return m_currentDirectory;
+    public string CurrentDirectory {
+        get {
+            return currentDir;
         }
-        set
-        {
+        set {
             SetNewDirectory(value);
             SwitchDirectoryNow();
         }
     }
-    protected string m_currentDirectory;
+    protected string currentDir;
     // Optional pattern for filtering selectable files/folders. See:
     // http://msdn.microsoft.com/en-us/library/wz42302f(v=VS.90).aspx
     // and
     // http://msdn.microsoft.com/en-us/library/6ff71z1w(v=VS.90).aspx
-    public string[] SelectionPatterns
-    {
-        get
-        {
-            return m_filePatterns;
+    public string[] SelectionPatterns {
+        get {
+            return filePatterns;
         }
-        set
-        {
-            m_filePatterns = value;
+        set {
+            filePatterns = value;
             ReadDirectoryContents();
         }
     }
-    protected string[] m_filePatterns;
+    protected string[] filePatterns;
 
     // Optional image for directories
-    public Texture2D DirectoryImage
-    {
-        get
-        {
-            return m_directoryImage;
-        }
-        set
-        {
-            m_directoryImage = value;
-            BuildContent();
-        }
-    }
-    protected Texture2D m_directoryImage;
-
+    public Texture2D DirectoryImage { get; set; }
     // Optional image for files
-    public Texture2D FileImage
-    {
-        get
-        {
-            return m_fileImage;
-        }
-        set
-        {
-            m_fileImage = value;
-            BuildContent();
-        }
-    }
-    protected Texture2D m_fileImage;
+    public Texture2D FileImage { get; set; }
+    public Texture2D NoFileImage { get; set; }
+    public GUIStyle labelStyle = new GUIStyle("Label");
 
     // Browser type. Defaults to File, but can be set to Folder
-    public FileBrowserType BrowserType
-    {
-        get
-        {
-            return m_browserType;
+    public FileBrowserType BrowserType {
+        get {
+            return browserType;
         }
-        set
-        {
-            m_browserType = value;
+        set {
+            browserType = value;
             ReadDirectoryContents();
         }
     }
-    protected FileBrowserType m_browserType;
-    protected string m_newDirectory;
-    protected string[] m_currentDirectoryParts;
+    protected FileBrowserType browserType;
+    protected string newDir;
+    protected string[] currentDirParts;
 
-    protected string[] m_files;
-    protected GUIContent[] m_filesWithImages;
-    protected int m_selectedFile;
+    protected string[] files;
+    protected GUIContent[] filesWithImages;
+    protected int selectedFile;
+    protected string selectedName = string.Empty;
 
-    protected string[] m_nonMatchingFiles;
-    protected GUIContent[] m_nonMatchingFilesWithImages;
-    protected int m_selectedNonMatchingDirectory;
+    protected string[] nonMatchingFiles;
+    protected GUIContent[] nonMatchingFilesWithImages;
+    protected int selectedNonMatchingDirs;
 
-    protected string[] m_directories;
-    protected GUIContent[] m_directoriesWithImages;
-    protected int m_selectedDirectory;
+    protected string[] directories;
+    protected GUIContent[] dirsWithImages;
+    protected int selectedDir;
 
-    protected string[] m_nonMatchingDirectories;
-    protected GUIContent[] m_nonMatchingDirectoriesWithImages;
+    protected string[] nonMatchingDirs;
+    protected GUIContent[] nonMatchingDirsWithImages;
 
-    protected bool m_currentDirectoryMatches;
+    protected bool currentDirMatches;
 
-    protected GUIStyle CentredText
-    {
-        get
-        {
-            if (m_centredText == null)
-            {
-                m_centredText = new GUIStyle(GUI.skin.label);
-                m_centredText.alignment = TextAnchor.MiddleLeft;
-                m_centredText.fixedHeight = GUI.skin.button.fixedHeight;
+    protected GUIStyle CentredText {
+        get {
+            if (centredText == null) {
+                centredText = new GUIStyle(GUI.skin.label);
+                centredText.alignment = TextAnchor.MiddleLeft;
+                centredText.fixedHeight = GUI.skin.button.fixedHeight;
             }
-            return m_centredText;
+            return centredText;
         }
     }
-    protected GUIStyle m_centredText;
+    protected GUIStyle centredText;
 
-    protected string m_name;
-    protected Rect m_screenRect;
-
-    protected Vector2 m_scrollPosition;
-
-    protected FinishedCallback m_callback;
+    protected string name;
+    protected Rect screenRect;
+    protected Vector2 scrollPosition;
+    protected FinishedCallback callback;
 
     // Browsers need at least a rect, name and callback
     public FileBrowser(Rect screenRect, string name, FinishedCallback callback)
     {
-        m_name = name;
-        m_screenRect = screenRect;
-        m_browserType = FileBrowserType.File;
-        m_callback = callback;
+        this.name = name;
+        this.screenRect = screenRect;
+        this.browserType = FileBrowserType.File;
+        this.callback = callback;
         SetNewDirectory(Directory.GetCurrentDirectory());
         SwitchDirectoryNow();
     }
 
     protected void SetNewDirectory(string directory)
     {
-        m_newDirectory = directory;
+        newDir = directory;
     }
-
     protected void SwitchDirectoryNow()
     {
-        if (m_newDirectory == null || m_currentDirectory == m_newDirectory)
-        {
-            return;
-        }
-        m_currentDirectory = m_newDirectory;
-        m_scrollPosition = Vector2.zero;
-        m_selectedDirectory = m_selectedNonMatchingDirectory = m_selectedFile = -1;
+        if (newDir == null || currentDir == newDir) return;
+
+        currentDir = newDir;
+        scrollPosition = Vector2.zero;
+        selectedDir = selectedNonMatchingDirs = selectedFile = -1;
+        //selectedName = string.Empty;
         ReadDirectoryContents();
     }
-
     protected void ReadDirectoryContents()
     {
-        if (m_currentDirectory == "/")
-        {
-            m_currentDirectoryParts = new string[] { "" };
-            m_currentDirectoryMatches = false;
-        }
-        else
-        {
-            m_currentDirectoryParts = m_currentDirectory.Split(Path.DirectorySeparatorChar);
-            if (SelectionPatterns != null)
-            {
-                m_currentDirectoryMatches = false;
-                foreach (string pattern in SelectionPatterns)
-                {
-                    string directoryName = Path.GetDirectoryName(m_currentDirectory);
-                    if (directoryName != null)
-                    {
-                        string[] generation = Directory.GetDirectories(
-                            directoryName,
-                            pattern
-                        );
-                        m_currentDirectoryMatches = Array.IndexOf(generation, m_currentDirectory) >= 0;
-                        if (m_currentDirectoryMatches)
-                        {
-                            break;
-                        }
-                    }
+        if (currentDir == "/") {
+            currentDirParts = new string[] { "" };
+            currentDirMatches = false;
+
+        } else {
+            currentDirParts = currentDir.Split(Path.DirectorySeparatorChar);
+            if (SelectionPatterns != null) {
+                currentDirMatches = false;
+                foreach (string pattern in SelectionPatterns) {
+                    string dirName = Path.GetDirectoryName(currentDir);
+                    if (dirName == null) continue;
+
+                    string[] generated = Directory.GetDirectories(dirName, pattern);
+                    currentDirMatches = Array.IndexOf(generated, currentDir) >= 0;
+                    if (currentDirMatches) break;
                 }
-            }
-            else
-            {
-                m_currentDirectoryMatches = false;
+            } else {
+                currentDirMatches = false;
             }
         }
 
-        if (BrowserType == FileBrowserType.File || SelectionPatterns == null)
-        {
-            m_directories = Directory.GetDirectories(m_currentDirectory);
-            m_nonMatchingDirectories = new string[0];
-        }
-        else
-        {
-            List<string> list = new List<string>();
-            foreach (var pattern in SelectionPatterns)
-            {
-                var arr = Directory.GetDirectories(m_currentDirectory, pattern);
+        if (BrowserType == FileBrowserType.File || SelectionPatterns == null) {
+            directories = Directory.GetDirectories(currentDir);
+            nonMatchingDirs = new string[0];
+        } else {
+            var list = new List<string>();
+            foreach (var pattern in SelectionPatterns) {
+                var arr = Directory.GetDirectories(currentDir, pattern);
                 list.AddRange(arr);
             }
-            m_directories = list.ToArray();
-            var nonMatchingDirectories = new List<string>();
-            foreach (string directoryPath in Directory.GetDirectories(m_currentDirectory))
-            {
-                if (Array.IndexOf(m_directories, directoryPath) < 0)
-                {
-                    nonMatchingDirectories.Add(directoryPath);
+            directories = list.ToArray();
+            var nonMatchingDirList = new List<string>();
+            foreach (var subDir in Directory.GetDirectories(currentDir)) {
+                if (Array.IndexOf(directories, subDir) < 0) {
+                    nonMatchingDirList.Add(subDir);
                 }
             }
-            m_nonMatchingDirectories = nonMatchingDirectories.ToArray();
-            for (int i = 0; i < m_nonMatchingDirectories.Length; ++i)
-            {
-                int lastSeparator = m_nonMatchingDirectories[i].LastIndexOf(Path.DirectorySeparatorChar);
-                m_nonMatchingDirectories[i] = m_nonMatchingDirectories[i].Substring(lastSeparator + 1);
+            nonMatchingDirs = nonMatchingDirList.ToArray();
+            for (int i = 0; i < nonMatchingDirs.Length; ++i) {
+                int lastSeparator = nonMatchingDirs[i].LastIndexOf(Path.DirectorySeparatorChar);
+                nonMatchingDirs[i] = nonMatchingDirs[i].Substring(lastSeparator + 1);
             }
-            Array.Sort(m_nonMatchingDirectories);
+            Array.Sort(nonMatchingDirs);
         }
 
-        for (int i = 0; i < m_directories.Length; ++i)
-        {
-            m_directories[i] = m_directories[i].Substring(m_directories[i].LastIndexOf(Path.DirectorySeparatorChar) + 1);
+        for (int i = 0; i < directories.Length; ++i) {
+            directories[i] = directories[i].Substring(directories[i].LastIndexOf(Path.DirectorySeparatorChar) + 1);
         }
 
-        if (BrowserType == FileBrowserType.Directory || SelectionPatterns == null)
-        {
-            m_files = Directory.GetFiles(m_currentDirectory);
-            m_nonMatchingFiles = new string[0];
-        }
-        else
-        {
-            m_files = new string[0];
-            if (SelectionPatterns != null)
-            {
-                List<string> list = new List<string>();
-                if (m_files != null)
-                {
-                    list.AddRange(m_files);
-                }
-                foreach (string pattern in SelectionPatterns)
-                {
-                    var files = Directory.GetFiles(m_currentDirectory, pattern);
-                    if (files.Length > 0)
-                    {
-                        list.AddRange(files);
+        if (BrowserType == FileBrowserType.Directory || SelectionPatterns == null) {
+            files = Directory.GetFiles(currentDir);
+            nonMatchingFiles = new string[0];
+
+        } else {
+            if (SelectionPatterns != null) {
+                var list = new List<string>();
+                foreach (var pattern in SelectionPatterns) {
+                    var fileList = Directory.GetFiles(currentDir, pattern);
+                    if (fileList.Length > 0) {
+                        list.AddRange(fileList);
                     }
                 }
-                m_files = list.ToArray();
+                files = list.ToArray();
+            } else {
+                files = new string[0];
             }
-            var nonMatchingFiles = new List<string>();
-            foreach (string filePath in Directory.GetFiles(m_currentDirectory))
-            {
-                if (Array.IndexOf(m_files, filePath) < 0)
-                {
-                    nonMatchingFiles.Add(filePath);
+
+            var nonMatchingFileList = new List<string>();
+            foreach (string filePath in Directory.GetFiles(currentDir)) {
+                if (Array.IndexOf(files, filePath) < 0) {
+                    nonMatchingFileList.Add(filePath);
                 }
             }
-            m_nonMatchingFiles = nonMatchingFiles.ToArray();
-            for (int i = 0; i < m_nonMatchingFiles.Length; ++i)
-            {
-                m_nonMatchingFiles[i] = Path.GetFileName(m_nonMatchingFiles[i]);
+            nonMatchingFiles = nonMatchingFileList.ToArray();
+            for (int i = 0; i < nonMatchingFiles.Length; ++i) {
+                nonMatchingFiles[i] = Path.GetFileName(nonMatchingFiles[i]);
             }
-            Array.Sort(m_nonMatchingFiles);
+            Array.Sort(nonMatchingFiles);
         }
-        for (int i = 0; i < m_files.Length; ++i)
-        {
-            m_files[i] = Path.GetFileName(m_files[i]);
+        for (int i = 0; i < files.Length; ++i) {
+            files[i] = Path.GetFileName(files[i]);
         }
-        Array.Sort(m_files);
+        Array.Sort(files);
         BuildContent();
-        m_newDirectory = null;
+        newDir = null;
     }
 
     protected void BuildContent()
     {
-        m_directoriesWithImages = new GUIContent[m_directories.Length];
-        for (int i = 0; i < m_directoriesWithImages.Length; ++i)
-        {
-            m_directoriesWithImages[i] = new GUIContent(m_directories[i], DirectoryImage);
+        dirsWithImages = new GUIContent[directories.Length];
+        for (int i = 0; i < dirsWithImages.Length; ++i) {
+            dirsWithImages[i] = new GUIContent(directories[i], DirectoryImage);
         }
-        m_nonMatchingDirectoriesWithImages = new GUIContent[m_nonMatchingDirectories.Length];
-        for (int i = 0; i < m_nonMatchingDirectoriesWithImages.Length; ++i)
-        {
-            m_nonMatchingDirectoriesWithImages[i] = new GUIContent(m_nonMatchingDirectories[i], DirectoryImage);
+        nonMatchingDirsWithImages = new GUIContent[nonMatchingDirs.Length];
+        for (int i = 0; i < nonMatchingDirsWithImages.Length; ++i) {
+            nonMatchingDirsWithImages[i] = new GUIContent(nonMatchingDirs[i], DirectoryImage);
         }
-        m_filesWithImages = new GUIContent[m_files.Length];
-        for (int i = 0; i < m_filesWithImages.Length; ++i)
-        {
-            m_filesWithImages[i] = new GUIContent(m_files[i], FileImage);
+        filesWithImages = new GUIContent[files.Length];
+        for (int i = 0; i < filesWithImages.Length; ++i) {
+            filesWithImages[i] = new GUIContent(files[i], FileImage);
         }
-        m_nonMatchingFilesWithImages = new GUIContent[m_nonMatchingFiles.Length];
-        for (int i = 0; i < m_nonMatchingFilesWithImages.Length; ++i)
-        {
-            m_nonMatchingFilesWithImages[i] = new GUIContent(m_nonMatchingFiles[i], FileImage);
+        nonMatchingFilesWithImages = new GUIContent[nonMatchingFiles.Length];
+        for (int i = 0; i < nonMatchingFilesWithImages.Length; ++i) {
+            nonMatchingFilesWithImages[i] = new GUIContent(nonMatchingFiles[i], NoFileImage);
         }
     }
 
     public void OnGUI()
     {
-        GUILayout.BeginArea(m_screenRect, m_name, GUI.skin.window);
+        GUILayout.BeginArea(screenRect, name, GUI.skin.window);
         GUILayout.BeginHorizontal();
         try {
-            for (int parentIndex = 0; parentIndex < m_currentDirectoryParts.Length; ++parentIndex) {
-                if (parentIndex == m_currentDirectoryParts.Length - 1) {
-                    GUILayout.Label(m_currentDirectoryParts[parentIndex], CentredText);
+            for (int parentIdx = 0; parentIdx < currentDirParts.Length; ++parentIdx) {
+                if (parentIdx == currentDirParts.Length - 1) {
+                    GUILayout.Label(currentDirParts[parentIdx], CentredText);
     
-                } else if (GUILayout.Button(m_currentDirectoryParts[parentIndex])) {
-                    string parentDirectoryName = m_currentDirectory;
-                    for (int i = m_currentDirectoryParts.Length - 1; i > parentIndex; --i) {
-                        parentDirectoryName = Path.GetDirectoryName(parentDirectoryName);
+                } else if (GUILayout.Button(currentDirParts[parentIdx])) {
+                    string parentDirName = currentDir;
+                    for (int i = currentDirParts.Length - 1; i > parentIdx; --i) {
+                        parentDirName = Path.GetDirectoryName(parentDirName);
                     }
-                    SetNewDirectory(parentDirectoryName);
+                    SetNewDirectory(parentDirName);
                 }
             }
     
@@ -331,66 +255,60 @@ public class FileBrowser
         } finally {
             GUILayout.EndHorizontal();
         }
-        m_scrollPosition = GUILayout.BeginScrollView(m_scrollPosition, false, true, 
+        scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, 
                                                      GUI.skin.horizontalScrollbar, 
                                                      GUI.skin.verticalScrollbar, GUI.skin.box );
-        m_selectedDirectory = GUILayoutx.SelectionList(m_selectedDirectory, m_directoriesWithImages, 
-                                                       DirectoryClickCallback);
-        if (m_selectedDirectory > -1) {
-            m_selectedFile = m_selectedNonMatchingDirectory = -1;
+        selectedDir = GUILayoutx.SelectionList(selectedDir, dirsWithImages, labelStyle, DirectoryClickCallback);
+        if (selectedDir > -1) {
+            selectedFile = selectedNonMatchingDirs = -1;
+            //selectedName = dirsWithImages[selectedDir].text;
         }
 
-        m_selectedNonMatchingDirectory = GUILayoutx.SelectionList(
-            m_selectedNonMatchingDirectory,
-            m_nonMatchingDirectoriesWithImages,
-            NonMatchingDirectoryClickCallback
-        );
-        if (m_selectedNonMatchingDirectory > -1) {
-            m_selectedDirectory = m_selectedFile = -1;
+        selectedNonMatchingDirs = GUILayoutx.SelectionList(selectedNonMatchingDirs, nonMatchingDirsWithImages, labelStyle, NonMatchingDirectoryClickCallback);
+        if (selectedNonMatchingDirs > -1) {
+            selectedDir = selectedFile = -1;
+            //selectedName = string.Empty;
         }
         GUI.enabled = BrowserType == FileBrowserType.File;
-        m_selectedFile = GUILayoutx.SelectionList(
-            m_selectedFile,
-            m_filesWithImages,
-            FileClickCallback
-        );
+        selectedFile = GUILayoutx.SelectionList(selectedFile, filesWithImages, labelStyle, FileClickCallback);
         GUI.enabled = true;
-        if (m_selectedFile > -1) {
-            m_selectedDirectory = m_selectedNonMatchingDirectory = -1;
+        if (selectedFile > -1) {
+            selectedDir = selectedNonMatchingDirs = -1;
+            //selectedName = filesWithImages[selectedDir].text;
         }
         GUI.enabled = false;
-        GUILayoutx.SelectionList( -1, m_nonMatchingFilesWithImages );
+        GUILayoutx.SelectionList( -1, nonMatchingFilesWithImages, labelStyle );
         GUI.enabled = true;
 
         GUILayout.EndScrollView();
         GUILayout.BeginHorizontal();
+        GUILayout.Label(selectedName);
         GUILayout.FlexibleSpace();
         if (GUILayout.Button("キャンセル", GUILayout.Width(120))) {
-            m_callback(null);
+            callback(null);
         }
         if (BrowserType == FileBrowserType.File) {
-            GUI.enabled = m_selectedFile > -1;
+            GUI.enabled = selectedFile > -1;
+            selectedName = GUI.enabled ? filesWithImages[selectedFile].text : string.Empty;
         } else {
             if (SelectionPatterns == null) {
-                GUI.enabled = m_selectedDirectory > -1;
+                GUI.enabled = selectedDir > -1;
+                selectedName = GUI.enabled ? dirsWithImages[selectedDir].text : string.Empty;
             } else {
-                GUI.enabled = m_selectedDirectory > -1 ||
-                    (
-                        m_currentDirectoryMatches &&
-                        m_selectedNonMatchingDirectory == -1 &&
-                        m_selectedFile == -1
-                    );
+                GUI.enabled = selectedDir > -1 ||
+                    (  currentDirMatches && selectedNonMatchingDirs == -1 && selectedFile == -1 );
+                selectedName = selectedDir > -1 ? dirsWithImages[selectedDir].text : string.Empty;
             }
         }
 
         if (GUILayout.Button("選択", GUILayout.Width(120))) {
             if (BrowserType == FileBrowserType.File) {
-                m_callback(Path.Combine(m_currentDirectory, m_files[m_selectedFile]));
+                callback(Path.Combine(currentDir, files[selectedFile]));
             } else {
-                if (m_selectedDirectory > -1) {
-                    m_callback(Path.Combine(m_currentDirectory, m_directories[m_selectedDirectory]));
+                if (selectedDir > -1) {
+                    callback(Path.Combine(currentDir, directories[selectedDir]));
                 } else {
-                    m_callback(m_currentDirectory);
+                    callback(currentDir);
                 }
             }
         }
@@ -405,99 +323,64 @@ public class FileBrowser
 
     protected void FileClickCallback(int i)
     {
-        if (BrowserType == FileBrowserType.File)
-        {
+        if (BrowserType == FileBrowserType.File) {
             //            m_callback(Path.Combine(m_currentDirectory, m_files[i]));
         }
     }
-
     protected void DirectoryClickCallback(int i)
     {
-        SetNewDirectory(Path.Combine(m_currentDirectory, m_directories[i]));
+        SetNewDirectory(Path.Combine(currentDir, directories[i]));
     }
-
     protected void NonMatchingDirectoryClickCallback(int i)
     {
-        SetNewDirectory(Path.Combine(m_currentDirectory, m_nonMatchingDirectories[i]));
+        SetNewDirectory(Path.Combine(currentDir, nonMatchingDirs[i]));
     }
-
 }
-
 
 public class GUILayoutx
 {
-
     public delegate void ClickCallback(int index);
-
-    public static int SelectionList(int selected, GUIContent[] list)
-    {
-        return SelectionList(selected, list, "Label", null);
-    }
 
     public static int SelectionList(int selected, GUIContent[] list, GUIStyle elementStyle)
     {
         return SelectionList(selected, list, elementStyle, null);
     }
-
-    public static int SelectionList(int selected, GUIContent[] list, ClickCallback callback)
-    {
-        return SelectionList(selected, list, "Label", callback);
-    }
-
     public static int SelectionList(int selected, GUIContent[] list, GUIStyle elementStyle, ClickCallback callback)
     {
-        for (int i = 0; i < list.Length; ++i)
-        {
+        for (int i = 0; i < list.Length; ++i) {
             Rect elementRect = GUILayoutUtility.GetRect(list[i], elementStyle);
-            bool hover = elementRect.Contains(Event.current.mousePosition);
-            if (hover && Event.current.type == EventType.MouseDown)
-            {
+            bool hover = elementRect.Contains(Event.current.mousePosition); 
+            if (hover && Event.current.type == EventType.MouseDown) {
                 selected = i;
                 callback(i);
                 Event.current.Use();
-            }
-            else if (Event.current.type == EventType.repaint)
-            {
+
+            } else if (Event.current.type == EventType.repaint) {
                 elementStyle.Draw(elementRect, list[i], hover, false, i == selected, false);
             }
         }
         return selected;
     }
-
-    public static int SelectionList(int selected, string[] list)
-    {
-        return SelectionList(selected, list, "Label", null);
-    }
-
     public static int SelectionList(int selected, string[] list, GUIStyle elementStyle)
     {
         return SelectionList(selected, list, elementStyle, null);
     }
-
-    public static int SelectionList(int selected, string[] list, ClickCallback callback)
-    {
-        return SelectionList(selected, list, "Label", callback);
-    }
-
     public static int SelectionList(int selected, string[] list, GUIStyle elementStyle, ClickCallback callback)
     {
         elementStyle.active.textColor = new Color(0.8f, 1f, 1f);
-        for (int i = 0; i < list.Length; ++i)
-        {
+        for (int i = 0; i < list.Length; ++i) {
             Rect elementRect = GUILayoutUtility.GetRect(new GUIContent(list[i]), elementStyle);
             bool hover = elementRect.Contains(Event.current.mousePosition);
-            if (hover && Event.current.type == EventType.MouseDown)
-            {
+            if (hover && Event.current.type == EventType.MouseDown) {
                 selected = i;
                 callback(i);
                 Event.current.Use();
-            }
-            else if (Event.current.type == EventType.repaint)
-            {
+            } else if (Event.current.type == EventType.repaint) {
                 elementStyle.Draw(elementRect, list[i], hover, false, i == selected, false);
             }
         }
         return selected;
     }
 
+}
 }

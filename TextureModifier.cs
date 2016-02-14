@@ -13,6 +13,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
 {
     public class TextureModifier
     {
+        private readonly static TextureModifier instance = new TextureModifier();
+        public static TextureModifier Instance {
+            get { return instance; }
+        }
+
         private FilterParams filterParams = new FilterParams();
         private OriginalTextureCache originalTexCache = new OriginalTextureCache();
 
@@ -48,7 +53,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
         }
 
         private StringBuilder CreateKey(params string[] names) {
-            var key = new StringBuilder();
+            int length=0;
+            foreach (var name in names) {
+                length += name.Length;
+            }
+            length += names.Length;// -1
+            var key = new StringBuilder(length);
+
             // wear/Dress_cmo_004_z2/Dress_cmo_004_z2_wear_2
             for (int i=0; i< names.Length; i++) {
                 if (i != 0) key.Append('/');
@@ -56,7 +67,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             }
             return key;
         }
-
         public void UpdateTex(Maid maid, Material[] slotMaterials, EditTarget texEdit) {
             // material 抽出 => texture 抽出
             if (slotMaterials.Length <=  texEdit.matNo) return;
@@ -74,6 +84,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
 
             // スライダー変更がなければ何もしない
             if (!filterParam.IsDirty) return;
+            //LogUtil.DebugLogF("Update Texture. slot={0}, material={0}, tex={1}", texEdit.slotName, mat.name, tex2d.name);
 
             FilterTexture(tex2d, filterParam);
         }
@@ -156,11 +167,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) {
                 return null;
             }
-            return string.Format("{0}/{1}/{2}/{3}"
-                , maid.Param.status.guid
-                , slotName
-                , material.name
-                , tex2d.name);
+
+            return CreateKey(maid.Param.status.guid, slotName, material.name, tex2d.name).ToString();
         }
 
         // 途中版
@@ -234,7 +242,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
 
             FilterTexture(texture, orgTex.texture, filter);
         }
-        public Texture2D Filter(Texture2D srcTex, FilterParam filter) 
+        public Texture2D ApplyFilter(Texture2D srcTex, FilterParam filter) 
         {
             var dstTex = UnityEngine.Object.Instantiate(srcTex) as Texture2D;
             FilterTexture(dstTex, srcTex, filter);
@@ -434,16 +442,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                         Dirty.Value = true;
                     }
                     if (GUILayout.Button("png出力", uiParams.bStyleSC)) {
-                        byte[] bytes = tex2d.EncodeToPNG();
-                        string dir = outUtil.GetExportDirectory();
-                        var date = DateTime.Now;
-                        string name = tex2d.name + "_" + date.ToString("MMddHHmmss") + ".png";
-                        string path = Path.Combine(dir, name);
-                        
-                        outUtil.WriteBytes(path, bytes);
-                        endTicks = date.Ticks + 10000000L * 10;
-                        message = name + "を出力しました";
-                        LogUtil.Log("png ファイルを出力しました。file=", path);
+                        try {
+                            byte[] bytes = tex2d.EncodeToPNG();
+                            string dir = outUtil.GetExportDirectory();
+                            var date = DateTime.Now;
+                            string name = tex2d.name + "_" + date.ToString("MMddHHmmss") + ".png";
+                            string path = Path.Combine(dir, name);
+                            
+                            outUtil.WriteBytes(path, bytes);
+                            endTicks = date.Ticks + 10000000L * 10;
+                            message = name + "を出力しました";
+                            LogUtil.Log("png ファイルを出力しました。file=", path);
+                        } catch(Exception e) {
+                            var date = DateTime.Now;
+                            endTicks = date.Ticks + 10000000L * 10;
+                            message = "png出力に失敗しました。";
+                            LogUtil.Log(message, e);
+                        }
                     }
                     GUILayout.Space(margin * 4f);
                 } finally {
@@ -464,7 +479,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 GUILayout.BeginHorizontal();
                 try {
                     GUILayout.Label(dirtyValue.Name, uiParams.lStyle, GUILayout.Width(64));
-                    GUILayout.Label(string.Format("{0:F0}", val), uiParams.lStyle, GUILayout.Width(32));
+                    GUILayout.Label(val.ToString("F0"), uiParams.lStyle, GUILayout.Width(32));
                     val = GUILayout.HorizontalSlider(val, dirtyValue.Min, dirtyValue.Max );
                     GUILayout.Space(margin *3);
                 } finally {

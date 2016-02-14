@@ -18,10 +18,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 return instance;
             }
         }
-        
-        private PrivateAccessor()
-        {
-        }
+
+        private PrivateAccessor() { }
         public static T Get<T>(object instance, string fieldName) {
             try {
                 var field =  instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);//  | BindingFlags.GetField | BindingFlags.SetField 

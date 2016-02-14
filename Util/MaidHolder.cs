@@ -10,7 +10,7 @@ using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 {
     /// <summary>
-    /// Description of MaidHolder.
+    /// 編集中のメイド情報を扱うデータホルダクラス
     /// </summary>
     public sealed class MaidHolder
     {
@@ -31,19 +31,26 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         private MaidHolder() {
             MaidName = string.Empty;
         }
-
+        public bool Applicable() {
+            return (currentMaid != null) && !currentMaid.boAllProcPropBUSY;
+        }
         public bool CurrentActivated() {
             return currentMaid != null && currentMaid.isActiveAndEnabled;
         }
-
         // enabledであればデータ参照可
         public bool CurrentEnabled() {
             return currentMaid != null && currentMaid.enabled;
         }
-        // メイドの更新
-        // 
-        // @return 別のメイドに変更された場合はtrueを返す
-        public bool UpdateMaid(Maid maid0, Action act) 
+        /// <summary>
+        /// メイドを更新する.
+        /// 名前が未指定の場合は、statusのlast_nameとfirst_nameから生成する.
+        /// 
+        /// </summary>
+        /// <param name="maid0">メイド</param>
+        /// <param name="name">メイドの名前</param>
+        /// <param name="act"></param>
+        /// <returns>別のメイドに変更された場合、trueを返す</returns>
+        public bool UpdateMaid(Maid maid0, string name, Action act) 
         {
             if (maid0 == null) {
                 // メイドリストから最初に有効なメイドを取得
@@ -59,7 +66,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             if (currentMaid == maid0) return false;
             currentMaid = maid0;
             if (maid0 != null) {
-                MaidName = currentMaid.Param.status.last_name + " " + currentMaid.Param.status.first_name;                
+                MaidName = name?? currentMaid.Param.status.last_name + " " + currentMaid.Param.status.first_name;                
             } else {
                 MaidName = "(not selected)";
             }
@@ -67,12 +74,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             act();
             return true;
         }
-        // メイドの更新
-        // 
-        // @return 別のメイドに変更された場合はtrueを返す
-        public bool UpdateMaid(Action act) 
-        {
-            return UpdateMaid(null, act);
+        public bool UpdateMaid(Action act) {
+            return UpdateMaid(null, null, act);
         }
         public string GetCurrentMenuFile() 
         {
@@ -117,7 +120,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             foreach (Transform tf in componentsInChildren) {
                 Renderer r = tf.renderer;
                 if (r != null && r.material != null && r.materials.Length > 0 && r.material.shader != null) {
-                    // 確認：複数回ヒットするケースが存在するのか？基本はないが…
+                    // 確認：複数回ヒットするケースが存在するか？
+                    // もし、存在するとマテリアル番号と一致しなくなる恐れがあるため存在しないはずだが…
                     return r.materials;
 
                     //// 確認用ログ
@@ -166,7 +170,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
             return null;
         }
-
         private List<Renderer> GetRenderers(string slotName)
         {
             TBody body = currentMaid.body0;
@@ -178,8 +181,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 return null;
             }
             var rendererList = new List<Renderer>();
-            Transform[] componentsInChildren = obj.transform.GetComponentsInChildren<Transform>(true);
-            foreach (Transform tf in componentsInChildren) {
+            Transform[] children = obj.transform.GetComponentsInChildren<Transform>(true);
+            foreach (Transform tf in children) {
                 Renderer r = tf.renderer;
                 if (r != null) {
                     rendererList.Add(r);
@@ -187,12 +190,21 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
             return rendererList;
         }
-
-        public void SetDelNodes(Dictionary<string, bool> dDelNodes, bool bApply) 
+        public void SetDelNodes(PresetData preset, bool bApply) {
+            SetDelNodes(currentMaid, preset.delNodes, bApply);
+        }
+        public void SetDelNodes(Maid maid, PresetData preset, bool bApply) {
+            // if (preset.delNodes == null) return;
+            SetDelNodes(maid, preset.delNodes, bApply);
+        }
+        public void SetDelNodes(Dictionary<string, bool> dDelNodes, bool bApply) {
+            SetDelNodes(currentMaid, dDelNodes, bApply);
+        }
+        public void SetDelNodes(Maid maid, Dictionary<string, bool> dDelNodes, bool bApply) 
         {
             if (!dDelNodes.Any()) return;
 
-            foreach (TBodySkin slot in currentMaid.body0.goSlot) {
+            foreach (TBodySkin slot in maid.body0.goSlot) {
                 slot.boVisible = true;
                 foreach (KeyValuePair<string, bool> entry in dDelNodes) {
                     if (slot.m_dicDelNodeBody.ContainsKey(entry.Key)) {
@@ -202,7 +214,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
             if (bApply) FixFlag();
         }
-            
         private Hashtable GetMaskTable() 
         {
             return currentMaid == null 
@@ -210,7 +221,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 : PrivateAccessor.Get<Hashtable>(currentMaid.body0, "m_hFoceHide");
         }
 
-        public void SetSlotVisibles(Dictionary<TBody.SlotID, MaskInfo> maskDic, bool tmp) 
+        /// <summary>
+        /// スロットの可視性を設定する.
+        /// temporaryにtrueを設定すると可視性のみ設定するがfalseの場合は、スロットへのマスク設定を行う
+        /// </summary>
+        /// <param name="maskDic">マスク設定Dic</param>
+        /// <param name="temporary">一時適用フラグ</param>
+        public void SetSlotVisibles(Dictionary<TBody.SlotID, MaskInfo> maskDic, bool temporary) 
         {
 //            Hashtable m_foceHide = GetMaskTable();
 //            if (m_foceHide == null) {
@@ -226,7 +243,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 
                 maskInfo.slot.boVisible = maskInfo.value;
 
-                if (!tmp) {
+                if (!temporary) {
                     TBodySkin slot = currentMaid.body0.GetSlot((int)pair.Key);
                     if (!maskInfo.value) {
                         slot.listMaskSlot.Add((int)pair.Key);
@@ -243,7 +260,35 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 }
             }
         }
+        public void SetMaskSlots(PresetData preset) {
+            SetMaskSlots(currentMaid, preset.slots);
+        }
+        public void SetMaskSlots(Maid maid, PresetData preset) {
+            SetMaskSlots(maid, preset.slots);
+        }
+        public void SetMaskSlots(List<CCSlot> slotList) {
+            SetMaskSlots(currentMaid, slotList);
+        }
+        public void SetMaskSlots(Maid maid, List<CCSlot> slotList) 
+        {
+            foreach (var slotItem in slotList) {
+                // 未読み込みの場合はスキップ            
+                if (slotItem.mask == SlotState.NotLoaded) continue;
 
+                TBodySkin slot = maid.body0.GetSlot((int)slotItem.id);
+                if (slotItem.mask == SlotState.Masked) {
+                    slot.listMaskSlot.Add((int)slotItem.id);
+
+                } else if (slotItem.mask == SlotState.Displayed) {
+                    // 全スロットから削除する
+                    foreach (TBodySkin tBodySkin in maid.body0.goSlot) {
+                        tBodySkin.listMaskSlot.Remove((int)slotItem.id);
+                    }
+                }
+                // NonDisplayの場合は何もしない
+
+            }
+        }
         // 表示状態を変更するのみ。
         // フラグを適用することで元に戻せる
         public void SetAllVisible() 
@@ -262,12 +307,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
             FixFlag();
         }
-
-        public void FixFlag() 
+        public void FixFlag() {
+            FixFlag(currentMaid);
+        }
+        public void FixFlag(Maid maid) 
         {
-            currentMaid.body0.FixMaskFlag();
-            currentMaid.body0.FixVisibleFlag(false);
-            currentMaid.AllProcPropSeqStart();
+            maid.body0.FixMaskFlag();
+            maid.body0.FixVisibleFlag(false);
+            maid.AllProcPropSeqStart();
         }
     }
 }

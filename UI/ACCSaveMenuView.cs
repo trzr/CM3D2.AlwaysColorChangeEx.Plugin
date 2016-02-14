@@ -1,7 +1,4 @@
-﻿/*
- * 保存ダイアログ
- */
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -14,12 +11,12 @@ using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 {
     /// <summary>
-    /// Description of ACCSaveModView.
+    /// Exportメニューのビュークラス
     /// </summary>
     public class ACCSaveMenuView
     {
         private static readonly Settings settings = Settings.Instance;
-        private static readonly FileUtilEx outUtil = FileUtilEx.Instance;
+        private static readonly FileUtilEx fileUtil = FileUtilEx.Instance;
 
         public static void Init(UIParams uiparams) {
             if (uiParams == null) {
@@ -38,6 +35,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 
         private static int fontSize;
         private static int fontSizeS;
+        private static float indentWidth;
         private static GUILayoutOption optLabelWidth;
         private static GUILayoutOption modalHalfWidth;
         private static GUILayoutOption optSubLabelWidth;
@@ -48,10 +46,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         private static GUILayoutOption optScrlWidth;
         private static GUILayoutOption optScrlHeight;
         private static GUILayoutOption optTwoLineHeight;
-        private static float indentWidth;
 
         private static void InitUIParams(UIParams uiparam) {
-
         }
         private static Action<UIParams> updateUI = (uiparams) => {
             // opt
@@ -59,7 +55,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             modalHalfWidth   = GUILayout.Width(uiparams.modalRect.width * 0.34f);
             optSubLabelWidth = GUILayout.Width(uiparams.modalRect.width * 0.22f);
             optSubItemHeight = GUILayout.MaxHeight(uiparams.itemHeight*0.8f);
-
 
             fontSize  = uiparams.fontSize;
             fontSizeS = uiparams.fontSizeS;
@@ -120,7 +115,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             if (trgtMenu == null) return;
 
             scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition, optScrlWidth, optScrlHeight);
-            float indentWidth = uiParams.margin*8f;
 
             GUILayout.BeginVertical();
             GUILayout.Space(uiParams.unitHeight);
@@ -466,7 +460,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             if (GUILayout.Button("保存", uiParams.bStyle)) {
                 if (IsWritable(trgtMenu, ignoreExist)) {
                     if (SaveFiles(trgtMenu)) {
-                        var logmsg = "エクスポートが完了しました。出力先=" +  outUtil.GetACCDirectory(trgtMenu.editfile);
+                        var logmsg = "エクスポートが完了しました。出力先=" +  fileUtil.GetACCDirectory(trgtMenu.editfile);
                         NUty.WinMessageBox(NUty.GetWindowHandle(), logmsg, "情報", NUty.MSGBOX.MB_OK);
                         //showDialog = false;
                     }
@@ -482,6 +476,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             GUILayout.EndHorizontal();
         }
 
+        // TODO ファイル名となりうるフィールドの文字列検証（入力フィールドの変更時に行う）
+        //private bool isSavable;
+        // private void CheckFileName(string filename) {
+        //     isSavable &= filename.IndexOfAny(INVALID_FILENAMECHARS) < 0;
+        //}
+
         // ファイルの重複確認
         private bool IsWritable(ACCMenu menu, bool ignoreExists) {
             if (menu.editfile.Length == 0) {
@@ -489,7 +489,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             }
             bool registed = false;;
 
-            string outDir = outUtil.GetACCDirectory();
+            string outDir = fileUtil.GetACCDirectory();
             outDir = Path.Combine(outDir, trgtMenu.editfile);
             if (!ignoreExists && Directory.Exists(outDir)) {
                 LogUtil.DebugLog("出力ディレクトリが既に存在します。", outDir);
@@ -504,7 +504,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             var menufile = menu.EditFileName();
             writeFiles.Add(menufile);
             menu.editfileExist = false;
-            if (outUtil.Exists(menufile)) {
+            if (fileUtil.Exists(menufile)) {
                 LogUtil.DebugLog("既に登録済みのファイル有り", menufile);
                 registed = true;
                 menu.editfileExist = true;
@@ -513,7 +513,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             // icon
             menu.editiconExist = false;
             string iconfilepath = menu.EditIconFileName();
-            if (outUtil.Exists(iconfilepath)) {
+            if (fileUtil.Exists(iconfilepath)) {
                 LogUtil.DebugLogF("アイコンファイル({0})は既に登録済み", iconfilepath);
                 registed = true;
                 menu.editiconExist = true;
@@ -532,7 +532,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                         item.editnameExist = true; // フラグを分けるべきか？
                         continue;
                     }
-                    if (outUtil.Exists(filename)) {
+                    if (fileUtil.Exists(filename)) {
                         LogUtil.DebugLog("既に登録済みのファイル有り", filename);
                         registed = true;
                         item.editnameExist = true;
@@ -553,7 +553,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                         trgtMat.editfileExist = true; // フラグを分けるべきか？
                         continue;                        
                     }
-                    if (outUtil.Exists(filename)) {
+                    if (fileUtil.Exists(filename)) {
                         LogUtil.DebugLog("既に登録済みのファイル有り", filename);
                         registed = true;
                         trgtMat.editfileExist = true;
@@ -568,7 +568,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                             trgtMat.editfileExist = true; // フラグを分けるべきか？
                             continue;                        
                         }
-                        if (outUtil.Exists(pmatfile)) {
+                        if (fileUtil.Exists(pmatfile)) {
                             LogUtil.DebugLog("既に登録済みのファイル有り", pmatfile);
                             registed = true;
                             trgtMat.editfileExist = true;
@@ -587,7 +587,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                             trgtTex.editnameExist = true; // フラグを分けるべきか？
                             continue;                        
                         }
-                        if (outUtil.Exists(texfilename)) {
+                        if (fileUtil.Exists(texfilename)) {
                             LogUtil.DebugLog("既に登録済みのファイル有り", texfilename);
                             registed = true;
                             trgtTex.editnameExist = true;
@@ -607,7 +607,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     res.editfileExist = true; // フラグを分けるべきか？
                     continue;                        
                 }
-                if (outUtil.Exists(filename)) {
+                if (fileUtil.Exists(filename)) {
                     LogUtil.DebugLog("既に登録済みのファイル有り", filename);
                     registed = true;
                     res.editfileExist = true;
@@ -619,7 +619,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         }
 
         public bool SaveFiles(ACCMenu menu) {
-            var outDir = outUtil.GetACCDirectory(trgtMenu.editfile);
+            var outDir = fileUtil.GetACCDirectory(trgtMenu.editfile);
             if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
 
             LogUtil.DebugLog("output path", outDir);
@@ -634,7 +634,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             string iconfilepath = Path.Combine(outDir, menu.EditIconFileName());
             writeFiles.Add(iconfilepath);
             string icontxt = settings.txtPrefixTex + iconfilepath;
-            outUtil.CopyTex(menu.icon, iconfilepath, icontxt, null);
+            fileUtil.CopyTex(menu.icon, iconfilepath, icontxt, null);
             LogUtil.DebugLog("texファイルを出力しました。", iconfilepath);
 
             // model 出力 (additem)
@@ -653,7 +653,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     // material slotとmatNoで特定
                     // texture  propName
                     // 必要に応じてtex出力
-                    outUtil.WriteModelFile(infile, modelfilepath, slotMat);
+                    fileUtil.WriteModelFile(infile, modelfilepath, slotMat);
                     LogUtil.DebugLog("modelファイルを出力しました。", modelfilepath);
                 }
             }
@@ -667,14 +667,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                         if (HasAlreadyWritten(writeFiles, filename)) continue;
     
                         string matefilepath = Path.Combine(outDir, filename);
-                        outUtil.WriteMateFile(trgtMat.filename, matefilepath, trgtMat);
+                        fileUtil.WriteMateFile(trgtMat.filename, matefilepath, trgtMat);
                         LogUtil.DebugLog("mateファイルを出力しました。", matefilepath);
 
                         if (trgtMat.needPmatChange) {
                             var name = Path.GetFileNameWithoutExtension(filename);
                             var pmatfile = name + FileConst.EXT_PMAT;
                             string pmatfilepath = Path.Combine(outDir, pmatfile);
-                            outUtil.WritePmat(pmatfilepath, trgtMat.editname, 
+                            fileUtil.WritePmat(pmatfilepath, trgtMat.editname, 
                                               trgtMat.RenderQueue(), trgtMat.ShaderName());
                             LogUtil.DebugLog("pmatファイルを出力しました。", pmatfilepath);
                         }
@@ -694,7 +694,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                         if (HasAlreadyWritten(writeFiles, texfilename)) continue;
                             
                         string texfilepath = Path.Combine(outDir, texfilename);
-                        outUtil.WriteTexFile(texfilepath, trgtTex.EditTxtPath(), tex2d.EncodeToPNG());
+                        fileUtil.WriteTexFile(texfilepath, trgtTex.EditTxtPath(), tex2d.EncodeToPNG());
                         LogUtil.DebugLog("texファイルを出力しました。", texfilepath);
                     }
                 }
@@ -711,7 +711,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 
 
                 string menufilepath = Path.Combine(outDir, filename);
-                var toCreateFiles = outUtil.WriteMenuFile(res.filename, menufilepath, res);
+                var toCreateFiles = fileUtil.WriteMenuFile(res.filename, menufilepath, res);
                 LogUtil.DebugLog("menuファイルを出力しました。", menufilepath);
 
                 foreach (var toCreate in toCreateFiles) {
@@ -723,7 +723,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                         string modelfilepath = Path.Combine(outDir, filename0);
                         SlotMaterials slotMat = menu.slotMaterials[toCreate.item.slot];
                         // TODO リプレースが想定される情報であるかチェック 
-                        outUtil.WriteModelFile(toCreate.source, modelfilepath, slotMat);
+                        fileUtil.WriteModelFile(toCreate.source, modelfilepath, slotMat);
                         
                     // .mate出力
                     } else if (toCreate.material != null) {
@@ -733,7 +733,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 
                         // mate出力==別のtexファイルを出力する可能性有り
                         string matefilepath = Path.Combine(outDir, filename0);
-                        outUtil.WriteMateFile(toCreate.source, matefilepath, trgtMat);
+                        fileUtil.WriteMateFile(toCreate.source, matefilepath, trgtMat);
                         // マテリアル名は上位と同じにして、同一pmatを使用する
                         //if (trgtMat.needPmatChange) {
                         //    var name = Path.GetFileNameWithoutExtension(filename);
@@ -761,7 +761,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                             if (!tex.fileChanged) { // texファイル変更済の場合はロードされたデータ済みから出力（そのままtex2dを使用)
                                 loadedTex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
                                 string texfile = tex.workfilename + FileConst.EXT_TEXTURE;
-                                if (!outUtil.Exists(texfile)) {
+                                if (!fileUtil.Exists(texfile)) {
                                     LogUtil.DebugLogF("リソース参照で使用されているtexファイル({0})が見つかりません。このため、texファイルを出力できませんでした。, ", texfile);
                                     continue;
                                 }
@@ -774,7 +774,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                                 tex2d = filteredTex;
                             }
                             string texfilepath = Path.Combine(outDir, texfilename);
-                            outUtil.WriteTexFile(texfilepath, tex.EditTxtPath(), tex2d.EncodeToPNG());
+                            fileUtil.WriteTexFile(texfilepath, tex.EditTxtPath(), tex2d.EncodeToPNG());
                             LogUtil.DebugLog("texファイルを出力しました。", texfilepath);
 
                             if (loadedTex != null)   UnityEngine.Object.DestroyImmediate(loadedTex);

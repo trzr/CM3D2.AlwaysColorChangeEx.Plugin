@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -11,8 +12,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             get { return instance; }
         }
 
-        public KeyCode toggleKey = KeyCode.F12;
-        public string configPath;
+        public KeyCode  toggleKey = KeyCode.F12;
+        public HashSet<KeyCode> toggleKeyModifier = null;
+        public string presetPath;
+        public string presetDirPath;
         public float shininessMax    =  20f;
         public float shininessMin    =   0f;
         public float outlineWidthMax =   0.1f;
@@ -41,12 +44,30 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
         public string txtPrefixTex   = "Assets/texture/texture/";
         public string[] toonTexAddon = new string[0];
         public bool displaySlotName  = false;
+        public bool enableMask = true;
+        public bool enableMoza = false;
     
         // 設定の読み込み
         public void Load(Func<string, string> getValue)
         {
-            GetString(getValue("PresetPath"),    ref configPath);
+            GetString(getValue("PresetPath"),    ref presetPath);
+            GetString(getValue("PresetDirPath"), ref presetDirPath);
             GetKeyCode(getValue("ToggleWindow"), ref toggleKey);
+            var keylist = string.Empty;
+            GetString(getValue("ToggleWindowModifier"),    ref keylist);
+            if (keylist.Length > 0) {
+                // カンマで分割後trm
+                var keys = keylist.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
+                foreach (var keyString in keys) {
+                    if(!String.IsNullOrEmpty (keyString)) {
+                        try {
+                            var key = (KeyCode)Enum.Parse(typeof(KeyCode), keyString);
+                            toggleKeyModifier = toggleKeyModifier ?? new HashSet<KeyCode>();
+                            toggleKeyModifier.Add(key);
+                        } catch(ArgumentException) { }
+                    }
+                }
+            }
             GetFloat(getValue("SliderShininessMax"),    ref shininessMax);
             GetFloat(getValue("SliderShininessMin"),    ref shininessMin);
             GetFloat(getValue("SliderOutlineWidthMax"), ref outlineWidthMax);
@@ -71,7 +92,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 // カンマで分割後trm
                 toonTexAddon = texlist.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
             }
-            GetBool(getValue("DisplaySlotName"),    ref displaySlotName);            
+            GetBool(getValue("DisplaySlotName"),    ref displaySlotName);
+            GetBool(getValue("EnableMask"),         ref enableMask);
+            GetBool(getValue("EnableMoza"),         ref enableMoza);
         }
        
         static void GetBool(string boolString, ref bool output) {
@@ -99,9 +122,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 try {
                 var key = (KeyCode)Enum.Parse(typeof(KeyCode), keyString);
                     output = key;
-                #pragma warning disable 0168
-                } catch(ArgumentException ignore) { }
-                #pragma warning restore 0168
+                } catch(ArgumentException) { }
             }
         }
     }

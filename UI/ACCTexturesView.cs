@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System.Reflection;
 using UnityEngine;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
@@ -27,7 +28,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         };
         private const float EPSILON = 0.00001f;
         private static Settings settings = Settings.Instance;
-        static TextureModifier textureModifier = new TextureModifier();
+        private static TextureModifier textureModifier = TextureModifier.Instance;
 
         public static void Init(UIParams uiparams) {
             TextureModifier.uiParams = uiparams;
@@ -52,7 +53,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         private static GUILayoutOption contentWidth;
         private static float comboWidth;
         private static readonly GUIStyle inboxStyle = new GUIStyle("box");
-        private static readonly GUIStyle listStyle = new GUIStyle("list");
         private static int fontSize;
         private static int fontSizeS;
 
@@ -68,14 +68,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             inboxStyle.normal.background.Apply();
             inboxStyle.padding.left = inboxStyle.padding.right = 2;
 
-            // コンボ用リスト
-            listStyle.onHover.background = listStyle.hover.background = new Texture2D(2, 2);
-            listStyle.padding.left = listStyle.padding.right = 4;
-            listStyle.padding.top = listStyle.padding.bottom = 1;
-            listStyle.normal.textColor = listStyle.onNormal.textColor =
-                listStyle.hover.textColor = listStyle.onHover.textColor =
-                listStyle.active.textColor = listStyle.onActive.textColor =
-                listStyle.focused.textColor = listStyle.onFocused.textColor = Color.white;
         }
 
         private static Action<UIParams> updateUI = (uiparams) => {
@@ -87,7 +79,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             comboWidth = uiparams.textureRect.width*0.65f;
             fontSize  = uiparams.fontSize;
             fontSizeS = uiparams.fontSizeS;
-            listStyle.fontSize = fontSizeS;
         };
 
         public static bool IsChangeTarget() {
@@ -109,7 +100,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             return textureModifier.GetFilter(maid, slot, material, propName);
         }
         public static Texture2D Filter(Texture2D srcTex, TextureModifier.FilterParam filterParam) {
-            return textureModifier.Filter(srcTex, filterParam);
+            return textureModifier.ApplyFilter(srcTex, filterParam);
         }
 
         private static FileUtilEx outUtil = FileUtilEx.Instance;
@@ -252,7 +243,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                                 height = combo.ItemCount*uiParams.itemHeight*0.8f;
                             }
                         } else {
-                            combo = new ComboBoxLO(new GUIContent("選"), ItemNames, uiParams.bStyle, uiParams.boxStyle, listStyle, true);
+                            combo = new ComboBoxLO(new GUIContent("選"), ItemNames, uiParams.bStyle, uiParams.boxStyle, uiParams.listStyle, true);
                             combo.SetItemWidth(comboWidth);
                             combos[editTex.propName] = combo;
                             combo.SelectItem(editTex.editname);
@@ -316,6 +307,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     ChangeTexFile(textureDir, acctex.editname, matNo1, acctex.propName);
     
                 });
+            ResourceHolder resource = ResourceHolder.Instance;
+            fileBrowser.DirectoryImage = resource.DirImage;
+            fileBrowser.FileImage = resource.PictImage;
+            fileBrowser.NoFileImage = resource.FileImage;
+            fileBrowser.labelStyle = uiParams.listStyle;
             fileBrowser.SelectionPatterns = new string[] { "*.tex", "*.png" };
             if (!String.IsNullOrEmpty(textureDir)) {
                 fileBrowser.CurrentDirectory = textureDir;

@@ -54,6 +54,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             sb.Append(AlwaysColorChangeEx.PluginName).Append(':');
             for (int i = 0; i < message.Length; i++) {
                 //if (i > 0) sb.Append(',');
+                if (message[i] is Exception) sb.Append(' ');
                 sb.Append(message[i]);
             }
             return sb;

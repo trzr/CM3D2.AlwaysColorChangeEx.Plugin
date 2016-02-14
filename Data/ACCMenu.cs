@@ -452,7 +452,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                             //    break;
                             //case "color_set"
                             // break;
-
                         }
                     }
                 }
@@ -500,7 +499,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
         public string editfile      { get; set;}  // マテリアルファイル
         public bool   editfileExist { get; set;}  // マテリアルファイルの存在チェック
-        public string editname = "";              // マテリアル名
+        public string editname = string.Empty;    // マテリアル名
         public string worksuffix;
         public bool pmatExport       { get; set;}　// pmatを出力するか
         public bool uiTexViewed      { get; set;}

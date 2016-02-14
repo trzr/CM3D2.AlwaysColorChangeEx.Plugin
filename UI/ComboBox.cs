@@ -22,17 +22,12 @@ public abstract class ComboBoxBase
     protected GUIStyle boxStyle;
     protected GUIStyle listStyle;
  
-    protected ComboBoxBase( GUIContent buttonContent, GUIContent[] listContent, GUIStyle listStyle ) {
-        this.buttonContent = buttonContent;
-        this.listContent = listContent;
-        this.buttonStyle = "button";
-        this.boxStyle = "box";
-        this.listStyle = listStyle;
-        initIndex();
-        InitSize();
+    protected ComboBoxBase( GUIContent buttonContent, GUIContent[] listContent, GUIStyle listStyle )
+        : this(buttonContent, listContent, "button", "box", listStyle)    {
     }
  
-    protected ComboBoxBase(GUIContent buttonContent, GUIContent[] listContent, GUIStyle buttonStyle, GUIStyle boxStyle, GUIStyle listStyle){
+    protected ComboBoxBase(GUIContent buttonContent, GUIContent[] listContent, 
+                           GUIStyle buttonStyle, GUIStyle boxStyle, GUIStyle listStyle) {
         this.buttonContent = buttonContent;
         this.listContent = listContent;
         this.buttonStyle = buttonStyle;
@@ -141,8 +136,11 @@ public class ComboBox : ComboBoxBase
         isClickedComboButton &= !done;
         return selectedItemIndex;
     }
-
 }
+
+/// <summary>
+/// GUILayout版のコンボボックスクラス. 
+/// </summary>
 public class ComboBoxLO : ComboBoxBase
 {
     private readonly bool labelFixed;
@@ -151,15 +149,13 @@ public class ComboBoxLO : ComboBoxBase
     }
  
     public ComboBoxLO(GUIContent buttonContent, GUIContent[] listContent, 
-                      GUIStyle buttonStyle, GUIStyle boxStyle, GUIStyle listStyle,
-                     　bool labelFixed)
+                      GUIStyle buttonStyle, GUIStyle boxStyle, GUIStyle listStyle, bool labelFixed)
         : base(buttonContent, listContent, buttonStyle, boxStyle, listStyle) {
         this.labelFixed = labelFixed;
     }
     public void SetItemWidth(float itemWidth) {
         this.itemWidth = itemWidth;
     }
-
     public int Show(GUILayoutOption buttonOpt)
     {
         if( forceToUnShow ) {

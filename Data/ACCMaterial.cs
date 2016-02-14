@@ -10,11 +10,13 @@ using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 {
-/// <summary>
-    /// Description of ACCMaterial.
+    /// <summary>
+    /// マテリアルの変更情報を扱うデータクラス.
+    /// スライダー操作中のデータを保持する.
+    /// 
+    /// CCMaterialと重複有り.　統合可能ならしたいが… 
     /// </summary>
     public class ACCMaterial {
-        const float EPSILON = 0.00001f;
         private const float DEFAULT_FV1 = 10f;
         private const float DEFAULT_FV2 = 1f;
         private const float DEFAULT_FV3 = 1f;
@@ -45,23 +47,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
         protected ACCMaterial() {}
 
-//        public ACCMaterial(string matName, MaterialType matType) {
-//            this.name = matName;
-//            this.type = matType;
-//            this.shader = matType.shader;
-//
-//            renderQueue = 2000;
-//            if (matType.hasColor) color = Color.white;
-//            if (matType.isLighted) {
-//                shadowColor = Color.white;
-//            }
-//            if (matType.isOutlined) {
-//                outlineColor = Color.black;
-//            }
-//            if (matType.isToony) {
-//                rimColor = Color.white;
-//            }
-//        }
         public ACCMaterial(ACCMaterial src) {
             this.original = src;
             this.material = src.material;
@@ -198,9 +183,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 m.SetFloat("_FloatValue3", floatVal3);
             }
         }
-        private bool equals(float f1, float f2) {
-            return Math.Abs(f1- f2) < EPSILON;
-        }
 
         public bool hasChanged(ACCMaterial mate) {
             // 同一シェーダを想定
@@ -209,27 +191,27 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             }
             if (type.isLighted) {
                 if (shadowColor != mate.shadowColor) return true;
-                if (!equals(shininess, mate.shininess)) return true;
+                if (!NumberUtil.Equals(shininess, mate.shininess)) return true;
             }
             if (type.isOutlined) {
                 if (outlineColor != mate.outlineColor) return true;
-                if (!equals(outlineWidth, mate.outlineWidth)) return true;
+                if (!NumberUtil.Equals(outlineWidth, mate.outlineWidth)) return true;
             }
             if (type.isToony) {
                 if (rimColor != mate.rimColor) return true;
-                if (!equals(rimPower, mate.rimPower) || !equals(rimShift, mate.rimShift)) return true;
+                if (!NumberUtil.Equals(rimPower, mate.rimPower) || !NumberUtil.Equals(rimShift, mate.rimShift)) return true;
             }
             if (type.isHair) {
-                if (!equals(hiRate, mate.hiRate) || !equals(hiPow, mate.hiPow)) return true;
+                if (!NumberUtil.Equals(hiRate, mate.hiRate) || !NumberUtil.Equals(hiPow, mate.hiPow)) return true;
             }
             if (type.hasFloat1) {
-                if (!equals(floatVal1, mate.floatVal1)) return true;
+                if (!NumberUtil.Equals(floatVal1, mate.floatVal1)) return true;
             }
             if (type.hasFloat2) {
-                if (!equals(floatVal2, mate.floatVal2)) return true;
+                if (!NumberUtil.Equals(floatVal2, mate.floatVal2)) return true;
             }
             if (type.hasFloat3) {
-                if (!equals(floatVal3, mate.floatVal3)) return true;
+                if (!NumberUtil.Equals(floatVal3, mate.floatVal3)) return true;
             }
             return false;
         }
@@ -237,6 +219,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 //            return original != null && (shader != original.shader);
 //        }
     }
+    /// <summary>
+    /// エクスポート機能用の機能を拡張したデータクラス
+    /// </summary>
     public class ACCMaterialEx : ACCMaterial {
         private static readonly FileUtilEx outUtil = FileUtilEx.Instance;
         public Dictionary<string, ACCTextureEx> texDic = new Dictionary<string, ACCTextureEx>(5);

@@ -1,8 +1,4 @@
-﻿/*
- * OutputUtilラッパー
- * カスメ専用クラス等を使うメソッドを拡張するユーティリティ
- */
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +11,8 @@ using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 {
     /// <summary>
-    /// Description of FileUtilEx.
+    /// OutputUtilラッパークラス.
+    /// カスメ専用クラス等を扱うメソッドを拡張したユーティリティ
     /// </summary>
     public sealed class FileUtilEx
     {
@@ -61,12 +58,21 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
 
         public bool Exists(string filename) {
-            using (AFileBase aFileBase = global::GameUty.FileOpen(filename)) {
-                if (!aFileBase.IsValid()) {
-                    return false;
+            if (!GameUty.ModPriorityToModFolder) {
+                if (GameUty.FileSystem.IsExistentFile(filename)) return true;
+                else {
+                    if (GameUty.FileSystemMod != null) {
+                        return GameUty.FileSystemMod.IsExistentFile(filename);
+                    }
+                }
+            } else {
+                if (GameUty.FileSystemMod != null && GameUty.FileSystemMod.IsExistentFile(filename)) {
+                    return true;
+                } else {
+                    return GameUty.FileSystem.IsExistentFile(filename);
                 }
             }
-            return true;
+            return false;
         }
 
         // 外部DLL依存
@@ -75,16 +81,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             try {
                 AFileBase aFileBase = global::GameUty.FileOpen(filename);
                 if (!aFileBase.IsValid()) {
-                    var msg = "指定ファイルが見つかりません。file="+ filename;
-                    LogUtil.ErrorLog(msg);
-                    throw new ACCException(msg);
+                    var msg = LogUtil.ErrorLog("指定ファイルが見つかりません。file=", filename);
+                    throw new ACCException(msg.ToString());
                 }
-                //new MemoryStream(aFileBase.ReadAll()
                 return new FileBaseStream(aFileBase);
+            } catch (ACCException) {
+                throw;
             } catch (Exception e) {
-                var msg = "指定ファイルが読み込めませんでした。"+ filename+ e.Message;
-                LogUtil.ErrorLog(msg, e);
-                throw new ACCException(msg, e);
+                var msg = LogUtil.ErrorLog("指定ファイルが読み込めませんでした。", filename, e);
+                throw new ACCException(msg.ToString(), e);
             }
         }
 
@@ -92,16 +97,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             try {
                 using (AFileBase aFileBase = global::GameUty.FileOpen(filename)) {
                     if (!aFileBase.IsValid()) {
-                        var msg = "指定ファイルが見つかりません。file="+ filename;
-                        LogUtil.ErrorLog(msg);
-                        throw new ACCException(msg);
+                        var msg = LogUtil.ErrorLog("指定ファイルが見つかりません。file=", filename);
+                        throw new ACCException(msg.ToString());
                     }
                     return aFileBase.ReadAll();
                 }
+            } catch (ACCException) {
+                throw;
             } catch (Exception e) {
-                var msg = "指定ファイルが読み込めませんでした。"+ filename+ e.Message;
-                LogUtil.ErrorLog(msg, e);
-                throw new ACCException(msg, e);
+                var msg = LogUtil.ErrorLog("指定ファイルが読み込めませんでした。", filename, e);
+                throw new ACCException(msg.ToString(), e);
             }
         }
         public Texture2D LoadTexture(string filename) {
@@ -110,6 +115,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             tex2d.LoadImage(data);
             tex2d.name = Path.GetFileNameWithoutExtension(filename);
             tex2d.wrapMode = TextureWrapMode.Clamp;
+
+            return tex2d;
+        }
+        public Texture2D LoadTexture(Stream stream) {
+            var bytes = new byte[stream.Length];
+            stream.Read(bytes, 0, bytes.Length);
+            var tex2d = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            tex2d.LoadImage(bytes);
+            tex2d.wrapMode = TextureWrapMode.Clamp;
+
             return tex2d;
         }
 
@@ -139,15 +154,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 }
             }
         }
-
-        // 外部DLL依存
-        public void TransferModel(AFileBase infile, string outfilepath) {
-            using ( var writer = new BinaryWriter(File.OpenWrite(outfilepath)) )
-                using ( var reader = new BinaryReader(new MemoryStream(infile.ReadAll()), Encoding.UTF8)) {
-                util.CopyModel(reader, writer, null);
-            }
-        }
-
         ///
         ///
         public bool WriteModelFile(string infile, string outfilepath, SlotMaterials slotMat) {
@@ -171,12 +177,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             int count = reader.ReadInt32();
             writer.Write(count);  // num (bone_count)
             for(int i=0; i< count; i++) {
-                writer.Write(reader.ReadString());
-                writer.Write(reader.ReadByte());
+                writer.Write(reader.ReadString()); // ボーン名
+                writer.Write(reader.ReadByte());   // フラグ　(_SCL_追加の有無等)
             }
 
             for(int i=0; i< count; i++) {
-                int count2 = reader.ReadInt32();
+                int count2 = reader.ReadInt32();   // parent index
                 writer.Write(count2);
             }
 
@@ -192,10 +198,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             writer.Write(localBoneCount);
 
             for(int i=0; i< localBoneCount; i++) {
-                writer.Write(reader.ReadString());
+                writer.Write(reader.ReadString()); // ローカルボーン名
             }
             for(int i=0; i< localBoneCount; i++) {
-                TransferVec(reader, writer, 16);
+                TransferVec(reader, writer, 16); // matrix (floatx4, floatx4)
             }
             for(int i=0; i< vertexCount; i++) {
                 TransferVec(reader, writer, 8);
@@ -257,7 +263,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 TransferMaterial(reader, writer, trgtMat, true);
             }
         }
-        // modelファイル内のマテリアル情報であり、通常のmaterialファイルのheader, version, name1は存在しない
+        // modelファイル内のマテリアル情報を対象とした転送処理
+        // .mateファイルのheader, version, name1は存在しない
         public void TransferMaterial(BinaryReader reader, BinaryWriter writer, TargetMaterial trgtMat, bool overwrite) {
 
             // マテリアル名

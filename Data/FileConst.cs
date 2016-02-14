@@ -1,13 +1,11 @@
-﻿/*
- * 
- */
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 {
     /// <summary>
-    /// Description of ファイル、ファイル名に関する定数を扱うクラス.
+    /// ファイル、ファイル名に関する定数を扱うクラス.
     /// </summary>
     public static class FileConst
     {
@@ -28,8 +26,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public const string EXT_MODEL    = ".model";
         public const string EXT_TEXTURE  = ".tex";
         public const string EXT_TXT      = ".txt";
+        public const string EXT_JSON     = ".json";
+
         #endregion
+        private static readonly char [] INVALID_FILENAMECHARS = Path.GetInvalidFileNameChars();
         private static readonly Settings settings = Settings.Instance;
+
+        public static bool HasInvalidChars(string filename) {
+            return filename.IndexOfAny(INVALID_FILENAMECHARS) > -1;
+        }
 
         public readonly static Dictionary<string, string> SuffixDic = new Dictionary<string, string>() {
             {"パンツずらし",     "_zurashi"},
@@ -37,19 +42,19 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             {"めくれスカート後ろ", "_mekure_back"},
             {"半脱ぎ",        "_mekure_nugi"},
         };
-        public static int SuffixUnknownCount = 1;
+        public static int SuffixUnknownCount = 0;
 
         public static string GetResSuffix(string key) {
             string suffix;
             if (!FileConst.SuffixDic.TryGetValue(key, out suffix)) {
-                suffix = settings.resSuffix + FileConst.SuffixUnknownCount++;
+                suffix = settings.resSuffix + (++FileConst.SuffixUnknownCount);
                 FileConst.SuffixDic[key] = suffix;
             }
             return suffix;
         }
         public readonly static Dictionary<string, string> TexSuffix = 
             new Dictionary<string, string>() {
-            {"_MainTexs",       ""},
+            {"_MainTex",       ""},
             {"_ToonRamp",       "_toon"},
             {"_ShadowTex",      "_shadow"},
             {"_ShadowRateToon", "_rate"},
@@ -96,7 +101,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             {TBody.SlotID.accMiMiR.ToString(),    "_accmimir"},
             {TBody.SlotID.accKubi.ToString(),     "_acckubi"},
             {TBody.SlotID.accKubiwa.ToString(),   "_acckubiwa"},
-            {TBody.SlotID.accKamiSubL.ToString(), "_acckamisr"},
+            {TBody.SlotID.accKamiSubL.ToString(), "_acckamisl"},
             {TBody.SlotID.accKamiSubR.ToString(), "_acckamisr"},
             {TBody.SlotID.accNipL.ToString(),     "_accnipl"},
             {TBody.SlotID.accNipR.ToString(),     "_accnipr"},

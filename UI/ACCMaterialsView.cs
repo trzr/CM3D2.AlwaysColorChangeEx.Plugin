@@ -115,7 +115,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 float renderQueue = edited.renderQueue;
                 var rq = renderQueue.ToString();
                 drawValueSlider("RQ", rq, 0, 5000, ref renderQueue);
-                if (NotEquals(renderQueue, edited.renderQueue)) {
+                if (!NumberUtil.Equals(renderQueue, edited.renderQueue, EPSILON)) {
                     edited.renderQueue = (int)renderQueue;
                     material.SetFloat("_SetManualRenderQueue", renderQueue);
                     material.renderQueue = edited.renderQueue;
@@ -183,14 +183,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         private void SetupFloatSlider(Material material, string label, string key, string format, ref float val, params float[] range) {
             float outlineWidth = val;
             setValueSlider(label, null, format, outlineWidth, range[0], range[1], ref outlineWidth, range[2], range[3]);
-            if ( NotEquals(outlineWidth, edited.outlineWidth) ) {
+            if ( !NumberUtil.Equals(outlineWidth, edited.outlineWidth, EPSILON) ) {
                 val = outlineWidth;
                 material.SetFloat(key, outlineWidth);
             }
-        }
-
-        private static bool NotEquals(float f1, float f2) {
-            return Math.Abs(f1- f2) > EPSILON;
         }
 
         private void setColorSlider(string label, ref Color color, bool isTrans) {
@@ -232,7 +228,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 }
     
                 var val2 = GUILayout.TextField(val, uiParams.textStyleSC, optInputWidth);
-                if (val != val2) { // 直接書き換えされたケース
+                if (val != val2) { // 直接書き換えられたケース
                     float v;
                     if (float.TryParse(val2, out v)) {
                         if (minVal > v)      v = minVal;
@@ -246,9 +242,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     GUILayout.Space(sliderMargin);
                     GUILayoutOption opt = GUILayout.ExpandWidth(true);//GUILayout.Width(uiParams.colorRect.width * 0.65f);
                     var changed = GUILayout.HorizontalSlider(sliderVal, min, max, opt);
-                    if (Math.Abs(changed - sliderVal) > EPSILON) { // slider変更時のみ
+                    if (!NumberUtil.Equals(changed, sliderVal, EPSILON)) { // スライダー変更時のみ
                         if (sliderVal > max || sliderVal < min) {
-                            // sliderの範囲外の場合：スライダを移動したケースを検知
+                            // スライダーの範囲外の場合：スライダーを移動したケースを検知
                             if (changed < max && changed > min) sliderVal = changed;
                         } else {
                             sliderVal = changed;
