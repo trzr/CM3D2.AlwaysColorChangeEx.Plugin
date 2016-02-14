@@ -99,7 +99,7 @@ iniファイルの詳細は[wiki](https://github.com/trzr/CM3D2.AlwaysColorChang
 
 ### ■ [TODO](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/TODO)
 
-## ■ 権利
+## ■ 権利・規約
 
 * オリジナルの作者である[kf-cm3d2](https://github.com/kf-cm3d2)さんの
 意向である以下に従ってください。  
@@ -109,9 +109,10 @@ iniファイルの詳細は[wiki](https://github.com/trzr/CM3D2.AlwaysColorChang
 むしろやりたいこと・それを超える機能を実装してくれる人歓迎。  
 ~~~
 
-CustomJsonWriter.csのみ、[MITライセンス](http://www.jsonfx.net/license/)となります  
-（書式変更のため、JsonFXのクラス継承で一部ロジックを使用）
+* ただし、CustomJsonWriter.csのみ、[MITライセンス](http://www.jsonfx.net/license/)となります  
+（書式変更のため、JsonFXのクラス継承で一部ロジックを使用したため）
 
+* また、KISS公式の[利用規約](http://kissdiary.blog11.fc2.com/blog-entry-577.html)から逸脱した利用はお控えください  
 
 ## ■ 更新履歴
 #### 0.2.1.0 (最新版)
