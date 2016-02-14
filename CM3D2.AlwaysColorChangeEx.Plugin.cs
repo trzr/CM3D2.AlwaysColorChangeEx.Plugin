@@ -22,7 +22,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
  PluginFilter("CM3D2OHx64"),
  PluginFilter("CM3D2OHVRx64"),
  PluginName("CM3D2 AlwaysColorChangeEx"),
- PluginVersion("0.2.0.0")]
+ PluginVersion("0.2.1.0")]
 class AlwaysColorChangeEx : UnityInjector.PluginBase
 {
     // プラグイン名
@@ -113,7 +113,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     private bool isSavable;
     private bool isActive;
     private bool texSliderUpped;
-    private const int CHANGE_THRESHOLD = 10;
+    private const int CHANGE_THRESHOLD = 15;
     private int changeCount = 0;
 
     private Vector2 scrollViewPosition = Vector2.zero;
@@ -123,6 +123,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     // テクスチャ変更用
     //  現在のターゲットのslotに関するメニューが変更されたらGUIを更新。それ以外は更新しない
     private string targetMenu;
+    private bool slotDropped;
     private Material[] targetMaterials;
     private List<ACCMaterialsView> materialViews;
     private List<ACCTexturesView> texViews;
@@ -147,7 +148,6 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         settings.Load((key) => base.Preferences["Config"][key].Value);
 
         LogUtil.Log("PresetDir:", settings.presetDirPath);
-
         MigratePresets();
         LoadPresetList();
         uiParams.Update();
@@ -276,6 +276,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 if (ACCTexturesView.IsChangeTarget()) {
                     ACCTexturesView.UpdateTex(holder.currentMaid, targetMaterials);
                 }
+                texSliderUpped = false;
             }
         } else {
             // テクスチャモードでなければ、テクスチャ変更対象を消す
@@ -535,10 +536,10 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                     if (!slot.enable) continue;
                     //if (slot.Id == TBody.SlotID.end) continue;
         
-                    // TODO メイド以外の項目については別の方法で可視性を取得する必要あり
-                    if (!holder.currentMaid.body0.GetSlotVisible(slot.Id)) {
+                    if (!holder.currentMaid.body0.GetSlotLoaded(slot.Id)) {
                         continue;
                     }
+                    //GUI.enabled = holder.currentMaid.body0.GetSlotVisible(slot.Id);
 
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(uiParams.marginL);
@@ -593,11 +594,12 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
             // 衣装セットなどは内部的に一旦_del_.menuが選択されるため、一時的に選択された状態をスルー
             string menu = holder.GetCurrentMenuFile();
             if (menu != null) {
-                if (menu.EndsWith("_del.menu", StringComparison.OrdinalIgnoreCase)) {
+                if (slotDropped) {
                     if (changeCount++ > CHANGE_THRESHOLD) {
                         SetMenu(MenuType.Main);
                         LogUtil.DebugLog("選択スロットのアイテムが外れたため、メインメニューに戻ります", menu);
                         changeCount = 0;
+                        slotDropped = false;
                     }
                     return;
                 }
@@ -616,6 +618,8 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 targetMaterials = holder.GetMaterials(slot);
                 materialViews = initMaterialView(targetMaterials);
 
+                // slotにデータが装着されていないかを判定
+                slotDropped = (slot.obj == null);
                 changeCount = 0;
 
                 if (isSavable) {

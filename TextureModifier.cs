@@ -67,26 +67,27 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             }
             return key;
         }
-        public void UpdateTex(Maid maid, Material[] slotMaterials, EditTarget texEdit) {
+        public bool UpdateTex(Maid maid, Material[] slotMaterials, EditTarget texEdit) {
             // material 抽出 => texture 抽出
-            if (slotMaterials.Length <=  texEdit.matNo) return;
+            if (slotMaterials.Length <=  texEdit.matNo) return false;
             Material mat = slotMaterials[texEdit.matNo];
 
-            UpdateTex(maid, mat, texEdit);
+            return UpdateTex(maid, mat, texEdit);
         }
-        public void UpdateTex(Maid maid, Material mat, EditTarget texEdit) 
+        public bool UpdateTex(Maid maid, Material mat, EditTarget texEdit) 
         {
             var tex2d = mat.GetTexture(texEdit.propName) as Texture2D;
-            if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) return ;
+            if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) return false;
 
             var key = CreateKey(maid.Param.status.guid, texEdit.slotName, mat.name, tex2d.name);
             FilterParam filterParam = filterParams.GetOrAdd(key.ToString());
 
             // スライダー変更がなければ何もしない
-            if (!filterParam.IsDirty) return;
+            if (!filterParam.IsDirty) return false;
             //LogUtil.DebugLogF("Update Texture. slot={0}, material={0}, tex={1}", texEdit.slotName, mat.name, tex2d.name);
 
             FilterTexture(tex2d, filterParam);
+            return true;
         }
         public bool RemoveCache(Texture2D tex2d)
         {

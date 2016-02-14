@@ -48,7 +48,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 }
             } else {
                 // シェーダ切り替えなどで、元々存在しないテクスチャの場合
-                LogUtil.DebugLog("texture not found. propname={0}, material={1}", propName, mate.name);
+                LogUtil.DebugLogF("texture not found. propname={0}, material={1}", propName, mate.name);
                 // 空のテクスチャは作成しない
 //                this.tex = new Texture2D(2, 2);
 //                this.tex.name = string.Empty;
