@@ -109,8 +109,7 @@ iniファイルの詳細は[wiki](https://github.com/trzr/CM3D2.AlwaysColorChang
 むしろやりたいこと・それを超える機能を実装してくれる人歓迎。  
 ~~~
 
-* ただし、CustomJsonWriter.csのみ、[MITライセンス](http://www.jsonfx.net/license/)となります  
-（書式変更のため、JsonFXのクラス継承で一部ロジックを使用したため）
+* CustomJsonWriter.csは、[JsonFx](http://www.jsonfx.net/license/)のソースを元にしています。  
 
 * また、KISS公式の[利用規約](http://kissdiary.blog11.fc2.com/blog-entry-577.html)から逸脱した利用はお控えください  
 
