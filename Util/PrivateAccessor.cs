@@ -1,13 +1,10 @@
-﻿/*
- * 
- */
-using System;
+﻿using System;
 using System.Reflection;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 {
     /// <summary>
-    /// Description of PrivateAccessor.
+    /// privateフィールド用のアクセサ
     /// </summary>
     public sealed class PrivateAccessor
     {
@@ -25,7 +22,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 var field =  instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);//  | BindingFlags.GetField | BindingFlags.SetField 
                 return (T)field.GetValue(instance);
             } catch(Exception e) {
-                LogUtil.DebugLog(e);
+                LogUtil.Debug(e);
                 return default (T);
             }
         }
@@ -34,7 +31,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 var field =  type.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Static);//  | BindingFlags.GetField | BindingFlags.SetField 
                 return (T)field.GetValue(null);
             } catch(Exception e) {
-                LogUtil.DebugLog(e);
+                LogUtil.Debug(e);
                 return default (T);
             }
         }

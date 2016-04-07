@@ -4,7 +4,7 @@
 using System;
 using UnityEngine;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin
+namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 {
 public abstract class ComboBoxBase
 {

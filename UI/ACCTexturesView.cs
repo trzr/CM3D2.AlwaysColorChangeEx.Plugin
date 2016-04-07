@@ -4,9 +4,10 @@ using System.Linq;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
+using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
+namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 {
     public class ACCTexturesView {
         private static readonly MaidHolder holder = MaidHolder.Instance;
@@ -171,6 +172,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         int matNo;
         List<ACCTexture> original;
         List<ACCTexture> edited;
+        public bool expand;
         private Dictionary<string, ComboBoxLO> combos = new Dictionary<string, ComboBoxLO>(2);
         Material material;
         MaterialType matType;
@@ -192,15 +194,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
             GUILayout.BeginVertical(inboxStyle);
             try {
-                GUILayout.Label(material.name, uiParams.lStyleC);
-                foreach (ACCTexture editTex in edited) {                
+                string matName = (expand? "- " : "+ ") + material.name;
+                if (GUILayout.Button(matName, uiParams.lStyleC)) {
+                    expand = !expand;
+                }
+                if (!expand) return;
+
+                foreach (ACCTexture editTex in edited) {
                     bool bTargetElement = (matNo == editTarget.matNo && editTex.propName == editTarget.propName);
     
                     GUILayout.BeginHorizontal();
                     try {
                         // エディット用スライダーの開閉
                         if (!textureModifier.IsValidTarget(holder.currentMaid, holder.currentSlot.Name, material, editTex.propName)) {
-                            // 参照先が Texture2D が取れなかった (例 : RenderTexture だった) 場合はとりあえず
+                            // 参照先が Texture2D が取れなかった (例 : RenderTexture ) 場合はとりあえず
                             // あきらめて何もしない。無理やり書いても良いのかもしれないけど……
                             var tmp = GUI.enabled;
                             GUI.enabled = false;
@@ -237,6 +244,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         
                     float height = uiParams.itemHeight;
                     ComboBoxLO combo = null;
+                    bool cbSelected = false;
                     if (editTex.toonType != ACCTexture.NONE) {
                         if (combos.TryGetValue(editTex.propName, out combo)) {
                             if (combo.IsClickedComboButton) {
@@ -259,6 +267,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                             int selected = combo.Show(uiParams.optBtnWidth);
                             if (selected != prevSelected) {
                                 editName = ItemNames[selected].text;
+                                cbSelected = true;
                             }
                             hideField = combo.IsClickedComboButton;
                         }
@@ -267,10 +276,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         editTex.SetName(editName);
 
                         if (hideField) uiParams.textStyle.fontSize = fontSize;
-                        
     
                         GUI.enabled = editTex.dirty;
-                        if (GUILayout.Button("適", uiParams.bStyle, uiParams.optBtnWidth)) {
+                        if ((settings.toonComboAutoApply && cbSelected)
+                            || GUILayout.Button("適", uiParams.bStyle, uiParams.optBtnWidth)) {
                             Texture tex = ChangeTexFile(textureDir, editTex.editname, matNo, editTex.propName);
                             if (tex != null) editTex.tex = tex;
                             editTex.dirty = false;
@@ -370,7 +379,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             try {
                 mat = (GameUty.SystemMaterial)Enum.Parse(typeof(GameUty.SystemMaterial), propName);
             } catch(ArgumentException e) {
-                LogUtil.DebugLog(e);
+                LogUtil.Debug(e);
                 mat = GameUty.SystemMaterial.Alpha;
             }
 

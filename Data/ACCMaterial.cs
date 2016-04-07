@@ -1,11 +1,11 @@
-﻿/*
- */
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Windows.Forms;
 using UnityEngine;
 using CM3D2.AlwaysColorChangeEx.Plugin;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
@@ -17,6 +17,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
     /// CCMaterialと重複有り.　統合可能ならしたいが… 
     /// </summary>
     public class ACCMaterial {
+        internal static Settings settings = Settings.Instance;
+
+        private readonly string[] emptyEdit = new string[0];
         private const float DEFAULT_FV1 = 10f;
         private const float DEFAULT_FV2 = 1f;
         private const float DEFAULT_FV3 = 1f;
@@ -30,21 +33,26 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public string name;
         public ShaderName shader;
         public MaterialType type;
-        public int renderQueue;
-        public Color? color;
-        public Color? shadowColor;
-        public Color? rimColor;
-        public Color? outlineColor;
-        public float shininess;
-        public float outlineWidth = 0.002f;
-        public float rimPower = 25f;
-        public float rimShift;
-        public float hiRate;
-        public float hiPow = 0.001f;
-        public float floatVal1 = DEFAULT_FV1;
-        public float floatVal2 = DEFAULT_FV2;
-        public float floatVal3 = DEFAULT_FV3;
 
+        public EditValue renderQueue  = new EditValue(2000f, EditRange.renderQueue);
+
+        public EditColor color        = new EditColor(null, true);
+        public EditColor shadowColor  = new EditColor(null);
+        public EditColor rimColor     = new EditColor(null);
+        public EditColor outlineColor = new EditColor(null);
+        
+        public EditValue shininess    = new EditValue(0f, EditRange.shininess);
+        public EditValue outlineWidth = new EditValue(0.002f, EditRange.outlineWidth);
+        public EditValue rimPower     = new EditValue(25f, EditRange.rimPower);
+        public EditValue rimShift     = new EditValue(0f, EditRange.rimShift);
+        public EditValue hiRate       = new EditValue(0f, EditRange.hiRate);
+        public EditValue hiPow        = new EditValue(0.001f, EditRange.hiPow);
+        public EditValue floatVal1    = new EditValue(DEFAULT_FV1, EditRange.floatVal1);
+        public EditValue floatVal2    = new EditValue(DEFAULT_FV2, EditRange.floatVal2);
+        public EditValue floatVal3    = new EditValue(DEFAULT_FV3, EditRange.floatVal3);
+        public EditValue cutoff       = new EditValue(0, EditRange.floatVal3);
+
+        public string rqEdit;
         protected ACCMaterial() {}
 
         public ACCMaterial(ACCMaterial src) {
@@ -53,6 +61,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             this.name = src.name;
             this.shader = src.shader;
             this.type = src.type;
+
             this.renderQueue = src.renderQueue;
             this.color = src.color;
             this.shadowColor = src.shadowColor;
@@ -67,6 +76,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             this.floatVal1 = src.floatVal1;
             this.floatVal2 = src.floatVal2;
             this.floatVal3 = src.floatVal3;
+
+            this.cutoff = src.cutoff;
         }
 
         public ACCMaterial(Material m) {
@@ -74,34 +85,41 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             name = m.name;
             type = ShaderMapper.resolve(m.shader.name);
             shader = type.shader;
-            renderQueue = m.renderQueue;
+            renderQueue.Set( m.renderQueue );
+            rqEdit = renderQueue.ToString();
 
-            if (type.hasColor) color = m.GetColor(PROP_COLOR);
+            if (type.hasColor) {
+                color.Set( m.GetColor(PROP_COLOR) );
+            }
             if (type.isLighted) {
-                shadowColor = m.GetColor(PROP_SHADOWC);
-                shininess = m.GetFloat("_Shininess");
+                shadowColor.Set( m.GetColor(PROP_SHADOWC) );
+                shininess.Set( m.GetFloat("_Shininess") );
             }
             if (type.isOutlined) {
-                outlineColor = m.GetColor(PROP_OUTLINEC);
-                outlineWidth = m.GetFloat("_OutlineWidth");
+                outlineColor.Set( m.GetColor(PROP_OUTLINEC) );
+                outlineWidth.Set( m.GetFloat("_OutlineWidth") );
             }
             if (type.isToony) {
-                rimColor = m.GetColor(PROP_RIMC);
-                rimPower = m.GetFloat("_RimPower");
-                rimShift = m.GetFloat("_RimShift");
+                rimColor.Set( m.GetColor(PROP_RIMC) );
+
+                rimPower.Set( m.GetFloat("_RimPower") );
+                rimShift.Set( m.GetFloat("_RimShift") );
             }
             if (type.isHair) {
-                hiRate = m.GetFloat("_HiRate");
-                hiPow = m.GetFloat("_HiPow");
+                hiRate.Set( m.GetFloat("_HiRate") );
+                hiPow.Set( m.GetFloat("_HiPow") );
             }
             if (type.hasFloat1) {
-                floatVal1 = m.GetFloat("_FloatValue1");
+                floatVal1.Set( m.GetFloat("_FloatValue1") );
             }
             if (type.hasFloat2) {
-                floatVal2 = m.GetFloat("_FloatValue2");
+                floatVal2.Set( m.GetFloat("_FloatValue2") );
             }
             if (type.hasFloat3) {
-                floatVal3 = m.GetFloat("_FloatValue3");
+                floatVal3.Set( m.GetFloat("_FloatValue3") );
+            }
+            if (type.hasCutoff) {
+                cutoff.Set( m.GetFloat("_Cutoff") );
             }
         }
         public void Update(MaterialType matType) {
@@ -110,77 +128,80 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             this.type = matType;
             this.shader = matType.shader;
             if (matType.hasColor) {
-                if (!color.HasValue) {
-                    if (material != null) color = material.GetColor(PROP_COLOR);
+                if (!color.val.HasValue) {
+                    if (material != null) color.Set( material.GetColor(PROP_COLOR) );
                     else {
-                        color = (original != null && original.color.HasValue) ? original.color: Color.white;
+                        color.Set( (original != null && original.color.val.HasValue) ? original.color.val: Color.white );
                     }
                 }
             } else {
-                color = null;
+                color.Set( null );
             }
             if (matType.isLighted) {
-                if (!shadowColor.HasValue) {
-                    if (material != null) shadowColor = material.GetColor(PROP_SHADOWC);
-                    else shadowColor = (original != null && original.shadowColor.HasValue) ? original.shadowColor : Color.white;
+                if (!shadowColor.val.HasValue) {
+                    if (material != null) shadowColor.Set( material.GetColor(PROP_SHADOWC) );
+                    else shadowColor.Set( (original != null && original.shadowColor.val.HasValue) ? original.shadowColor.val : Color.white );
                 }
             } else {
-                shadowColor = null;
+                shadowColor.Set( null );
             }
             if (matType.isOutlined) {
-                if (!outlineColor.HasValue) {
-                    if (material != null) outlineColor = material.GetColor(PROP_OUTLINEC);
-                    else outlineColor = (original != null && original.outlineColor.HasValue) ? original.outlineColor : Color.black;
+                if (!outlineColor.val.HasValue) {
+                    if (material != null) outlineColor.Set( material.GetColor(PROP_OUTLINEC) );
+                    else outlineColor.Set( (original != null && original.outlineColor.val.HasValue) ? original.outlineColor.val : Color.black );
                 }
             } else {
-                outlineColor = null;
+                outlineColor.Set( null );
             }
             if (matType.isToony) {
-                if (!rimColor.HasValue) {
-                    if (material != null) rimColor = material.GetColor(PROP_RIMC);
-                    else rimColor = (original != null && original.rimColor.HasValue) ? original.rimColor: Color.white;
+                if (!rimColor.val.HasValue) {
+                    if (material != null) rimColor.Set( material.GetColor(PROP_RIMC) );
+                    else rimColor.Set( (original != null && original.rimColor.val.HasValue) ? original.rimColor.val: Color.white );
                 }
             } else {
-                rimColor = null;
+                rimColor.Set( null );
             }
             // TODO テクスチャ情報の初期化
         }
         public void ReflectTo(Material m) {
-            m.SetFloat("_SetManualRenderQueue", renderQueue);
-            m.renderQueue = renderQueue;
+            m.SetFloat("_SetManualRenderQueue", renderQueue.val);
+            m.renderQueue = (int)renderQueue.val;
 
             if (type.hasColor) {
-                m.SetColor(PROP_COLOR, color.Value);
+                m.SetColor(PROP_COLOR, color.val.Value);
             }
             if (type.isLighted) {
-                m.SetColor(PROP_SHADOWC, shadowColor.Value);
-                m.SetFloat("_Shininess", shininess);
+                m.SetColor(PROP_SHADOWC, shadowColor.val.Value);
+                m.SetFloat("_Shininess", shininess.val);
             }
             if (type.isOutlined) {
-                m.SetColor(PROP_OUTLINEC, outlineColor.Value);
-                m.SetFloat("_OutlineWidth", outlineWidth);
+                m.SetColor(PROP_OUTLINEC, outlineColor.val.Value);
+                m.SetFloat("_OutlineWidth", outlineWidth.val);
             }
             if (type.isToony) {
-                m.SetColor(PROP_RIMC, rimColor.Value);
-                m.SetFloat("_RimPower", rimPower);
-                m.SetFloat("_RimShift", rimShift);
+                m.SetColor(PROP_RIMC, rimColor.val.Value);
+                m.SetFloat("_RimPower", rimPower.val);
+                m.SetFloat("_RimShift", rimShift.val);
             }
             if (type.isHair) {
-                m.SetFloat("_HiRate", hiRate);
-                m.SetFloat("_HiPow", hiPow);
+                m.SetFloat("_HiRate", hiRate.val);
+                m.SetFloat("_HiPow", hiPow.val);
             }
             if (type.isHair) {
-                m.SetFloat("_HiRate", hiRate);
-                m.SetFloat("_HiPow", hiPow);
+                m.SetFloat("_HiRate", hiRate.val);
+                m.SetFloat("_HiPow", hiPow.val);
             }
             if (type.hasFloat1) {
-                m.SetFloat("_FloatValue1", floatVal1);
+                m.SetFloat("_FloatValue1", floatVal1.val);
             }
             if (type.hasFloat2) {
-                m.SetFloat("_FloatValue2", floatVal2);
+                m.SetFloat("_FloatValue2", floatVal2.val);
             }
             if (type.hasFloat3) {
-                m.SetFloat("_FloatValue3", floatVal3);
+                m.SetFloat("_FloatValue3", floatVal3.val);
+            }
+            if (type.hasCutoff) {
+                m.SetFloat("_Cutoff", cutoff.val);
             }
         }
 
@@ -191,27 +212,30 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             }
             if (type.isLighted) {
                 if (shadowColor != mate.shadowColor) return true;
-                if (!NumberUtil.Equals(shininess, mate.shininess)) return true;
+                if (!NumberUtil.Equals(shininess.val, mate.shininess.val)) return true;
             }
             if (type.isOutlined) {
                 if (outlineColor != mate.outlineColor) return true;
-                if (!NumberUtil.Equals(outlineWidth, mate.outlineWidth)) return true;
+                if (!NumberUtil.Equals(outlineWidth.val, mate.outlineWidth.val)) return true;
             }
             if (type.isToony) {
                 if (rimColor != mate.rimColor) return true;
-                if (!NumberUtil.Equals(rimPower, mate.rimPower) || !NumberUtil.Equals(rimShift, mate.rimShift)) return true;
+                if (!NumberUtil.Equals(rimPower.val, mate.rimPower.val) || !NumberUtil.Equals(rimShift.val, mate.rimShift.val)) return true;
             }
             if (type.isHair) {
-                if (!NumberUtil.Equals(hiRate, mate.hiRate) || !NumberUtil.Equals(hiPow, mate.hiPow)) return true;
+                if (!NumberUtil.Equals(hiRate.val, mate.hiRate.val) || !NumberUtil.Equals(hiPow.val, mate.hiPow.val)) return true;
             }
             if (type.hasFloat1) {
-                if (!NumberUtil.Equals(floatVal1, mate.floatVal1)) return true;
+                if (!NumberUtil.Equals(floatVal1.val, mate.floatVal1.val)) return true;
             }
             if (type.hasFloat2) {
-                if (!NumberUtil.Equals(floatVal2, mate.floatVal2)) return true;
+                if (!NumberUtil.Equals(floatVal2.val, mate.floatVal2.val)) return true;
             }
             if (type.hasFloat3) {
-                if (!NumberUtil.Equals(floatVal3, mate.floatVal3)) return true;
+                if (!NumberUtil.Equals(floatVal3.val, mate.floatVal3.val)) return true;
+            }
+            if (type.hasCutoff) {
+                if (!NumberUtil.Equals(cutoff.val, mate.cutoff.val)) return true;
             }
             return false;
         }
@@ -282,20 +306,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                             var pnc = (PropName)Enum.Parse(typeof(PropName), propName);
                             switch (pnc) {
                             case PropName._Color:
-                                created.color = c;
+                                created.color.Set( c );
                                 break;
                             case PropName._ShadowColor:
-                                created.shadowColor = c;
+                                created.shadowColor.Set( c );
                                 break;
                             case PropName._RimColor:
-                                created.rimColor = c;
+                                created.rimColor.Set( c );
                                 break;
                             case PropName._OutlineColor:
-                                created.outlineColor = c;
+                                created.outlineColor.Set( c );
                                 break;
                             }
                         } catch(Exception e) {
-                            LogUtil.DebugLog("unsupported propName found", propName, e);
+                            LogUtil.Debug("unsupported propName found", propName, e);
                         }
                         break;
                     case "f":
@@ -304,35 +328,35 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                             var pnf = (PropName)Enum.Parse(typeof(PropName), propName);
                             switch (pnf) {
                             case PropName._Shininess:
-                                created.shininess = f;
+                                created.shininess.Set( f );
                                 break;
                             case PropName._OutlineWidth:
-                                created.outlineWidth = f;
+                                created.outlineWidth.Set( f );
                                 break;
                             case PropName._RimPower:
-                                created.rimPower = f;
+                                created.rimPower.Set( f );
                                 break;
                             case PropName._RimShift:
-                                created.rimShift = f;
+                                created.rimShift.Set( f );
                                 break;
                             case PropName._HiRate:
-                                created.hiRate = f;
+                                created.hiRate.Set( f );
                                 break;
                             case PropName._HiPow:
-                                created.hiPow = f;
+                                created.hiPow.Set( f );
                                 break;
                             case PropName._FloatValue1:
-                                created.floatVal1 = f;
+                                created.floatVal1.Set( f );
                                 break;
                             case PropName._FloatValue2:
-                                created.floatVal2 = f;
+                                created.floatVal2.Set( f );
                                 break;
                             case PropName._FloatValue3:
-                                created.floatVal3 = f;
+                                created.floatVal3.Set( f );
                                 break;
                             }
                         } catch(Exception e) {
-                            LogUtil.DebugLog("unsupported propName found", propName, e);
+                            LogUtil.Debug("unsupported propName found", propName, e);
                         }
                         break;
                     }
@@ -383,47 +407,47 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         case PropType.col:
                             switch (propName) {
                                 case PropName._Color:
-                                    outUtil.Write(writer, mate.color.Value);
+                                    outUtil.Write(writer, mate.color.val.Value);
                                     break;
                                 case PropName._ShadowColor:
-                                    outUtil.Write(writer, mate.shadowColor.Value);
+                                    outUtil.Write(writer, mate.shadowColor.val.Value);
                                     break;
                                 case PropName._OutlineColor:
-                                    outUtil.Write(writer, mate.outlineColor.Value);
+                                    outUtil.Write(writer, mate.outlineColor.val.Value);
                                     break;
                                 case PropName._RimColor:
-                                    outUtil.Write(writer, mate.rimColor.Value);
+                                    outUtil.Write(writer, mate.rimColor.val.Value);
                                     break;
                             }
                             break;
                         case PropType.f:
                             switch (propName) {
                                 case PropName._Shininess:
-                                    writer.Write(mate.shininess);
+                                    writer.Write(mate.shininess.val);
                                     break;
                                 case PropName._OutlineWidth:
-                                    writer.Write(mate.outlineWidth);
+                                    writer.Write(mate.outlineWidth.val);
                                     break;
                                 case PropName._RimPower:
-                                    writer.Write(mate.rimPower);
+                                    writer.Write(mate.rimPower.val);
                                     break;
                                 case PropName._RimShift:
-                                    writer.Write(mate.rimShift);
+                                    writer.Write(mate.rimShift.val);
                                     break;
                                 case PropName._HiRate:
-                                    writer.Write(mate.hiRate);
+                                    writer.Write(mate.hiRate.val);
                                     break;
                                 case PropName._HiPow:
-                                    writer.Write(mate.hiPow);
+                                    writer.Write(mate.hiPow.val);
                                     break;
                                 case PropName._FloatValue1:
-                                    writer.Write(mate.floatVal1);
+                                    writer.Write(mate.floatVal1.val);
                                     break;
                                 case PropName._FloatValue2:
-                                    writer.Write(mate.floatVal2);
+                                    writer.Write(mate.floatVal2.val);
                                     break;
                                 case PropName._FloatValue3:
-                                    writer.Write(mate.floatVal3);
+                                    writer.Write(mate.floatVal3.val);
                                     break;
                             }
                             break;

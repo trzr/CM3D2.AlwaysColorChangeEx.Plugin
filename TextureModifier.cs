@@ -481,7 +481,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 try {
                     GUILayout.Label(dirtyValue.Name, uiParams.lStyle, GUILayout.Width(64));
                     GUILayout.Label(val.ToString("F0"), uiParams.lStyle, GUILayout.Width(32));
+
+                    GUILayout.BeginVertical();
+                    GUILayout.Space(margin*5f);
                     val = GUILayout.HorizontalSlider(val, dirtyValue.Min, dirtyValue.Max );
+                    GUILayout.EndVertical();
                     GUILayout.Space(margin *3);
                 } finally {
                     GUILayout.EndHorizontal();

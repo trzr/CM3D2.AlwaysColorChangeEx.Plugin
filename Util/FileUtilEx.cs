@@ -7,6 +7,7 @@ using System.Text;
 using System.Windows.Forms.VisualStyles;
 using UnityEngine;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 {
@@ -81,14 +82,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             try {
                 AFileBase aFileBase = global::GameUty.FileOpen(filename);
                 if (!aFileBase.IsValid()) {
-                    var msg = LogUtil.ErrorLog("指定ファイルが見つかりません。file=", filename);
+                    var msg = LogUtil.Error("指定ファイルが見つかりません。file=", filename);
                     throw new ACCException(msg.ToString());
                 }
                 return new FileBaseStream(aFileBase);
             } catch (ACCException) {
                 throw;
             } catch (Exception e) {
-                var msg = LogUtil.ErrorLog("指定ファイルが読み込めませんでした。", filename, e);
+                var msg = LogUtil.Error("指定ファイルが読み込めませんでした。", filename, e);
                 throw new ACCException(msg.ToString(), e);
             }
         }
@@ -97,7 +98,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             try {
                 using (AFileBase aFileBase = global::GameUty.FileOpen(filename)) {
                     if (!aFileBase.IsValid()) {
-                        var msg = LogUtil.ErrorLog("指定ファイルが見つかりません。file=", filename);
+                        var msg = LogUtil.Error("指定ファイルが見つかりません。file=", filename);
                         throw new ACCException(msg.ToString());
                     }
                     return aFileBase.ReadAll();
@@ -105,7 +106,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             } catch (ACCException) {
                 throw;
             } catch (Exception e) {
-                var msg = LogUtil.ErrorLog("指定ファイルが読み込めませんでした。", filename, e);
+                var msg = LogUtil.Error("指定ファイルが読み込めませんでした。", filename, e);
                 throw new ACCException(msg.ToString(), e);
             }
         }
@@ -149,7 +150,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                     util.TransferMenu(reader, writer, res.EditTxtPath(), res.ReplaceMenuFunc());
                     return res.replaceFiles;
                 } catch(Exception e) {
-                    var msg = LogUtil.ErrorLog("menuファイルの作成に失敗しました。 file=", outfilepath, e);
+                    var msg = LogUtil.Error("menuファイルの作成に失敗しました。 file=", outfilepath, e);
                     throw new ACCException(msg.ToString(), e);
                 }
             }
@@ -167,7 +168,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             // ヘッダ
             string head = reader.ReadString();
             if (head != FileConst.HEAD_MODEL) {
-                var msg = LogUtil.ErrorLog("正しいモデルファイルではありません。ヘッダが不正です。", head);
+                var msg = LogUtil.Error("正しいモデルファイルではありません。ヘッダが不正です。", head);
                 throw new ACCException(msg.ToString());
             }
             writer.Write(head);

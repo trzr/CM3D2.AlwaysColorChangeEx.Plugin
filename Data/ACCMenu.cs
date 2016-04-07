@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using UnityEngine;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
@@ -123,7 +124,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         }
 
         public void AddSlotMaterial(TargetMaterial tm) {
-            LogUtil.DebugLog("Add slot material", tm.editname);
+            LogUtil.Debug("Add slot material", tm.editname);
 
             SlotMaterials slotMat;
             if (!slotMaterials.TryGetValue(tm.slotName, out slotMat)) {
@@ -149,7 +150,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         } else {
                             msg = "MENUファイルのヘッダーファイルが正しくありません";
                         }
-                        LogUtil.ErrorLog(msg, menu.srcfilename, head);
+                        LogUtil.Error(msg, menu.srcfilename, head);
                         throw new ACCException(msg);
                     }
                     writer.Write(head);
@@ -209,7 +210,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                             case "additem":
                                 var modelfile = param[0];
                                 param[0] = menu.itemFiles[modelfile].EditFileName();
-                                LogUtil.DebugLog("modelfile replaces ", modelfile, "=>",  param[0]);
+                                LogUtil.Debug("modelfile replaces ", modelfile, "=>",  param[0]);
                                 break;
                             case "マテリアル変更":
                                 string slot = param[0];
@@ -297,7 +298,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
             } catch (Exception e) {
                 string msg = "menuファイルの作成に失敗しました。 file="+ filepath;
-                LogUtil.ErrorLog(msg, e);
+                LogUtil.Error(msg, e);
                 throw new ACCException(msg, e);
             }
         }
@@ -305,7 +306,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public static ACCMenu Load(string filename) {
             var menu = new ACCMenu();
 
-            LogUtil.DebugLog("loading menu file", filename);
+            LogUtil.Debug("loading menu file", filename);
             menu.srcfilename = filename;
             menu.editfile = Path.GetFileNameWithoutExtension(filename);
 
@@ -314,9 +315,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     string head = reader.ReadString();
                     if (head != FileConst.HEAD_MENU) {
                         if (head == FileConst.HEAD_MOD) {
-                            LogUtil.ErrorLog("MODファイルは未対応。", filename);
+                            LogUtil.Error("MODファイルは未対応。", filename);
                         } else {
-                            LogUtil.ErrorLog("MENUファイルのヘッダーファイルが正しくありません", head, filename);
+                            LogUtil.Error("MENUファイルのヘッダーファイルが正しくありません", head, filename);
                         }
                         return null;
                     }
@@ -387,7 +388,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                                         }
                                         
                                     } catch(Exception e) {
-                                        LogUtil.DebugLog("failed to parse additem slot", item.slot, e);
+                                        LogUtil.Debug("failed to parse additem slot", item.slot, e);
                                     }
                                 }
                                 break;
@@ -457,11 +458,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 }
 
             } catch (Exception e) {
-                LogUtil.ErrorLog("アイテムメニューファイルが読み込めませんでした。", filename, e);
+                LogUtil.Error("アイテムメニューファイルが読み込めませんでした。", filename, e);
                 return null;
             }
 
-            LogUtil.DebugLog("menu loaded");
+            LogUtil.Debug("menu loaded");
             return menu;
         }
     }
@@ -535,7 +536,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 // modelファイルからマテリアルのロード
                 
             } else if (!string.IsNullOrEmpty(filename)) {
-                LogUtil.DebugLog("load material file", filename);
+                LogUtil.Debug("load material file", filename);
                 srcMat = ACCMaterialEx.Load(filename);
                 shaderChanged = (editedMat.shader != srcMat.shader);
             }
@@ -546,7 +547,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             //     2. renderQueueが変更されている場合
             if (edited.type.isTrans) {
                 // renderqueueがデフォルト値であれば変更不要
-                if (Math.Abs(edited.renderQueue - 2000) < 0.01f) {
+                if (Math.Abs(edited.renderQueue.val - 2000) < 0.01f) {
                     this.needPmat = false;
                 } else {
                     this.needPmat = true;
@@ -555,9 +556,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     float srcRq = MaterialType.GetRenderQueue(matName);
                     // 既存のマテリアル名に対応するpmatが存在しない => 変更必要
                     if (srcRq < 0) this.needPmatChange = true;
-                    LogUtil.DebugLogF("render queue: src={0}, edited={1}", srcRq, edited.renderQueue);
+                    LogUtil.DebugF("render queue: src={0}, edited={1}", srcRq, edited.renderQueue);
     
-                    this.needPmatChange |= (Math.Abs(edited.renderQueue - srcRq) > 0.01f);
+                    this.needPmatChange |= (Math.Abs(edited.renderQueue.val - srcRq) > 0.01f);
                     this.pmatExport = needPmatChange;
                 }
             }
@@ -572,7 +573,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
             // テクスチャの変更フラグチェック
             foreach (string propName in editedMat.type.texPropNames) {
-                LogUtil.DebugLog("propName:", propName);
+                LogUtil.Debug("propName:", propName);
                 Texture tex = editedMat.material.GetTexture(propName);
                 var filter = ACCTexturesView.GetFilter(maid, slotName, editedMat.material, propName);
                 var colorChanged = (filter != null) && !filter.hasNotChanged();
@@ -589,11 +590,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 hasTexColorChanged  |= colorChanged;
                 hasTexFileChanged   |= fileChanged;
             }
-            LogUtil.DebugLog("target material initialized");
+            LogUtil.Debug("target material initialized");
         }
 
         public float RenderQueue() {
-            return editedMat.renderQueue;
+            return editedMat.renderQueue.val;
         }
         public string ShaderName() {
             return editedMat.type.shader.Name;
@@ -711,7 +712,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                                     param[0] = editfile;
                                 }
                             } catch(Exception e) {
-                                LogUtil.DebugLog("対応するスロットが見つかりませんでした。", slot0, e);
+                                LogUtil.Debug("対応するスロットが見つかりませんでした。", slot0, e);
                                 // LogUtil.DebugLog("failed to parse additem slot", slot0, e);
                             }
                         }

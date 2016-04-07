@@ -27,23 +27,43 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
             return null;
         }
+        internal enum ShaderType {
+            Toony_Lighted,
+            Toony_Lighted_Trans,
+            Toony_Lighted_Trans_NoZ,
+            Toony_Lighted_Outline,
+            Toony_Lighted_Outline_Trans,
+            Toony_Lighted_Hair,
+            Toony_Lighted_Hair_Outline,
+            Lighted,
+            Lighted_Trans,
+            Unlit__Texture,
+            Unlit__Transparent,
+            Diffuse,
+            Transparent__Diffuse,
+            Mosaic,
+            Man,
+            CM3D2_Debug__Debug_CM3D2_Normal2Color,
+
+        }
         public static readonly ShaderName[] ShaderNames = {
-            new ShaderName("CM3D2/Toony_Lighted","トゥーン"),
-            new ShaderName("CM3D2/Toony_Lighted_Trans","トゥーン 透過"),
-            new ShaderName("CM3D2/Toony_Lighted_Trans_NoZ","トゥーン 透過 NoZ"),
-            new ShaderName("CM3D2/Toony_Lighted_Outline","トゥーン 輪郭線"),
-            new ShaderName("CM3D2/Toony_Lighted_Outline_Trans","トゥーン 輪郭線 透過"),
-            new ShaderName("CM3D2/Toony_Lighted_Hair","トゥーン 髪"),
-            new ShaderName("CM3D2/Toony_Lighted_Hair_Outline","トゥーン 髪 輪郭線"),
-            new ShaderName("CM3D2/Lighted","非トゥーン"),
-            new ShaderName("CM3D2/Lighted_Trans","透過"),
-            new ShaderName("Unlit/Texture","発光"),
-            new ShaderName("Unlit/Transparent","発光 透過"),
-            new ShaderName("Diffuse","リアル"),
-            new ShaderName("Transparent/Diffuse","リアル 透過"),
-            new ShaderName("CM3D2/Mosaic","モザイク"),
-            new ShaderName("CM3D2/Man","ご主人様"),
-//            new ShaderName("CM3D2_Debug/Debug_CM3D2_Normal2Color","デバッグ"),
+            new ShaderName("CM3D2/Toony_Lighted","トゥーン", ShaderType.Toony_Lighted),
+            new ShaderName("CM3D2/Toony_Lighted_Trans","トゥーン 透過", ShaderType.Toony_Lighted_Trans),
+            new ShaderName("CM3D2/Toony_Lighted_Trans_NoZ","トゥーン 透過 NoZ", ShaderType.Toony_Lighted_Trans_NoZ),
+            new ShaderName("CM3D2/Toony_Lighted_Outline","トゥーン 輪郭線", ShaderType.Toony_Lighted_Outline),
+            new ShaderName("CM3D2/Toony_Lighted_Outline_Trans","トゥーン 輪郭線 透過", ShaderType.Toony_Lighted_Outline_Trans),
+            new ShaderName("CM3D2/Toony_Lighted_Hair","トゥーン 髪", ShaderType.Toony_Lighted_Hair),
+            new ShaderName("CM3D2/Toony_Lighted_Hair_Outline","トゥーン 髪 輪郭線", ShaderType.Toony_Lighted_Hair_Outline),
+            new ShaderName("CM3D2/Lighted","非トゥーン", ShaderType.Lighted),
+            new ShaderName("CM3D2/Lighted_Trans","透過", ShaderType.Lighted_Trans),
+            new ShaderName("Unlit/Texture","発光", ShaderType.Unlit__Texture),
+            new ShaderName("Unlit/Transparent","発光 透過", ShaderType.Unlit__Transparent),
+            new ShaderName("Diffuse","リアル", ShaderType.Diffuse),
+            new ShaderName("Transparent/Diffuse","リアル 透過", ShaderType.Transparent__Diffuse),
+            new ShaderName("CM3D2/Mosaic","モザイク", ShaderType.Mosaic),
+            new ShaderName("CM3D2/Man","ご主人様", ShaderType.Man),
+            new ShaderName("CM3D2_Debug/Debug_CM3D2_Normal2Color","法線", ShaderType.CM3D2_Debug__Debug_CM3D2_Normal2Color),
+
         };
 
         // シェーダ名の最大文字数を取得
@@ -51,6 +71,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             return ShaderNames[4].Name.Length;
         }
 
+        public static int getTypeIndex(string shaderName) {
+            MaterialType mt;
+            return shaderMap.TryGetValue(shaderName, out mt) ? (int)mt.shader.Type : -1;
+            
+        }
         public static MaterialType resolve(string shaderName) {
             try {
                 return shaderMap[shaderName];
@@ -75,6 +100,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         public const int FLOATVAL1 = 0x040;
         public const int FLOATVAL2 = 0x080;
         public const int FLOATVAL3 = 0x100;
+
+        public const int CUTTOFF   = 0x200;
 
         private readonly static Dictionary<string, MaterialType> shaderMap = new Dictionary<string, MaterialType>(16) {
             // CM3D2/Toony_Lighted
@@ -108,10 +135,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             // CM3D2/Man
             {ShaderNames[14].Name, new MaterialType(ShaderNames[14], PropNamesEmpty,   COLOR+FLOATVAL2+FLOATVAL3)},       // 1 1000 0001
             // CM3D2_Debug/Debug_CM3D2_Normal2Color
-            //{ShaderNames[15].Name, new MaterialFlag(ShaderNames[15],PropNamesHair,  COLOR)},                            // 0 0000 0001
+            {ShaderNames[15].Name, new MaterialType(ShaderNames[15], PropNamesEmpty,   COLOR)},                          // 0 0000 0001?
+
         };
         private static bool initialized = false;
-        private readonly static Dictionary<string, string> Shader2 = new Dictionary<string, string>(16);
+        private static Dictionary<string, string> Shader2;
         /// <summary>
         /// シェーダ1から対応するシェーダ2を取得する
         /// (毎回リプレースでも良いかも…)
@@ -120,6 +148,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         /// <returns>対応するシェーダ2</returns>
         public static string GatShader2(string shader1) {
             if (!initialized) {
+                Shader2 = new Dictionary<string, string>(ShaderNames.Length);
                 foreach (var shaderName in ShaderNames) {
                     Shader2[shaderName.Name] = shaderName.Name.Replace("/", "__");
                 }
@@ -162,6 +191,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             case PropName._FloatValue1:
             case PropName._FloatValue2:
             case PropName._FloatValue3:
+            case PropName._Cutoff:
                 return PropType.f;
             default:
                 throw new ACCException("input unsupported propName" + prop);
@@ -173,9 +203,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
     public class ShaderName {
         public string Name        {get; private set;}
         public string DisplayName {get; private set;}
-        public ShaderName(string name, string displayName) {
+        internal ShaderMapper.ShaderType Type    {get; private set;}
+        internal ShaderName(string name, string displayName, ShaderMapper.ShaderType type) {
             Name = name;
             DisplayName = displayName;
+            Type = type;
         }
     }
 
@@ -209,6 +241,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             this.hasFloat1  = ((flag & ShaderMapper.FLOATVAL1) != 0);
             this.hasFloat2  = ((flag & ShaderMapper.FLOATVAL2) != 0);
             this.hasFloat3  = ((flag & ShaderMapper.FLOATVAL3) != 0);
+            this.hasCutoff  = ((flag & ShaderMapper.CUTTOFF) != 0);
             Init();
         }
 
@@ -224,6 +257,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         public bool hasFloat1      { get; private set; }
         public bool hasFloat2      { get; private set; }
         public bool hasFloat3      { get; private set; }
+        public bool hasCutoff      { get; private set; }
         public bool hasRenderTex   { get; private set; }
         
         private void Init() {
@@ -258,6 +292,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             if (hasFloat1) propNameSet.Add(PropName._FloatValue1);
             if (hasFloat2) propNameSet.Add(PropName._FloatValue2);
             if (hasFloat3) propNameSet.Add(PropName._FloatValue3);
+            if (hasCutoff) propNameSet.Add(PropName._Cutoff);
         }
 
         public bool IsValidProp(string prop) {
@@ -266,7 +301,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 var pn = (PropName)Enum.Parse(typeof(PropName), prop);
                 return IsValidProp(pn);
             } catch(Exception e) {
-                LogUtil.DebugLog(e);
+                LogUtil.Debug(e);
                 return false;
             }
         }
@@ -304,6 +339,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                         return hasFloat2;
                     case PropName._FloatValue3:
                         return hasFloat3;
+                    case PropName._Cutoff:
+                        return hasCutoff;
+
                     // 特殊プロパティ
                     case PropName._RenderTex:
                         return hasRenderTex;
@@ -312,7 +350,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 }
                     
             } catch(Exception e) {
-                LogUtil.DebugLog(e);
+                LogUtil.Debug(e);
                 return false;
             }
         }
@@ -349,6 +387,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         _FloatValue1,
         _FloatValue2,
         _FloatValue3,
+        _Cutoff,
     }
     public enum PropType {
         tex,

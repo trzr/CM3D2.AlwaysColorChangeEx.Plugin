@@ -41,6 +41,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         public bool CurrentEnabled() {
             return currentMaid != null && currentMaid.enabled;
         }
+        private static readonly int cnt = PrivateAccessor.Get<int>(typeof(TBody),"strSlotNameItemCnt");
+        public bool isOfficial;
+        public bool checkOfficial(Maid maid) {
+            int slotCount = TBody.m_strDefSlotName.Length/cnt;
+            LogUtil.Debug("slotCount:", slotCount, ", maid. count=", maid.body0.goSlot.Count);
+            return (maid.body0.goSlot.Count == slotCount);
+        }
         /// <summary>
         /// メイドを更新する.
         /// 名前が未指定の場合は、statusのlast_nameとfirst_nameから生成する.
@@ -65,11 +72,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
             if (currentMaid == maid0) return false;
             currentMaid = maid0;
-            if (maid0 != null) {
-                MaidName = name?? currentMaid.Param.status.last_name + " " + currentMaid.Param.status.first_name;                
+            if (currentMaid != null) {
+                MaidName = name?? currentMaid.Param.status.last_name + " " + currentMaid.Param.status.first_name;
+
+                isOfficial = checkOfficial(currentMaid);
             } else {
                 MaidName = "(not selected)";
             }
+            LogUtil.Debug("maid changed.", MaidName);
 
             act();
             return true;
@@ -87,6 +97,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
             return null;
         }
+        public int GetCurrentMenuFileID() 
+        {
+            if (currentMaid != null) {
+                MaidProp prop = currentMaid.GetProp(currentSlot.mpn);
+                if (prop != null) return prop.nFileNameRID;
+
+                LogUtil.Log("maid prop is null", currentSlot.mpn);
+            }
+            return 0;
+        }
 
         /// <summary>選択中のスロットを取得する</summary>
         /// <returns>スロット</returns>
@@ -95,14 +115,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
 
         public Material[] GetMaterials() {
-            return GetMaterials( currentMaid.body0.GetSlot((int)currentSlot.Id) );
+            return GetMaterials(currentSlot.Id);
         }
 
         public Material[] GetMaterials(SlotInfo slot) {
             return GetMaterials(slot.Id);
         }
         public Material[] GetMaterials(TBody.SlotID slotID) {
-            return GetMaterials(currentMaid.body0.GetSlot((int)slotID));
+            int slotNo = (int)slotID;
+            return slotNo >= currentMaid.body0.goSlot.Count
+                ? EmptyList
+                : GetMaterials(currentMaid.body0.GetSlot(slotNo));
         }
 
         public Material[] GetMaterials(string slotName) {

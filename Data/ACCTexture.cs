@@ -1,6 +1,4 @@
-﻿/*
- */
-using System;
+﻿using System;
 using UnityEngine;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
@@ -44,11 +42,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                    texOffset = mate.GetTextureOffset(propName);
                    texScale  = mate.GetTextureScale(propName);
                 } else {
-                    LogUtil.DebugLogF("propName({0}): texture type:{1}", propName, tex.GetType());
+                    LogUtil.DebugF("propName({0}): texture type:{1}", propName, tex.GetType());
                 }
             } else {
                 // シェーダ切り替えなどで、元々存在しないテクスチャの場合
-                LogUtil.DebugLogF("texture not found. propname={0}, material={1}", propName, mate.name);
+                LogUtil.DebugF("texture not found. propname={0}, material={1}", propName, mate.name);
                 // 空のテクスチャは作成しない
 //                this.tex = new Texture2D(2, 2);
 //                this.tex.name = string.Empty;

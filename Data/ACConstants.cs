@@ -6,7 +6,8 @@ using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 {
     /// <summary>
-    /// Description of SingletonClass1.
+    /// ACCで扱う定数クラス.
+    /// SlotIDからMPNの対応やノード名一覧等
     /// </summary>
     public static class ACConstants
     {
@@ -64,11 +65,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             {TBody.SlotID.HandItemL,   new SlotInfo(TBody.SlotID.HandItemL, MPN.handitem, "手持アイテム：左", true)},
             {TBody.SlotID.HandItemR,   new SlotInfo(TBody.SlotID.HandItemR, MPN.handitem, "手持アイテム：右", true)},
 
-            {TBody.SlotID.kubiwa,      new SlotInfo(TBody.SlotID.kubiwa,    MPN.KubiScl,  "首輪", true)},
+            // MPNが対応していない
+            // {TBody.SlotID.kubiwa,      new SlotInfo(TBody.SlotID.kubiwa,    MPN.KubiScl,  "首輪", true)},
             {TBody.SlotID.kousoku_upper, new SlotInfo(TBody.SlotID.kousoku_upper, MPN.kousoku_upper, "拘束具：上", true)},
             {TBody.SlotID.kousoku_lower, new SlotInfo(TBody.SlotID.kousoku_lower, MPN.kousoku_lower, "拘束具：下", true)},
             {TBody.SlotID.accAnl,      new SlotInfo(TBody.SlotID.accAnl,    MPN.accanl,  "アナルバイブ", true)},
             {TBody.SlotID.accVag,      new SlotInfo(TBody.SlotID.accVag,    MPN.accvag,  "バイブ", true)},
+            // TODO MPNが未対応？
             {TBody.SlotID.chinko,      new SlotInfo(TBody.SlotID.chinko,   MPN.null_mpn, "チ○コ", true, settings.enableMask)},
             {TBody.SlotID.moza,        new SlotInfo(TBody.SlotID.moza,   MPN.moza, "モザイク", settings.enableMoza, settings.enableMoza)},
         };
@@ -98,8 +101,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             {"Mune_R",             new NodeItem("右胸下", 2) },
             {"Bip01 Pelvis_SCL_",  new NodeItem("骨盤", 0) },
             {"Bip01 Spine_SCL_",   new NodeItem("脊椎", 0) },
-            {"Bip01 Spine1_SCL_",  new NodeItem("腰中", 0) },
             {"Bip01 Spine0a_SCL_", new NodeItem("腹部", 0) },
+            {"Bip01 Spine1_SCL_",  new NodeItem("腰中", 0) },
             {"Bip01 Spine1a_SCL_", new NodeItem("胸部", 0) },
             {"Bip01",              new NodeItem("股間", 0) },
             {"Hip_L",              new NodeItem("左尻", 1) },

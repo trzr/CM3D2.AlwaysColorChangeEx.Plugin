@@ -45,11 +45,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 using (var fs = asmbl.GetManifestResourceStream(name + ".png")) {
                     var tex2d = outUtil.LoadTexture(fs);
                     tex2d.name = name;
-                    LogUtil.DebugLog("load resource file image");
+                    LogUtil.Debug("load resource file image");
                     return tex2d;
                 }
             } catch(Exception e) {
-                LogUtil.DebugLog(e);
+                LogUtil.Debug(e);
                 return null;
             }
         }

@@ -108,7 +108,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             // 表示ノード
             preset.delNodes = new Dictionary<string, bool>(dDelNodes);
             
-            LogUtil.DebugLog("create preset...", fileName);
+            LogUtil.Debug("create preset...", fileName);
             SavePreset(fileName, preset);
         }
 
@@ -127,7 +127,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 writer.ignoreNull = true;
                 writer.Write(preset);
             }
-            LogUtil.DebugLog("preset saved...", fileName);
+            LogUtil.Debug("preset saved...", fileName);
         }
         public void ApplyPresetMPN(Maid maid, PresetData preset, bool applyBody, bool applyWear, bool castoff) {
             // 衣装チェンジ
@@ -161,11 +161,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             if (maid == null) return;
 
             foreach (var ccslot in preset.slots) {
+                int slotNo = (int)ccslot.id;
+                if (slotNo >= maid.body0.goSlot.Count) continue; // スロットがないケースはスキップ
+
                 // スロット上のマテリアル番号での判断に変更
-                TBodySkin slot = maid.body0.GetSlot((int)ccslot.id);
+                TBodySkin slot = maid.body0.GetSlot(slotNo);
                 Material[] materials = holder.GetMaterials(slot);
                 if (slot.obj == null) {
-                    LogUtil.DebugLog("slot.obj null. name=", ccslot.id);
+                    LogUtil.Debug("slot.obj null. name=", ccslot.id);
                 }
                 if (!materials.Any()) continue; // 未装着スロットはスキップ
 
@@ -175,7 +178,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                     if (++matNo < materials.Length) {
                         Material m = materials[matNo];
                         if (cmat.name != m.name) {
-                            LogUtil.DebugLogF("マテリアル名が一致しないため、適用しません。 slot={0}, matNo={1}, name=({2}<=>{3})", 
+                            LogUtil.DebugF("マテリアル名が一致しないため、適用しません。 slot={0}, matNo={1}, name=({2}<=>{3})", 
                                      ccslot.id, matNo, cmat.name, m.name);
                             continue;
                         }
@@ -204,7 +207,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                                         changedTex.name = texInfo.texFile;
                                     }
                                 } else {
-                                    LogUtil.DebugLog("texture file not found. file=", filename);
+                                    LogUtil.Debug("texture file not found. file=", filename);
                                 }
                             }
 
@@ -329,7 +332,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                     presets.Add(preset.name, preset);
                 }
             } catch(Exception e) {
-                LogUtil.ErrorLog("failed to load presets. file=",fileName, ". ", e);
+                LogUtil.Error("failed to load presets. file=",fileName, ". ", e);
                 return null; 
             }
             
