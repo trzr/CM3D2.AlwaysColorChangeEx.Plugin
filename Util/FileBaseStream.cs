@@ -3,6 +3,7 @@
  */
 using System;
 using System.IO;
+using System.Text;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 {
@@ -42,11 +43,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
 
         public override void Close() {
+            // LogUtil.Debug("close");
             filebase.Dispose();
             base.Close();
         }
 
         public override long Seek(long offset, SeekOrigin origin) {
+            // LogUtil.Debug("seek, offset=", offset, ", origin=", origin);
+
             if (origin == SeekOrigin.Current) {
                 return filebase.Seek((int)offset, false);
             } else if (origin == SeekOrigin.Begin) {
@@ -56,20 +60,39 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
         }
 
-        public override int Read( byte[] buffer, int offset, int count) {
-            var buff = new byte[count];
-            int length = filebase.Read(ref buff, count);
-            Array.Copy(buff, 0, buffer, offset, length);
+        public override int Read(byte[] buffer, int offset, int count) {
+            // LogUtil.Debug("read. offset:", offset, ", count=", count);
+            int length;
+
+            if (offset == 0 && buffer.Length > count) {
+                length = filebase.Read(ref buffer, count);
+
+            } else {
+                int maxLength = buffer.Length - offset;
+                if (maxLength < count) count = maxLength;
+                var buff = new byte[count];
+                
+                length = filebase.Read(ref buff, count);
+                if (length > 0) {
+                    Array.Copy(buff, 0, buffer, offset, length);
+                }
+            }
+////            if (length > 0 && pos == filebase.Tell()) {
+////                filebase.Seek(pos+length, true);
+////            }
+//            LogUtil.Debug("length:", length, ", pos=",  filebase.Tell());
             return length;
         }
 
         public override int ReadByte() {
             var array = new byte[1];
             return this.Read(array, 0, 1) == 0 ? -1 : (int)array[0];
+
+            // LogUtil.Debug("readByte=", ret);
         }
 
         public override void Flush() {
-            // do nothing
+            // LogUtil.Debug("flush");
         }
 
         public override void SetLength(long value) {

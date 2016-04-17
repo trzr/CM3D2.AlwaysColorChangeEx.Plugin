@@ -137,95 +137,115 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public static void WriteMenuFile(string filepath, ACCMenu menu) {
 
             try {
-                using (var reader = new BinaryReader(FileUtilEx.Instance.GetStream(menu.srcfilename), Encoding.UTF8))
-                using (var dataStream = new MemoryStream())
-                using (var dataWriter = new BinaryWriter(dataStream))
-                using (var writer = new BinaryWriter(File.OpenWrite(filepath))) {
-
-                    string head = reader.ReadString();
-                    if (head != FileConst.HEAD_MENU) {
-                        string msg;
-                        if (head == FileConst.HEAD_MOD) {
-                            msg = "MODファイルは未対応です";
-                        } else {
-                            msg = "MENUファイルのヘッダーファイルが正しくありません";
-                        }
-                        LogUtil.Error(msg, menu.srcfilename, head);
-                        throw new ACCException(msg);
+                using (var reader = new BinaryReader(FileUtilEx.Instance.GetStream(menu.srcfilename), Encoding.UTF8)) {
+                    string header = reader.ReadString();
+                    if (header == FileConst.HEAD_MENU) {
+                        WriteMenuFile(reader, header, filepath, menu);
+                        return; 
                     }
-                    writer.Write(head);
-                    writer.Write(reader.ReadInt32());
-                    
-                    // txtpath
-                    reader.ReadString();
-                    string txtpath = menu.txtpath;
-                    if (!txtpath.EndsWith(FileConst.EXT_TXT, StringComparison.OrdinalIgnoreCase)) {
-                        txtpath += FileConst.EXT_TXT;
+
+                    if (reader.BaseStream.Position != 0) {
+                        var msg = headerError(header, menu.srcfilename);
+                        throw new ACCException(msg.ToString());
                     }
-                    writer.Write(txtpath);
-                    // name, category, 説明
-                    reader.ReadString();
-                    reader.ReadString();
-                    reader.ReadString();
-                    writer.Write(menu.name);
-                    writer.Write(menu.category);
-                    string desc = menu.desc.Replace("\n", FileConst.RET);
-                    writer.Write(desc);
+                }
+                // arc内のファイルがロードできない場合の回避策: Sybaris 0410向け対策. 一括読み込み
+                using (var reader = new BinaryReader(new MemoryStream(FileUtilEx.Instance.LoadInternal(menu.srcfilename), false), Encoding.UTF8)) {
+                    string header = reader.ReadString(); // hader
+                    if (header == FileConst.HEAD_MATE) {
+                        WriteMenuFile(reader, header, filepath, menu);
+                    } else {
+                        var msg = headerError(header, menu.srcfilename);
+                        throw new ACCException(msg.ToString());
+                    }
+                }
 
-                    // readBytes
-                    int num = (int)reader.ReadInt32();
+            } catch (ACCException) {
+                throw;
+            } catch (Exception e) {
+                string msg = "menuファイルの作成に失敗しました。 file="+ filepath;
+                LogUtil.Error(msg, e);
+                throw new ACCException(msg, e);
+            }
+        }
+        private static void WriteMenuFile(BinaryReader reader, string header, string filepath, ACCMenu menu) {
+            using (var dataStream = new MemoryStream())
+            using (var dataWriter = new BinaryWriter(dataStream))
+            using (var writer = new BinaryWriter(File.OpenWrite(filepath))) {
 
-                    bool priorityWritten = false;
-                    while (true) {
-                        int size = (int) reader.ReadByte();
-                        if (size == 0) {
-                            dataWriter.Write((byte)0);
+                writer.Write(header);
+                writer.Write(reader.ReadInt32());
+                
+                // txtpath
+                reader.ReadString();
+                string txtpath = menu.txtpath;
+                if (!txtpath.EndsWith(FileConst.EXT_TXT, StringComparison.OrdinalIgnoreCase)) {
+                    txtpath += FileConst.EXT_TXT;
+                }
+                writer.Write(txtpath);
+                // name, category, 説明
+                reader.ReadString();
+                reader.ReadString();
+                reader.ReadString();
+                writer.Write(menu.name);
+                writer.Write(menu.category);
+                string desc = menu.desc.Replace("\n", FileConst.RET);
+                writer.Write(desc);
+
+                // readBytes
+                int num = (int)reader.ReadInt32();
+
+                bool priorityWritten = false;
+                while (true) {
+                    int size = (int) reader.ReadByte();
+                    if (size == 0) {
+                        dataWriter.Write((byte)0);
+                        break;
+                    }
+
+                    string key = reader.ReadString();
+                    var param = new string[size-1];
+                    for (int i = 0; i < size-1; i++) {
+                        param[i] = reader.ReadString();
+                    }
+                    // パラメータ数が変更される場合があれば…
+                    // string[] writeParams = null;
+
+                    switch (key) {
+                        case "priority":
+                            param[0] = menu.priority;
+                            priorityWritten = true;
                             break;
-                        }
+                        case "name":
+                            param[0] = menu.name;
+                            break;
+                        case "setumei":
+                            param[0] = desc;
+                            break;
+                        case "icon":
+                        case "icons":
+                            param[0] = menu.EditIconFileName();
+                            break;
 
-                        string key = reader.ReadString();
-                        var param = new string[size-1];
-                        for (int i = 0; i < size-1; i++) {
-                            param[i] = reader.ReadString();
-                        }
-                        // パラメータ数が変更される場合があれば…
-                        // string[] writeParams = null;
-
-                        switch (key) {
-                            case "priority":
-                                param[0] = menu.priority;
-                                priorityWritten = true;
-                                break;
-                            case "name":
-                                param[0] = menu.name;
-                                break;
-                            case "setumei":
-                                param[0] = desc;
-                                break;
-                            case "icon":
-                            case "icons":
-                                param[0] = menu.EditIconFileName();
-                                break;
-
-                            case "additem":
-                                var modelfile = param[0];
-                                param[0] = menu.itemFiles[modelfile].EditFileName();
-                                LogUtil.Debug("modelfile replaces ", modelfile, "=>",  param[0]);
-                                break;
-                            case "マテリアル変更":
-                                string slot = param[0];
-                                int matNo = int.Parse(param[1]);
-                                var tm = menu.GetMaterial(slot, matNo);
-                                param[2] = tm.EditFileName();
-                                break;
-                            case "リソース参照":
-                                param[1] = menu.resFiles[param[1]].EditFileName();
-                                break;
-                            case "半脱ぎ":
-                                param[0] = menu.resFiles[param[0]].EditFileName();
-                                break;
-                            //case "color_set":
-                            //    break;
+                        case "additem":
+                            var modelfile = param[0];
+                            param[0] = menu.itemFiles[modelfile].EditFileName();
+                            LogUtil.Debug("modelfile replaces ", modelfile, "=>",  param[0]);
+                            break;
+                        case "マテリアル変更":
+                            string slot = param[0];
+                            int matNo = int.Parse(param[1]);
+                            var tm = menu.GetMaterial(slot, matNo);
+                            param[2] = tm.EditFileName();
+                            break;
+                        case "リソース参照":
+                            param[1] = menu.resFiles[param[1]].EditFileName();
+                            break;
+                        case "半脱ぎ":
+                            param[0] = menu.resFiles[param[0]].EditFileName();
+                            break;
+                        //case "color_set":
+                        //    break;
 //                            case "maskitem":
 //                                // slot=param[0]
 //                                // menu.maskItems.Add(slot0);
@@ -248,58 +268,52 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 //                            case "パーツnode表示":
 //                                // menu.showPartsNodes.Add(param);
 //                                break;
-                            //case "メニューフォルダ":
-                            //    menu.menuFolder = param[0];
-                            //    break;
-                            //case "category":
-                            //    menu.category = param[0];
-                            //    break;
-                            //case "catno":
-                            //    menu.catno = param[0];
-                            //    break;
-                            //case "属性追加":
-                            //    break;
-                            //case "アタッチポイントの設定":
-                            //    break;
-                            //case "tex":
-                            //case "テクスチャ変更":
-                            //    break;
-                            //case "テクスチャ合成":
-                            //    break;
-                            //case "unsetitem":
-                            //    break;
-                            //case "commenttype":
-                            //    break;
-                            //case "アイテムパラメータ":
-                            //    if (param.Length == 3) {
-                            //        param = ;
-                            //        //Array.Copy(param, 0, itemParam, 0, param.Length);
-                            //    }
-                            //    break;
-                            //case "アイテム":
-                            //    menu.items.Add(Path.GetFileNameWithoutExtension(param[0]));
-                            //    break;
-                        }
-                        // if (writeParams == null) writeParams = param;
-                        dataWriter.Write((byte) (param.Length+1));
-                        dataWriter.Write(key);
-                        foreach (string wparam in param) {
-                            dataWriter.Write(wparam);
-                        }
+                        //case "メニューフォルダ":
+                        //    menu.menuFolder = param[0];
+                        //    break;
+                        //case "category":
+                        //    menu.category = param[0];
+                        //    break;
+                        //case "catno":
+                        //    menu.catno = param[0];
+                        //    break;
+                        //case "属性追加":
+                        //    break;
+                        //case "アタッチポイントの設定":
+                        //    break;
+                        //case "tex":
+                        //case "テクスチャ変更":
+                        //    break;
+                        //case "テクスチャ合成":
+                        //    break;
+                        //case "unsetitem":
+                        //    break;
+                        //case "commenttype":
+                        //    break;
+                        //case "アイテムパラメータ":
+                        //    if (param.Length == 3) {
+                        //        param = ;
+                        //        //Array.Copy(param, 0, itemParam, 0, param.Length);
+                        //    }
+                        //    break;
+                        //case "アイテム":
+                        //    menu.items.Add(Path.GetFileNameWithoutExtension(param[0]));
+                        //    break;
                     }
-                    if (!priorityWritten) {
-                        dataWriter.Write((byte) 2);
-                        dataWriter.Write("priority");
-                        dataWriter.Write(menu.priority);
+                    // if (writeParams == null) writeParams = param;
+                    dataWriter.Write((byte) (param.Length+1));
+                    dataWriter.Write(key);
+                    foreach (string wparam in param) {
+                        dataWriter.Write(wparam);
                     }
-                    writer.Write((int)dataStream.Length);
-                    writer.Write(dataStream.ToArray());
                 }
-
-            } catch (Exception e) {
-                string msg = "menuファイルの作成に失敗しました。 file="+ filepath;
-                LogUtil.Error(msg, e);
-                throw new ACCException(msg, e);
+                if (!priorityWritten) {
+                    dataWriter.Write((byte) 2);
+                    dataWriter.Write("priority");
+                    dataWriter.Write(menu.priority);
+                }
+                writer.Write((int)dataStream.Length);
+                writer.Write(dataStream.ToArray());
             }
         }
 
@@ -312,148 +326,29 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
             try {
                 using (var reader = new BinaryReader(FileUtilEx.Instance.GetStream(menu.srcfilename), Encoding.UTF8)) {
-                    string head = reader.ReadString();
-                    if (head != FileConst.HEAD_MENU) {
-                        if (head == FileConst.HEAD_MOD) {
-                            LogUtil.Error("MODファイルは未対応。", filename);
-                        } else {
-                            LogUtil.Error("MENUファイルのヘッダーファイルが正しくありません", head, filename);
-                        }
+                    string header = reader.ReadString();
+                    if (header == FileConst.HEAD_MENU) {
+                        Load(reader, menu.srcfilename, menu);
+                        LogUtil.Debug("menu loaded");
+                        return menu;
+                    }
+
+                    if (reader.BaseStream.Position != 0) {
+                        headerError(header, filename);
                         return null;
                     }
-                    menu.version = reader.ReadInt32();
-                    menu.txtpath = reader.ReadString();
-                    // 未使用
-                    var headerName = reader.ReadString();
-                    var headerCategory = reader.ReadString();
-                    var headerSetumei  = reader.ReadString().Replace(FileConst.RET, "\n");
-
-                    int num2 = (int)reader.ReadInt32();
-                    while (true) {
-                        int size = (int) reader.ReadByte();
-                        if (size == 0) break;
-
-                        string key = reader.ReadString();
-                        var param = new string[size-1];
-                        for (int i = 0; i < size-1; i++) {
-                            param[i] = reader.ReadString();
-                        }
-                        switch (key) {
-                            case "category":
-                                menu.category = param[0];
-                                break;
-//                            case "メニューフォルダ":
-//                                menu.menuFolder = param[0];
-//                                break;
-//                            case "catno":
-//                                menu.catno = param[0];
-//                                break;
-                            case "属性追加":
-                                break;
-                            case "priority":
-                                menu.priority = param[0];
-                                break;
-                            case "name":
-                                menu.name = param[0];
-                                break;
-                            case "setumei":
-                                menu.desc = param[0].Replace(FileConst.RET, "\n");
-                                break;
-                            case "icon":
-                            case "icons":
-                                menu.icon = param[0];
-                                menu.editicon = Path.GetFileNameWithoutExtension(menu.icon);
-                                break;
-                            case "アイテムパラメータ":
-                                if (param.Length == 3) {
-                                    menu.itemParam = param;
-                                    //Array.Copy(param, 0, itemParam, 0, param.Length);
-                                }
-                                break;
-                            case "アイテム":
-                                menu.items.Add(Path.GetFileNameWithoutExtension(param[0]));
-                                break;
-
-                            case "additem":
-                                if (param.Length >= 1) {
-                                    var item = new Item(param);
-                                    if (!menu.itemFiles.TryGetValue(item.filename, out item.link)) {
-                                        menu.itemFiles[item.filename] = item;
-                                    }
-                                    menu.addItems.Add(item);
-                                    try {
-                                        if (item.slot != null) {
-                                            var slotId = (TBody.SlotID)Enum.Parse(typeof(TBody.SlotID), item.slot, true);
-                                            menu.itemSlots[slotId] = item;
-                                        }
-                                        
-                                    } catch(Exception e) {
-                                        LogUtil.Debug("failed to parse additem slot", item.slot, e);
-                                    }
-                                }
-                                break;
-
-                            case "maskitem":
-                                if (param.Length >= 1) menu.maskItems.Add(param[0]);
-                                break;
-
-                            case "delitem":
-                                string slot0 = menu.category;
-                                if (param.Length >= 1) slot0 = param[0];
-                                menu.delItems.Add(slot0);
-                                break;
-
-                            case "マテリアル変更":
-                                string slot = param[0];
-                                int matNo = int.Parse(param[1]);
-                                string file = param[2];
-                                menu.AddSlotMaterial(new TargetMaterial(slot, matNo, file));
-
-                                break;
-                            case "node消去":
-                                menu.delNodes.Add(param[0]);
-                                break;
-                            case "node表示":
-                                menu.showNodes.Add(param[0]);
-                                break;
-                            case "パーツnode消去":
-                                menu.delPartsNodes.Add(param);
-                                break;
-                            case "パーツnode表示":
-                                menu.showPartsNodes.Add(param);
-                                break;
-                            case "リソース参照":
-                                var resRef1 = new ResourceRef(param[0], param[1]);
-                                resRef1.menu = menu;
-                                menu.resources.Add(resRef1);
-                                if (!menu.resFiles.TryGetValue(resRef1.filename, out resRef1.link)) {
-                                    menu.resFiles[resRef1.filename] = resRef1;
-                                }
-                                break;
-                            case "半脱ぎ":
-                                var resRef2 = new ResourceRef(key, param[0]);
-                                resRef2.menu = menu;
-                                menu.resources.Add(resRef2);
-                                if (!menu.resFiles.TryGetValue(resRef2.filename, out resRef2.link)) {
-                                    menu.resFiles[resRef2.filename] = resRef2;
-                                }
-                                break;
-                            case "color_set":
-                                break;
-                            //case "アタッチポイントの設定":
-                            //    break;
-                            //case "tex":
-                            //case "テクスチャ変更":
-                            //    break;
-                            //case "テクスチャ合成":
-                            //    break;
-                            //case "unsetitem":
-                            //    break;
-                            //case "commenttype":
-                            //    break;
-                            //case "color_set"
-                            // break;
-                        }
+                }
+               
+                // arc内のファイルがロードできない場合の回避策: Sybaris 0410向け対策. 一括読み込み
+                using (var reader = new BinaryReader(new MemoryStream(FileUtilEx.Instance.LoadInternal(menu.srcfilename), false), Encoding.UTF8)) {
+                    string header = reader.ReadString(); // hader
+                    if (header == FileConst.HEAD_MENU) {
+                        Load(reader, menu.srcfilename, menu);
+                        LogUtil.Debug("menu loaded");
+                        return menu;
+                    } else {
+                        headerError(header, filename);
+                        return null;
                     }
                 }
 
@@ -461,9 +356,149 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 LogUtil.Error("アイテムメニューファイルが読み込めませんでした。", filename, e);
                 return null;
             }
-
-            LogUtil.Debug("menu loaded");
-            return menu;
+        }
+        private static StringBuilder headerError(string header, string filename) {
+            if (header == FileConst.HEAD_MOD) {
+                return LogUtil.Error("MODファイルは未対応。", filename);
+            } else {
+                return LogUtil.Error("MENUファイルのヘッダーファイルが正しくありません。", header, ", ", filename);
+            }
+        }
+        private static void Load(BinaryReader reader, string filename, ACCMenu menu) {
+            menu.version = reader.ReadInt32();
+            menu.txtpath = reader.ReadString();
+            // 未使用
+            var headerName = reader.ReadString();
+            var headerCategory = reader.ReadString();
+            var headerSetumei  = reader.ReadString().Replace(FileConst.RET, "\n");
+    
+            int num2 = (int)reader.ReadInt32();
+            while (true) {
+                int size = (int) reader.ReadByte();
+                if (size == 0) break;
+    
+                string key = reader.ReadString();
+                var param = new string[size-1];
+                for (int i = 0; i < size-1; i++) {
+                    param[i] = reader.ReadString();
+                }
+                switch (key) {
+                    case "category":
+                        menu.category = param[0];
+                        break;
+    //                            case "メニューフォルダ":
+    //                                menu.menuFolder = param[0];
+    //                                break;
+    //                            case "catno":
+    //                                menu.catno = param[0];
+    //                                break;
+                    case "属性追加":
+                        break;
+                    case "priority":
+                        menu.priority = param[0];
+                        break;
+                    case "name":
+                        menu.name = param[0];
+                        break;
+                    case "setumei":
+                        menu.desc = param[0].Replace(FileConst.RET, "\n");
+                        break;
+                    case "icon":
+                    case "icons":
+                        menu.icon = param[0];
+                        menu.editicon = Path.GetFileNameWithoutExtension(menu.icon);
+                        break;
+                    case "アイテムパラメータ":
+                        if (param.Length == 3) {
+                            menu.itemParam = param;
+                            //Array.Copy(param, 0, itemParam, 0, param.Length);
+                        }
+                        break;
+                    case "アイテム":
+                        menu.items.Add(Path.GetFileNameWithoutExtension(param[0]));
+                        break;
+    
+                    case "additem":
+                        if (param.Length >= 1) {
+                            var item = new Item(param);
+                            if (!menu.itemFiles.TryGetValue(item.filename, out item.link)) {
+                                menu.itemFiles[item.filename] = item;
+                            }
+                            menu.addItems.Add(item);
+                            try {
+                                if (item.slot != null) {
+                                    var slotId = (TBody.SlotID)Enum.Parse(typeof(TBody.SlotID), item.slot, true);
+                                    menu.itemSlots[slotId] = item;
+                                }
+                                
+                            } catch(Exception e) {
+                                LogUtil.Debug("failed to parse additem slot", item.slot, e);
+                            }
+                        }
+                        break;
+    
+                    case "maskitem":
+                        if (param.Length >= 1) menu.maskItems.Add(param[0]);
+                        break;
+    
+                    case "delitem":
+                        string slot0 = menu.category;
+                        if (param.Length >= 1) slot0 = param[0];
+                        menu.delItems.Add(slot0);
+                        break;
+    
+                    case "マテリアル変更":
+                        string slot = param[0];
+                        int matNo = int.Parse(param[1]);
+                        string file = param[2];
+                        menu.AddSlotMaterial(new TargetMaterial(slot, matNo, file));
+    
+                        break;
+                    case "node消去":
+                        menu.delNodes.Add(param[0]);
+                        break;
+                    case "node表示":
+                        menu.showNodes.Add(param[0]);
+                        break;
+                    case "パーツnode消去":
+                        menu.delPartsNodes.Add(param);
+                        break;
+                    case "パーツnode表示":
+                        menu.showPartsNodes.Add(param);
+                        break;
+                    case "リソース参照":
+                        var resRef1 = new ResourceRef(param[0], param[1]);
+                        resRef1.menu = menu;
+                        menu.resources.Add(resRef1);
+                        if (!menu.resFiles.TryGetValue(resRef1.filename, out resRef1.link)) {
+                            menu.resFiles[resRef1.filename] = resRef1;
+                        }
+                        break;
+                    case "半脱ぎ":
+                        var resRef2 = new ResourceRef(key, param[0]);
+                        resRef2.menu = menu;
+                        menu.resources.Add(resRef2);
+                        if (!menu.resFiles.TryGetValue(resRef2.filename, out resRef2.link)) {
+                            menu.resFiles[resRef2.filename] = resRef2;
+                        }
+                        break;
+                    case "color_set":
+                        break;
+                    //case "アタッチポイントの設定":
+                    //    break;
+                    //case "tex":
+                    //case "テクスチャ変更":
+                    //    break;
+                    //case "テクスチャ合成":
+                    //    break;
+                    //case "unsetitem":
+                    //    break;
+                    //case "commenttype":
+                    //    break;
+                    //case "color_set"
+                    // break;
+                }
+            }
         }
     }
     public class SlotMaterials {
