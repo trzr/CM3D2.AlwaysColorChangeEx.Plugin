@@ -90,8 +90,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
         }
 
-        public void TransferMenu(BinaryReader reader, BinaryWriter writer, string txtpath, Func<string, string[], string[]> replace) {
-            writer.Write(reader.ReadString()); // header
+        public void TransferMenu(BinaryReader reader, BinaryWriter writer, string header, string txtpath, Func<string, string[], string[]> replace) {
+            writer.Write(header); // header
             writer.Write(reader.ReadInt32());  // version
 
             reader.ReadString();

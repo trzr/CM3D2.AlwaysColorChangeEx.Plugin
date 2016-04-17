@@ -89,6 +89,19 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             if (trgtMenu != null) {
                 showDialog = true;
                 return trgtMenu.itemSlots;
+            } else {
+                // エラー確認用処理
+                AFileBase aFileBase = global::GameUty.FileOpen(filename);
+                if (aFileBase.IsValid()) {
+                    //const int BUFFER_SIZE = 8192;
+                    
+                    string dir = OutputUtil.Instance.GetExportDirectory();
+                    string outfile = Path.Combine(dir, filename);
+                    LogUtil.Error("MENUファイルを出力します。", outfile);
+                    using ( var writer = new BinaryWriter(File.OpenWrite(outfile)) ) {
+                        writer.Write(aFileBase.ReadAll());
+                    }
+                }
             }
             return null;
         }

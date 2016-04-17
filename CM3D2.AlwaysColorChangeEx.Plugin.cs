@@ -23,7 +23,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
  PluginFilter("CM3D2OHx64"),
  PluginFilter("CM3D2OHVRx64"),
  PluginName("CM3D2 AlwaysColorChangeEx"),
- PluginVersion("0.2.2.0")]
+ PluginVersion("0.2.3.0")]
 class AlwaysColorChangeEx : UnityInjector.PluginBase
 {
     // プラグイン名
@@ -520,8 +520,9 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         } finally {
             GUILayout.EndScrollView();
 
+            GUILayout.BeginHorizontal();
             GUI.enabled = hasSelected;
-            if (GUILayout.Button( "選択", uiParams.bStyle)) {
+            if (GUILayout.Button( "選択", uiParams.bStyle, uiParams.optSubConHalfWidth)) {
                 SetMenu(MenuType.Main);
                 holder.UpdateMaid(selectedMaid, selectedName, ClearMaidData);
                 selectedMaid = null;
@@ -529,6 +530,11 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 contentDic.Clear();
             }
             GUI.enabled = true;
+            
+            if (GUILayout.Button( "一覧更新", uiParams.bStyle, uiParams.optSubConHalfWidth)) {
+                InitMaidList();
+            }
+            GUILayout.EndHorizontal();
             GUILayout.EndVertical();
         }
         GUI.DragWindow(uiParams.titleBarRect);
@@ -732,6 +738,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         } catch (Exception e) {
             LogUtil.Error("強制カラーチェンジ画面でエラーが発生しました。メイン画面へ移動します", e);
             SetMenu(MenuType.Main);
+            targetMenuId = 0;
         } finally {
             GUILayout.EndScrollView();
 
@@ -741,6 +748,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
 
             if (GUILayout.Button("閉じる", uiParams.bStyle)) {
                 SetMenu(MenuType.Main);
+                targetMenuId = 0;
             }
             GUI.DragWindow(uiParams.titleBarRect);
         }

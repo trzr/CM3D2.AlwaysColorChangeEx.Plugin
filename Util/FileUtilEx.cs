@@ -143,11 +143,33 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
 
         public List<ReplacedInfo> WriteMenuFile(string infile, string outfilepath, ResourceRef res) {
-            using ( var writer = new BinaryWriter(File.OpenWrite(outfilepath)) )
-                using ( var reader = new BinaryReader(GetStream(infile), Encoding.UTF8) ) {
-                
+            using ( var reader = new BinaryReader(GetStream(infile), Encoding.UTF8) ) {
+
+                string header = reader.ReadString();
+                if (header == FileConst.HEAD_MENU) {
+                    return WriteMenuFile(reader, header, outfilepath, res);
+                }
+                if (reader.BaseStream.Position != 0) {
+                    var msg = LogUtil.Error("menuファイルを作成しようとしましたが、参照元ファイルのヘッダが正しくありません。", header, ", file=", infile);
+                    throw new ACCException(msg.ToString());
+                }
+            }
+
+            // arc内のファイルがロードできない場合の回避策: Sybaris 0410向け対策. 一括読み込み
+            using (var reader = new BinaryReader(new MemoryStream(FileUtilEx.Instance.LoadInternal(infile), false), Encoding.UTF8)) {
+                string header = reader.ReadString(); // hader
+                if (header == FileConst.HEAD_MENU) {
+                    return WriteMenuFile(reader, header, outfilepath, res);
+                } else {
+                    var msg = LogUtil.Error("menuファイルを作成しようとしましたが、参照元ファイルのヘッダが正しくありません。", header, ", file=", infile);
+                    throw new ACCException(msg.ToString());
+                }
+            }
+        }
+        private List<ReplacedInfo> WriteMenuFile(BinaryReader reader, string header, string outfilepath, ResourceRef res) {
+            using ( var writer = new BinaryWriter(File.OpenWrite(outfilepath)) ) {
                 try {
-                    util.TransferMenu(reader, writer, res.EditTxtPath(), res.ReplaceMenuFunc());
+                    util.TransferMenu(reader, writer, header, res.EditTxtPath(), res.ReplaceMenuFunc());
                     return res.replaceFiles;
                 } catch(Exception e) {
                     var msg = LogUtil.Error("menuファイルの作成に失敗しました。 file=", outfilepath, e);
@@ -158,20 +180,40 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         ///
         ///
         public bool WriteModelFile(string infile, string outfilepath, SlotMaterials slotMat) {
-            using ( var writer = new BinaryWriter(File.OpenWrite(outfilepath)) )
-                using ( var reader = new BinaryReader(GetStream(infile), Encoding.UTF8) ) {
-                return TransferModel(reader, writer, slotMat);
+            using ( var reader = new BinaryReader(GetStream(infile), Encoding.UTF8) ) {
+
+                // ヘッダ
+                string header = reader.ReadString();
+                if (header == FileConst.HEAD_MODEL) {
+                    return WriteModelFile(reader, header, outfilepath, slotMat);
+                }
+                if (reader.BaseStream.Position != 0) {
+                    var msg = LogUtil.Error("正しいモデルファイルではありません。ヘッダが不正です。", header, ", infile=", infile);
+                    throw new ACCException(msg.ToString());
+                }
+            }
+
+            // arc内のファイルがロードできない場合の回避策: Sybaris 0410向け対策. 一括読み込み
+            using (var reader = new BinaryReader(new MemoryStream(FileUtilEx.Instance.LoadInternal(infile), false), Encoding.UTF8)) {
+                string header = reader.ReadString(); // hader
+                if (header == FileConst.HEAD_MODEL) {
+                    return WriteModelFile(reader, header, outfilepath, slotMat);
+
+                } else {
+                    var msg = LogUtil.Error("正しいモデルファイルではありません。ヘッダが不正です。", header, ", infile=", infile);
+                    throw new ACCException(msg.ToString());
+                }
+            }
+        }
+        private bool WriteModelFile(BinaryReader reader, string header, string outfilepath, SlotMaterials slotMat) {
+            using ( var writer = new BinaryWriter(File.OpenWrite(outfilepath)) ) {
+                return TransferModel(reader, header, writer, slotMat);
             }
         }
 
-        public bool TransferModel(BinaryReader reader, BinaryWriter writer, SlotMaterials slotMat) {
-            // ヘッダ
-            string head = reader.ReadString();
-            if (head != FileConst.HEAD_MODEL) {
-                var msg = LogUtil.Error("正しいモデルファイルではありません。ヘッダが不正です。", head);
-                throw new ACCException(msg.ToString());
-            }
-            writer.Write(head);
+        public bool TransferModel(BinaryReader reader, string header, BinaryWriter writer,SlotMaterials slotMat) {
+
+            writer.Write(header);
             writer.Write(reader.ReadInt32());  // ver
             writer.Write(reader.ReadString()); // "_SM_" + name
             writer.Write(reader.ReadString()); // base_bone
@@ -254,16 +296,42 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             return true;
         }
         public void WriteMateFile(string infile, string outfilepath, TargetMaterial trgtMat) {
-            using ( var writer = new BinaryWriter(File.OpenWrite(outfilepath)) )
-                using ( var reader = new BinaryReader(GetStream(infile), Encoding.UTF8) ) {
-                
-                writer.Write(reader.ReadString()); // ヘッダ (CM3D2_MATERIAL)
+            using ( var reader = new BinaryReader(GetStream(infile), Encoding.UTF8) ) {
+                var header = reader.ReadString();
+                if (header == FileConst.HEAD_MATE) {
+                    WriteMateFile(reader, header, outfilepath, trgtMat);
+                    return;
+                }
+
+                if (reader.BaseStream.Position != 0) {
+                    var msg = LogUtil.Error("正しいmateファイルではありません。ヘッダが不正です。", header, ", infile=", infile);
+                    throw new ACCException(msg.ToString());
+                }
+            }
+            
+            // arc内のファイルがロードできない場合の回避策: Sybaris 0410向け対策. 一括読み込み
+            using (var reader = new BinaryReader(new MemoryStream(FileUtilEx.Instance.LoadInternal(infile), false), Encoding.UTF8)) {
+                string header = reader.ReadString(); // hader
+                if (header == FileConst.HEAD_MATE) {
+                    WriteMateFile(reader, header, outfilepath, trgtMat);
+
+                } else {
+                    var msg = LogUtil.Error("正しいmateファイルではありません。ヘッダが不正です。", header, ", infile=", infile);
+                    throw new ACCException(msg.ToString());
+                }
+            }
+        }
+        public void WriteMateFile(BinaryReader reader, string header, string outfilepath, TargetMaterial trgtMat) {
+
+            using ( var writer = new BinaryWriter(File.OpenWrite(outfilepath)) ) {
+                writer.Write(header);              // ヘッダ (CM3D2_MATERIAL)
                 writer.Write(reader.ReadInt32());  // バージョン
                 writer.Write(reader.ReadString()); // マテリアル名1
 
                 TransferMaterial(reader, writer, trgtMat, true);
             }
         }
+
         // modelファイル内のマテリアル情報を対象とした転送処理
         // .mateファイルのheader, version, name1は存在しない
         public void TransferMaterial(BinaryReader reader, BinaryWriter writer, TargetMaterial trgtMat, bool overwrite) {

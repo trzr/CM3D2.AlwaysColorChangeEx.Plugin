@@ -257,112 +257,129 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
             using ( var reader = new BinaryReader(FileUtilEx.Instance.GetStream(file), Encoding.UTF8)) {
                 string header = reader.ReadString(); // hader
-                if (header != FileConst.HEAD_MATE) {
+                if (header == FileConst.HEAD_MATE) {
+                    return Load(reader);
+
+                } else {
+                    if (reader.BaseStream.Position != 0) {                        
+                        var msg = LogUtil.Log("指定されたファイルのヘッダが不正です。", header, file);
+                        throw new ACCException(msg.ToString());
+                    }
+                }
+            }
+            // arc内のファイルがロードできない場合の回避策: Sybaris 0410向け対策. 一括読み込み
+            using (var reader = new BinaryReader(new MemoryStream(FileUtilEx.Instance.LoadInternal(file), false), Encoding.UTF8)) {
+                string header = reader.ReadString(); // hader
+                if (header == FileConst.HEAD_MATE) {
+                    return Load(reader);
+                } else {
                     var msg = LogUtil.Log("指定されたファイルのヘッダが不正です。", header, file);
                     throw new ACCException(msg.ToString());
                 }
-                var created = new ACCMaterialEx();
-                int version = reader.ReadInt32();
-                created.name1 = reader.ReadString();
-                created.name2 = reader.ReadString();
-                string shaderName1 = reader.ReadString();
-                created.type = ShaderMapper.resolve(shaderName1);
-                created.shader = created.type.shader;
-                
-                string shaderName2 = reader.ReadString();
-
-                while(true) {
-                    string type = reader.ReadString();
-                    if (type == "end") break;
-
-                    string propName = reader.ReadString();
-                    switch (type) {
-                        case "tex":
-                            string sub = reader.ReadString();
-                            switch (sub) {
-                            case "tex2d":
-                                var tex = new ACCTextureEx(propName);
-                                tex.editname = reader.ReadString();
-                                tex.txtpath  = reader.ReadString();
-                                tex.texOffset = new Vector2(reader.ReadSingle(),
-                                                            reader.ReadSingle());
-                                tex.texScale  = new Vector2(reader.ReadSingle(),
-                                                            reader.ReadSingle());                                
-                                created.texDic[propName] = tex;
-                                break;
-                            case "null":
-                                break;
-                            case "texRT":
-                                reader.ReadString();
-                                reader.ReadString();
-                                break;
-                        }
-                        break;
-                    case "col":
-                    case "vec":
-                        var c = new Color(reader.ReadSingle(), reader.ReadSingle(),
-                                          reader.ReadSingle(), reader.ReadSingle());
-                        try {
-                            var pnc = (PropName)Enum.Parse(typeof(PropName), propName);
-                            switch (pnc) {
-                            case PropName._Color:
-                                created.color.Set( c );
-                                break;
-                            case PropName._ShadowColor:
-                                created.shadowColor.Set( c );
-                                break;
-                            case PropName._RimColor:
-                                created.rimColor.Set( c );
-                                break;
-                            case PropName._OutlineColor:
-                                created.outlineColor.Set( c );
-                                break;
-                            }
-                        } catch(Exception e) {
-                            LogUtil.Debug("unsupported propName found", propName, e);
-                        }
-                        break;
-                    case "f":
-                        float f = reader.ReadSingle();
-                        try {
-                            var pnf = (PropName)Enum.Parse(typeof(PropName), propName);
-                            switch (pnf) {
-                            case PropName._Shininess:
-                                created.shininess.Set( f );
-                                break;
-                            case PropName._OutlineWidth:
-                                created.outlineWidth.Set( f );
-                                break;
-                            case PropName._RimPower:
-                                created.rimPower.Set( f );
-                                break;
-                            case PropName._RimShift:
-                                created.rimShift.Set( f );
-                                break;
-                            case PropName._HiRate:
-                                created.hiRate.Set( f );
-                                break;
-                            case PropName._HiPow:
-                                created.hiPow.Set( f );
-                                break;
-                            case PropName._FloatValue1:
-                                created.floatVal1.Set( f );
-                                break;
-                            case PropName._FloatValue2:
-                                created.floatVal2.Set( f );
-                                break;
-                            case PropName._FloatValue3:
-                                created.floatVal3.Set( f );
-                                break;
-                            }
-                        } catch(Exception e) {
-                            LogUtil.Debug("unsupported propName found", propName, e);
-                        }
-                        break;
-                    }
-                }
-                return created;            
             }
+        }
+        private static ACCMaterialEx Load(BinaryReader reader) {
+            var created = new ACCMaterialEx();
+            int version = reader.ReadInt32();
+            created.name1 = reader.ReadString();
+            created.name2 = reader.ReadString();
+            string shaderName1 = reader.ReadString();
+            created.type = ShaderMapper.resolve(shaderName1);
+            created.shader = created.type.shader;
+            
+            string shaderName2 = reader.ReadString();
+
+            while(true) {
+                string type = reader.ReadString();
+                if (type == "end") break;
+
+                string propName = reader.ReadString();
+                switch (type) {
+                    case "tex":
+                        string sub = reader.ReadString();
+                        switch (sub) {
+                        case "tex2d":
+                            var tex = new ACCTextureEx(propName);
+                            tex.editname = reader.ReadString();
+                            tex.txtpath  = reader.ReadString();
+                            tex.texOffset = new Vector2(reader.ReadSingle(),
+                                                        reader.ReadSingle());
+                            tex.texScale  = new Vector2(reader.ReadSingle(),
+                                                        reader.ReadSingle());                                
+                            created.texDic[propName] = tex;
+                            break;
+                        case "null":
+                            break;
+                        case "texRT":
+                            reader.ReadString();
+                            reader.ReadString();
+                            break;
+                    }
+                    break;
+                case "col":
+                case "vec":
+                    var c = new Color(reader.ReadSingle(), reader.ReadSingle(),
+                                      reader.ReadSingle(), reader.ReadSingle());
+                    try {
+                        var pnc = (PropName)Enum.Parse(typeof(PropName), propName);
+                        switch (pnc) {
+                        case PropName._Color:
+                            created.color.Set( c );
+                            break;
+                        case PropName._ShadowColor:
+                            created.shadowColor.Set( c );
+                            break;
+                        case PropName._RimColor:
+                            created.rimColor.Set( c );
+                            break;
+                        case PropName._OutlineColor:
+                            created.outlineColor.Set( c );
+                            break;
+                        }
+                    } catch(Exception e) {
+                        LogUtil.Debug("unsupported propName found", propName, e);
+                    }
+                    break;
+                case "f":
+                    float f = reader.ReadSingle();
+                    try {
+                        var pnf = (PropName)Enum.Parse(typeof(PropName), propName);
+                        switch (pnf) {
+                        case PropName._Shininess:
+                            created.shininess.Set( f );
+                            break;
+                        case PropName._OutlineWidth:
+                            created.outlineWidth.Set( f );
+                            break;
+                        case PropName._RimPower:
+                            created.rimPower.Set( f );
+                            break;
+                        case PropName._RimShift:
+                            created.rimShift.Set( f );
+                            break;
+                        case PropName._HiRate:
+                            created.hiRate.Set( f );
+                            break;
+                        case PropName._HiPow:
+                            created.hiPow.Set( f );
+                            break;
+                        case PropName._FloatValue1:
+                            created.floatVal1.Set( f );
+                            break;
+                        case PropName._FloatValue2:
+                            created.floatVal2.Set( f );
+                            break;
+                        case PropName._FloatValue3:
+                            created.floatVal3.Set( f );
+                            break;
+                        }
+                    } catch(Exception e) {
+                        LogUtil.Debug("unsupported propName found", propName, e);
+                    }
+                    break;
+                }
+            }
+            return created;           
         }
         public static void Write(string filepath, ACCMaterialEx mate) {
             using ( var writer = new BinaryWriter(File.OpenWrite(filepath)) ) {
