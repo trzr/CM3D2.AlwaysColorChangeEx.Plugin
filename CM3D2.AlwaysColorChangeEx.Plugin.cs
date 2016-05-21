@@ -9,6 +9,7 @@ using System.Reflection;
 using Schedule;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityInjector;
 using UnityInjector.Attributes;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI;
@@ -22,8 +23,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
  PluginFilter("CM3D2OHx86"),
  PluginFilter("CM3D2OHx64"),
  PluginFilter("CM3D2OHVRx64"),
- PluginName("CM3D2 AlwaysColorChangeEx"),
- PluginVersion("0.2.3.0")]
+ PluginName("CM3D2_ACCex"),
+ PluginVersion("0.2.4.0")]
 class AlwaysColorChangeEx : UnityInjector.PluginBase
 {
     // プラグイン名
@@ -112,6 +113,8 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     private bool bPresetApplyMask = true;
     private bool bPresetApplyBody = true;
     private bool bPresetApplyWear = true;
+    private bool bPresetApplyBodyProp   = true;
+    private bool bPresetApplyPartsColor = true;
     private Maid toApplyPresetMaid = null;
 
     private bool isSavable;
@@ -570,7 +573,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
             }
             GUILayout.BeginHorizontal();
             try {
-                GUI.enabled &= (toApplyPresetMaid == null);
+                GUI.enabled &= (holder.isOfficial) && (toApplyPresetMaid == null);
                 if (GUILayout.Button("プリセット保存", uiParams.bStyle, uiParams.optSubConHalfWidth)) {
                     SetMenu(MenuType.Save);
                 }
@@ -1227,11 +1230,14 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
             GUILayout.BeginHorizontal();
             GUILayout.Space(uiParams.marginL);
             GUILayout.Label("《適用項目》", uiParams.lStyle);
+            GUILayout.Space(uiParams.marginL);
+            bPresetApplyBodyProp = GUILayout.Toggle(bPresetApplyBodyProp, "身体設定値", uiParams.tStyle);
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Space(uiParams.marginL*2);
             bPresetApplyMask = GUILayout.Toggle(bPresetApplyMask, "マスク", uiParams.tStyle);
             bPresetApplyNode = GUILayout.Toggle(bPresetApplyNode, "ノード表示", uiParams.tStyle);
+            bPresetApplyPartsColor = GUILayout.Toggle(bPresetApplyPartsColor, "無限色", uiParams.tStyle);
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Space(uiParams.marginL*2);
@@ -1309,12 +1315,20 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         if (preset == null) return;
 
         toApplyPresetMaid = holder.currentMaid;
+        // 衣装チェンジ
         if (preset.mpns.Any()) {
-            // 衣装チェンジ
             presetMgr.ApplyPresetMPN(toApplyPresetMaid, preset, bPresetApplyBody, bPresetApplyWear, bPresetCastoff);
-        } else {
-            // 衣装チェンジがない場合は即座に適用
-            ApplyPresetProp(preset);
+        }
+        // 身体設定値
+        if (bPresetApplyBodyProp & preset.mpnvals.Any()) {
+            presetMgr.ApplyPresetMPNProp(toApplyPresetMaid, preset);
+        }
+        // ACCの変更等のプロパティ情報を適用
+        ApplyPresetProp(preset);
+
+        // freeColor
+        if (bPresetApplyPartsColor && preset.partsColors.Any()) {
+            presetMgr.ApplyPresetPartsColor(toApplyPresetMaid, preset);
         }
     }
     private void ApplyPresetProp(PresetData preset) {

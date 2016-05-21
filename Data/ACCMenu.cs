@@ -137,14 +137,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public static void WriteMenuFile(string filepath, ACCMenu menu) {
 
             try {
-                using (var reader = new BinaryReader(FileUtilEx.Instance.GetStream(menu.srcfilename), Encoding.UTF8)) {
+                bool onBuffer;
+                using (var reader = new BinaryReader(FileUtilEx.Instance.GetStream(menu.srcfilename, out onBuffer), Encoding.UTF8)) {
                     string header = reader.ReadString();
-                    if (header == FileConst.HEAD_MENU) {
-                        WriteMenuFile(reader, header, filepath, menu);
-                        return; 
-                    }
 
-                    if (reader.BaseStream.Position != 0) {
+                    if (onBuffer || reader.BaseStream.Position > 0) {
+                        if (header == FileConst.HEAD_MENU) {
+                            WriteMenuFile(reader, header, filepath, menu);
+                            return; 
+                        }
                         var msg = headerError(header, menu.srcfilename);
                         throw new ACCException(msg.ToString());
                     }
@@ -154,10 +155,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     string header = reader.ReadString(); // hader
                     if (header == FileConst.HEAD_MATE) {
                         WriteMenuFile(reader, header, filepath, menu);
-                    } else {
-                        var msg = headerError(header, menu.srcfilename);
-                        throw new ACCException(msg.ToString());
                     }
+                    var msg = headerError(header, menu.srcfilename);
+                    throw new ACCException(msg.ToString());
                 }
 
             } catch (ACCException) {
@@ -325,15 +325,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             menu.editfile = Path.GetFileNameWithoutExtension(filename);
 
             try {
-                using (var reader = new BinaryReader(FileUtilEx.Instance.GetStream(menu.srcfilename), Encoding.UTF8)) {
+                bool onBuffer;
+                using (var reader = new BinaryReader(FileUtilEx.Instance.GetStream(menu.srcfilename, out onBuffer), Encoding.UTF8)) {
                     string header = reader.ReadString();
-                    if (header == FileConst.HEAD_MENU) {
-                        Load(reader, menu.srcfilename, menu);
-                        LogUtil.Debug("menu loaded");
-                        return menu;
-                    }
-
-                    if (reader.BaseStream.Position != 0) {
+                    if (onBuffer || reader.BaseStream.Position > 0) {
+                        if (header == FileConst.HEAD_MENU) {
+                            Load(reader, menu.srcfilename, menu);
+                            LogUtil.Debug("menu loaded");
+                            return menu;
+                        }
                         headerError(header, filename);
                         return null;
                     }
@@ -346,10 +346,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         Load(reader, menu.srcfilename, menu);
                         LogUtil.Debug("menu loaded");
                         return menu;
-                    } else {
-                        headerError(header, filename);
-                        return null;
                     }
+                    headerError(header, filename);
+                    return null;
                 }
 
             } catch (Exception e) {

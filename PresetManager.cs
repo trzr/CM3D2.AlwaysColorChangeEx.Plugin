@@ -92,8 +92,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             for (int i = (int)MPN_TYPE_RANGE.BODY_START; i <= (int)MPN_TYPE_RANGE.BODY_END; i++) {
                 var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
                 MaidProp mp = maid.GetProp(mpn);
-                if (mp != null && !String.IsNullOrEmpty(mp.strFileName)) {
-                    preset.mpns.Add(new CCMPN(mpn, mp.strFileName));
+                if (mp != null) {
+                    if (!String.IsNullOrEmpty(mp.strFileName)) {
+                        preset.mpns.Add(new CCMPN(mpn, mp.strFileName));
+                    } else {
+                        preset.mpnvals.Add(new CCMPNValue(mpn, mp.value, mp.min, mp.max));
+                    }
                 }
             }
 
@@ -103,6 +107,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 if (mp != null && !String.IsNullOrEmpty(mp.strFileName)) {
                     preset.mpns.Add(new CCMPN(mpn, mp.strFileName));
                 }
+            }
+//            for (int i = (int)MPN_TYPE_RANGE.FOLDER_BODY_START; i <= (int)MPN_TYPE_RANGE.FOLDER_BODY_END; i++) {
+//                var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
+//                MaidProp mp = maid.GetProp(mpn);
+//                if (mp != null) {
+//                    LogUtil.Debug(mpn,":", mp.type, ", value=", mp.value, ", temp=", mp.temp_value, ", file=", mp.strFileName);
+//                }
+//            }
+
+            // 無限色
+            for (int j = (int)MaidParts.PARTS_COLOR.NONE+1; j < (int)MaidParts.PARTS_COLOR.MAX; j++) {
+                var pcEnum = (MaidParts.PARTS_COLOR)j;
+                MaidParts.PartsColor part = maid.Parts.GetPartsColor(pcEnum);
+                preset.partsColors[pcEnum.ToString()] = new CCPartsColor(part);
             }
 
             // 表示ノード
@@ -148,12 +166,39 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                     continue;
                 // } else if (mpn.filename.EndsWith(".mod", StringComparison.OrdinalIgnoreCase)) {
                 }
-                // MODなどが存在しない場合はスキップ
+                // menuファイルが存在しない場合はスキップ
                 if (!fileUtil.Exists(mpn.filename)) continue;
 
                 maid.SetProp(mpn.name, mpn.filename, 0, false);
             }
-            maid.AllProcPropSeqStart();
+
+            if (applyBody) {
+                // 設定プロパティ反映
+                foreach (var mpn in preset.mpnvals) {
+                    var mp = maid.GetProp(mpn.name);
+                    if (mp != null) {
+                        mp.value = mpn.value;
+                        if (mp.min > mpn.min)  {mp.min = mpn.min;}
+                        if (mp.max < mpn.max)  {mp.max = mpn.max;}
+                    } else {
+                        LogUtil.Debug("MaidPropの適用が出来ませんでした。mpn(", mpn.name,") is null");
+                    }
+                }
+            }
+            //maid.AllProcPropSeqStart();
+        }
+        public void ApplyPresetMPNProp(Maid maid, PresetData preset) {
+            // 設定プロパティ反映
+            foreach (var mpn in preset.mpnvals) {
+                var mp = maid.GetProp(mpn.name);
+                if (mp != null) {
+                    mp.value = mpn.value;
+                    if (mp.min > mpn.min)  {mp.min = mpn.min;}
+                    if (mp.max < mpn.max)  {mp.max = mpn.max;}
+                } else {
+                    LogUtil.Debug("MaidPropの適用が出来ませんでした。mpn(", mpn.name,") is null");
+                }
+            }
         }
         public void ApplyPresetMaterial(Maid maid, PresetData preset) 
         {
@@ -222,6 +267,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                                      ccslot.id, matNo, cmat.name);
                         break;
                     }
+                }
+            }
+        }
+        public void ApplyPresetPartsColor(Maid maid, PresetData preset) {
+            foreach(var pc in preset.partsColors) {
+                MaidParts.PARTS_COLOR partsColor;
+                try {
+                    partsColor = (MaidParts.PARTS_COLOR)Enum.Parse(typeof(MaidParts.PARTS_COLOR), pc.Key);
+                    maid.Parts.SetPartsColor(partsColor, pc.Value.toStruct());
+                } catch(ArgumentException e) {
+                    LogUtil.Debug(e);
                 }
             }
         }

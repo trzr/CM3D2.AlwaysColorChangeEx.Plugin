@@ -255,27 +255,26 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
         public static ACCMaterialEx Load(string file) {
 
-            using ( var reader = new BinaryReader(FileUtilEx.Instance.GetStream(file), Encoding.UTF8)) {
-                string header = reader.ReadString(); // hader
-                if (header == FileConst.HEAD_MATE) {
-                    return Load(reader);
-
-                } else {
-                    if (reader.BaseStream.Position != 0) {                        
-                        var msg = LogUtil.Log("指定されたファイルのヘッダが不正です。", header, file);
-                        throw new ACCException(msg.ToString());
+            bool onBuffer;
+            using ( var reader = new BinaryReader(FileUtilEx.Instance.GetStream(file, out onBuffer), Encoding.UTF8)) {
+                string header = reader.ReadString(); // header
+                if (onBuffer || reader.BaseStream.Position > 0) {
+                    if (header == FileConst.HEAD_MATE) {
+                        return Load(reader);
                     }
+                    var msg = LogUtil.Log("指定されたファイルのヘッダが不正です。", header, file);
+                    throw new ACCException(msg.ToString());
                 }
             }
             // arc内のファイルがロードできない場合の回避策: Sybaris 0410向け対策. 一括読み込み
+            // バッファサイズより大きく、かつ最初からの読み込みが出来なくなったケース
             using (var reader = new BinaryReader(new MemoryStream(FileUtilEx.Instance.LoadInternal(file), false), Encoding.UTF8)) {
                 string header = reader.ReadString(); // hader
                 if (header == FileConst.HEAD_MATE) {
                     return Load(reader);
-                } else {
-                    var msg = LogUtil.Log("指定されたファイルのヘッダが不正です。", header, file);
-                    throw new ACCException(msg.ToString());
                 }
+                var msg = LogUtil.Log("指定されたファイルのヘッダが不正です。", header, file);
+                throw new ACCException(msg.ToString());
             }
         }
         private static ACCMaterialEx Load(BinaryReader reader) {

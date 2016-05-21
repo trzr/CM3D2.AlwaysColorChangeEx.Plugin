@@ -127,6 +127,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             }
         }
 
+        private readonly bool[] FLAG_RATIO = {true, true, false};
+        private readonly bool[] FLAG_INV  = {false, false, true};
         public void Show() {
             GUILayout.BeginVertical();
             try {
@@ -185,30 +187,30 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 if (mat.isLighted) {
                     SetupFloatSlider("Shininess", ref edited.shininess, 
                                      settings.shininessMin, settings.shininessMax,
-                                    (val) => material.SetFloat("_Shininess", val), 0, 0.1f, 1);
+                                    (val) => material.SetFloat("_Shininess", val), FLAG_RATIO,  0, 0.1f, 0.5f, 1, 5);
                 }
                 if (mat.isOutlined) {
                     SetupFloatSlider("OutLineWidth", ref edited.outlineWidth,
                                      settings.outlineWidthMin, settings.outlineWidthMax,
-                                     (val) => material.SetFloat("_OutlineWidth", val), 0.0001f, 0.001f, 0.002f);
+                                     (val) => material.SetFloat("_OutlineWidth", val), null, 0.0001f, 0.001f, 0.002f);
                 }
                 if (mat.isToony) {
                     SetupFloatSlider("RimPower", ref edited.rimPower, 
                                     settings.rimPowerMin, settings.rimPowerMax,
-                                    (val) => material.SetFloat("_RimPower", val), 0, 25f, 50f, 100f);
+                                    (val) => material.SetFloat("_RimPower", val), FLAG_INV, 0, 25f, 50f, 100f);
 
                     SetupFloatSlider("RimShift", ref edited.rimShift,
                                     settings.rimShiftMin, settings.rimShiftMax,
-                                    (val) => material.SetFloat("_RimShift", val), 0f, 0.25f, 0.5f, 1f);
+                                    (val) => material.SetFloat("_RimShift", val), FLAG_RATIO, 0f, 0.25f, 0.5f, 1f);
                 }
                 if (mat.isHair) {
                     SetupFloatSlider("HiRate", ref edited.hiRate,
                                      settings.hiRateMin, settings.hiRateMax,
-                                     (val) => material.SetFloat("_HiRate", val), 0f, 0.5f, 1.0f);
+                                     (val) => material.SetFloat("_HiRate", val), FLAG_RATIO, 0f, 0.5f, 1.0f);
 
                     SetupFloatSlider("HiPow", ref edited.hiPow,
                                      settings.hiPowMin, settings.hiPowMax,
-                                     (val) => material.SetFloat("_HiPow", val), 0.001f, 1f, 50f);
+                                     (val) => material.SetFloat("_HiPow", val), FLAG_RATIO, 0.001f, 1f, 50f);
                 }
                 if (mat.hasFloat1) {
                     SetupFloatSlider("FloatValue1", ref edited.floatVal1,
@@ -223,7 +225,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 if (mat.hasFloat3) {
                     SetupFloatSlider("FloatValue3", ref edited.floatVal3,
                                      settings.floatVal3Min, settings.floatVal3Max,
-                                     (val) => material.SetFloat("_FloatValue3", val), 0, 1f);
+                                     (val) => material.SetFloat("_FloatValue3", val), FLAG_RATIO, 0, 0.5f, 1f);
                 }
                 if (mat.hasCutoff) {
                     SetupFloatSlider("Cutoff", ref edited.cutoff,
@@ -236,6 +238,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         }
         private void SetupFloatSlider(string label, ref EditValue edit, float sliderMin, float sliderMax,
                                       Action<float> func, params float[] vals) {
+            SetupFloatSlider(label, ref edit, sliderMin, sliderMax, func, null, vals);
+        }
+
+        private void SetupFloatSlider(string label, ref EditValue edit, float sliderMin, float sliderMax,
+                                      Action<float> func, bool[] mulVals, params float[] vals) {
             GUILayout.BeginHorizontal();
             GUILayout.Label(label, uiParams.lStyle, optItemHeight);
             GUILayout.Space(uiParams.marginL);
@@ -251,7 +258,26 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     edit.Set( vals[i] );
                     changed = true;
                 }
-                
+            }
+            if (mulVals != null && mulVals.Length >= 3) {
+                if (mulVals[0]) {
+                    if (GUILayout.Button("<", bStyleSS, bWidthOpt)) {
+                        edit.SetWithCheck(edit.val * 0.9f);
+                        changed = true;
+                    }
+                }
+                if (mulVals[1]) {
+                    if (GUILayout.Button(">", bStyleSS, bWidthOpt)) {
+                        edit.SetWithCheck(edit.val * 1.1f);
+                        changed = true;
+                    }
+                }
+                if (mulVals[2]) {
+                    if (GUILayout.Button("*-1", bStyleSS, bWidthWOpt)) {
+                        edit.Set(edit.val * -1f);
+                        changed = true;
+                    }
+                }
             }
             GUILayout.EndHorizontal();
 

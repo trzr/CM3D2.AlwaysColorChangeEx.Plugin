@@ -26,6 +26,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             editVal = val.ToString(range.format);
             isSync = true;
         }
+        public void SetWithCheck(float val1) {
+            if (range.editMin > val1) val = range.editMin;
+            else if (range.editMax < val1) val = range.editMax;
+            else val = val1;
+            editVal = val.ToString(range.format);
+            isSync = true;
+        }
         public void Set(string editVal1) {
             editVal = editVal1;
 

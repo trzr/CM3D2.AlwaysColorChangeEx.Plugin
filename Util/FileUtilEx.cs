@@ -76,6 +76,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             return false;
         }
 
+        private static int BUFFER_SIZE = 8192;
         // 外部DLL依存
         // 一旦バイト配列にロードすることなくStreamオブジェクトとして参照可能とする
         public Stream GetStream(string filename) {
@@ -85,7 +86,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                     var msg = LogUtil.Error("指定ファイルが見つかりません。file=", filename);
                     throw new ACCException(msg.ToString());
                 }
-                return new FileBaseStream(aFileBase);
+
+                // if (aFileBase.GetSize() < BUFFER_SIZE) {                
+                return new BufferedStream(new FileBaseStream(aFileBase), BUFFER_SIZE);
             } catch (ACCException) {
                 throw;
             } catch (Exception e) {
@@ -93,7 +96,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 throw new ACCException(msg.ToString(), e);
             }
         }
+        public Stream GetStream(string filename, out bool onBuffer) {
+            try {
+                AFileBase aFileBase = global::GameUty.FileOpen(filename);
+                if (!aFileBase.IsValid()) {
+                    var msg = LogUtil.Error("指定ファイルが見つかりません。file=", filename);
+                    throw new ACCException(msg.ToString());
+                }
 
+                onBuffer = aFileBase.GetSize() < BUFFER_SIZE;
+                return new BufferedStream(new FileBaseStream(aFileBase), BUFFER_SIZE);
+            } catch (ACCException) {
+                throw;
+            } catch (Exception e) {
+                var msg = LogUtil.Error("指定ファイルが読み込めませんでした。", filename, e);
+                throw new ACCException(msg.ToString(), e);
+            }
+        }
         public byte[] LoadInternal(string filename) {
             try {
                 using (AFileBase aFileBase = global::GameUty.FileOpen(filename)) {
@@ -143,13 +162,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
 
         public List<ReplacedInfo> WriteMenuFile(string infile, string outfilepath, ResourceRef res) {
-            using ( var reader = new BinaryReader(GetStream(infile), Encoding.UTF8) ) {
+            bool onBuffer;
+            using ( var reader = new BinaryReader(FileUtilEx.Instance.GetStream(infile, out onBuffer), Encoding.UTF8)) {
+                string header = reader.ReadString(); // header
+                if (onBuffer || reader.BaseStream.Position > 0) {
+                    if (header == FileConst.HEAD_MENU) {
+                        return WriteMenuFile(reader, header, outfilepath, res);
+                    }
 
-                string header = reader.ReadString();
-                if (header == FileConst.HEAD_MENU) {
-                    return WriteMenuFile(reader, header, outfilepath, res);
-                }
-                if (reader.BaseStream.Position != 0) {
                     var msg = LogUtil.Error("menuファイルを作成しようとしましたが、参照元ファイルのヘッダが正しくありません。", header, ", file=", infile);
                     throw new ACCException(msg.ToString());
                 }
@@ -160,10 +180,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 string header = reader.ReadString(); // hader
                 if (header == FileConst.HEAD_MENU) {
                     return WriteMenuFile(reader, header, outfilepath, res);
-                } else {
-                    var msg = LogUtil.Error("menuファイルを作成しようとしましたが、参照元ファイルのヘッダが正しくありません。", header, ", file=", infile);
-                    throw new ACCException(msg.ToString());
                 }
+                var msg = LogUtil.Error("menuファイルを作成しようとしましたが、参照元ファイルのヘッダが正しくありません。", header, ", file=", infile);
+                throw new ACCException(msg.ToString());
             }
         }
         private List<ReplacedInfo> WriteMenuFile(BinaryReader reader, string header, string outfilepath, ResourceRef res) {
@@ -180,14 +199,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         ///
         ///
         public bool WriteModelFile(string infile, string outfilepath, SlotMaterials slotMat) {
-            using ( var reader = new BinaryReader(GetStream(infile), Encoding.UTF8) ) {
+            bool onBuffer;
+            using ( var reader = new BinaryReader(GetStream(infile, out onBuffer), Encoding.UTF8) ) {
 
                 // ヘッダ
                 string header = reader.ReadString();
-                if (header == FileConst.HEAD_MODEL) {
-                    return WriteModelFile(reader, header, outfilepath, slotMat);
-                }
-                if (reader.BaseStream.Position != 0) {
+                if (onBuffer || reader.BaseStream.Position > 0) {
+                    if (header == FileConst.HEAD_MODEL) {
+                        return WriteModelFile(reader, header, outfilepath, slotMat);
+                    }
                     var msg = LogUtil.Error("正しいモデルファイルではありません。ヘッダが不正です。", header, ", infile=", infile);
                     throw new ACCException(msg.ToString());
                 }
@@ -296,14 +316,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             return true;
         }
         public void WriteMateFile(string infile, string outfilepath, TargetMaterial trgtMat) {
-            using ( var reader = new BinaryReader(GetStream(infile), Encoding.UTF8) ) {
+            bool onBuffer;
+            using ( var reader = new BinaryReader(GetStream(infile, out onBuffer), Encoding.UTF8) ) {
                 var header = reader.ReadString();
-                if (header == FileConst.HEAD_MATE) {
-                    WriteMateFile(reader, header, outfilepath, trgtMat);
-                    return;
-                }
-
-                if (reader.BaseStream.Position != 0) {
+                if (onBuffer || reader.BaseStream.Position > 0) {
+                    if (header == FileConst.HEAD_MATE) {
+                        WriteMateFile(reader, header, outfilepath, trgtMat);
+                        return;
+                    }
                     var msg = LogUtil.Error("正しいmateファイルではありません。ヘッダが不正です。", header, ", infile=", infile);
                     throw new ACCException(msg.ToString());
                 }
@@ -314,11 +334,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 string header = reader.ReadString(); // hader
                 if (header == FileConst.HEAD_MATE) {
                     WriteMateFile(reader, header, outfilepath, trgtMat);
-
-                } else {
-                    var msg = LogUtil.Error("正しいmateファイルではありません。ヘッダが不正です。", header, ", infile=", infile);
-                    throw new ACCException(msg.ToString());
                 }
+                var msg = LogUtil.Error("正しいmateファイルではありません。ヘッダが不正です。", header, ", infile=", infile);
+                throw new ACCException(msg.ToString());
             }
         }
         public void WriteMateFile(BinaryReader reader, string header, string outfilepath, TargetMaterial trgtMat) {

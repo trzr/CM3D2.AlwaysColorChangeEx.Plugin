@@ -18,6 +18,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public string name;
         public List<CCSlot> slots = new List<CCSlot>();
         public List<CCMPN> mpns = new List<CCMPN>();
+        public List<CCMPNValue> mpnvals = new List<CCMPNValue>();
+        public Dictionary<string, CCPartsColor> partsColors = new Dictionary<string, CCPartsColor>();
         public Dictionary<string, bool> delNodes;
         public Dictionary<string, float> boneMorph;
     }
@@ -56,6 +58,26 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public CCMPN(MPN name, string filename) {
             this.name = name;
             this.filename = filename;
+        }
+    }
+    public class CCMPNValue
+    {
+        public MPN name;
+        public int value;
+        public int min;
+        public int max;
+        public CCMPNValue() { }
+        public CCMPNValue(string mpnName, int v, int min, int max) {
+            this.name = (MPN)Enum.Parse(typeof(MPN), mpnName);
+            this.value = v;
+            this.min = min;
+            this.max = max;
+        }
+        public CCMPNValue(MPN name, int v, int min, int max) {
+            this.name = name;
+            this.value = v;
+            this.min = min;
+            this.max = max;
         }
     }
     public class CCColor {
@@ -224,6 +246,46 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             fp.OutputMin.Value = OutputMin;
             fp.OutputMax.Value = OutputMax;
             return fp;
+        }
+    }
+    public class CCPartsColor {
+        public bool bUse;
+        public int mainHue;
+        public int mainChroma;
+        public int mainBrightness;
+        public int mainContrast;
+        public int shadowRate;
+        public int shadowHue;
+        public int shadowChroma;
+        public int shadowBrightness;
+        public int shadowContrast;
+
+        public CCPartsColor() {}
+        public CCPartsColor(MaidParts.PartsColor pc) {
+            bUse           = pc.m_bUse;
+            mainHue        = pc.m_nMainHue;
+            mainChroma     = pc.m_nMainChroma;
+            mainBrightness = pc.m_nMainBrightness;
+            mainContrast   = pc.m_nMainContrast;
+            shadowRate     = pc.m_nShadowRate;
+            shadowHue      = pc.m_nShadowHue;
+            shadowChroma   = pc.m_nShadowChroma;
+            shadowBrightness = pc.m_nShadowBrightness;
+            shadowContrast = pc.m_nShadowContrast;
+        }
+        public MaidParts.PartsColor toStruct() {
+            var pc = new MaidParts.PartsColor();
+            pc.m_bUse = bUse;
+            pc.m_nMainHue = mainHue;
+            pc.m_nMainChroma = mainChroma;
+            pc.m_nMainBrightness = mainBrightness ;
+            pc.m_nMainContrast = mainContrast;
+            pc.m_nShadowRate = shadowRate;
+            pc.m_nShadowHue = shadowHue;
+            pc.m_nShadowChroma = shadowChroma;
+            pc.m_nShadowBrightness = shadowBrightness;
+            pc.m_nShadowContrast = shadowContrast;
+            return pc;
         }
     }
 }
