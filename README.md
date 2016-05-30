@@ -17,9 +17,7 @@ UnityInjectorが導入済みであること
   - バージョン：**1.29**  
   - プラグイン：UnityInjector
   - ※Sybarisを使用する場合は、160410版で内部動作が変わっているようなので注意  
-      ACCexの[0.2.2.0](./#0.2.2.0)版まではSybaris-160410版の仕様変更により、  
-      公式の衣装のエクスポートが動作しません.
-
+      ACCexの[0.2.2.0](#0220)以前の版を使用している場合は、Sybaris-160410版でmenuのエクスポートが動作しません.
 
 #### ◇インストール  
 
@@ -119,6 +117,9 @@ iniファイルの詳細は[wiki](https://github.com/trzr/CM3D2.AlwaysColorChang
 
 * また、KISS公式の[利用規約](http://kissdiary.blog11.fc2.com/blog-entry-577.html)から逸脱した利用はお控えください  
 
+### ■ その他
+オリジナル作者[kf-cm3d2]様とこれまで不具合報告をくださった方々に感謝を。  
+
 
 ## ■ 更新履歴
 #### 0.2.4.0 (最新版)
@@ -131,7 +132,7 @@ iniファイルの詳細は[wiki](https://github.com/trzr/CM3D2.AlwaysColorChang
      - 身体の設定値対応（身長や胸サイズ等)
      - 無限色対応
    * カラーチェンジ画面
-     - スライダー値の変更ボタン「<」,「>」,「*-1」追加
+     - スライダー値の変更ボタン「<」,「>」,「\*-1」追加
 * **その他(Misc)**
  * Stream作成時のBuffer設定忘れを修正
  * プラグイン名を略称に修正（ログに出る文字列が変わるだけ）
@@ -164,7 +165,7 @@ iniファイルの詳細は[wiki](https://github.com/trzr/CM3D2.AlwaysColorChang
     - 法線シェーダを追加
     - 複数メイドプラグイン用に暫定対応（カラーチェンジ画面のみ）
       - 上記プラグインが呼び出すメイドは、スロットIDが公式のメイドと異なる状態になっているため、対応する処理を追加  
-  　    ※ ACCex上のスロット名がすべて英字固定となるなど制限あり  
+      ※ ACCex上のスロット名がすべて英字固定となるなど制限あり  
 
    * **テクスチャ色変更画面**
      ドロップダウンから選択時に即座に適用するように変更
@@ -202,5 +203,4 @@ iniファイルの詳細は[wiki](https://github.com/trzr/CM3D2.AlwaysColorChang
 #### 以前の更新履歴
  * [Releases](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/releases)
  を参照
- * プロジェクトリネーム( **0.1.0.0** )以前の履歴は、[旧プロジェクト](https://github.com/trzr/CM3D2.AlwaysColorChange.Plugin#-%E6%9B%B4%E6%96%B0%E5%B1%A5%E6%AD%B4)を参照
- 
+ * プロジェクトリネーム( **0.1.0.0** )以前の履歴は、commit logを参照
