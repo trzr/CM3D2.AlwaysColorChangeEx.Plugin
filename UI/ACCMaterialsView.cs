@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Windows.Forms.VisualStyles;
 using UnityEngine;
@@ -9,7 +9,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 {
     internal class ACCMaterialsView {
         private const float EPSILON = 0.000001f;
-        //private static Dictionary<int, Shader> changeShaders = new Dictionary<int, Shader>();
         private static Settings settings = Settings.Instance;
 
         // ComboBox用アイテムリスト
@@ -17,36 +16,68 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         private static GUIContent[] ShaderNames {
             get {
                 if (shaderNames == null) {
-                    shaderNames = new GUIContent[ShaderMapper.ShaderNames.Length];
-                    int idx = 0;
-                    foreach (ShaderName shaderName in ShaderMapper.ShaderNames) {
-                        shaderNames[idx++] = new GUIContent(shaderName.Name, shaderName.DisplayName);
+//                    CustomShaderHolder.InitShader();
+                    int length = ShaderMapper.ShaderNames.Length;
+                    shaderNames = new GUIContent[length];
+                    foreach (ShaderType shaderType in ShaderType.shaders) {
+                        shaderNames[shaderType.idx] = new GUIContent(shaderType.name, shaderType.dispName);
                     }
                 }
                 return shaderNames;
             }
         }
 
-//        private static int GetIndex(string shaderName) {
-//            ShaderName[] names = ShaderMapper.ShaderNames;
-//            for (int i=0; i< names.Length; i++) {
-//                if (names[i].Name == shaderName) {
-//                    return i;
-//                }
-//            }
-//            return -1;
-//        }
         public static void Init(UIParams uiparams) {
             if (uiParams == null) {
                 uiParams = uiparams;
                 uiParams.Add(updateUI);
             }
         }
-        public static void Clear() {
             
+        public static void Clear() {
             //changeShaders.Clear();
 
             if (uiParams != null) uiParams.Remove(updateUI);
+        }
+        private static ResourceHolder resHolder = ResourceHolder.Instance;
+        private static GUIContent plusIcon;
+        private static GUIContent minusIcon;
+        private static GUIContent copyIcon;
+        private static GUIContent[] pasteIcon;
+        private static GUIContent PlusIcon {
+            get {
+                if (plusIcon == null) {
+                    plusIcon = new GUIContent(resHolder.PlusImage);
+                }
+                return plusIcon;
+            }
+        }
+        private static GUIContent MinusIcon {
+            get {
+                if (minusIcon == null) {
+                    minusIcon = new GUIContent(resHolder.MinusImage);
+                }
+                return minusIcon;
+            }
+        }
+        private static GUIContent CopyIcon {
+            get {
+                if (copyIcon == null) {
+                    copyIcon = new GUIContent("コピー", resHolder.CopyImage, "マテリアル情報をクリップボードへコピーする");
+                }
+                return copyIcon;
+            }
+        }
+        private static GUIContent[] PasteIcon {
+            get {
+                if (pasteIcon == null) {
+                    pasteIcon = new GUIContent[] {
+                        new GUIContent("全貼付", resHolder.PasteImage, "クリップボードからマテリアル情報を貼付ける"),
+                        new GUIContent("指定貼付", resHolder.PasteImage, "クリップボードからマテリアル情報を貼付ける"),
+                    };
+                }
+                return pasteIcon;
+            }
         }
         private static UIParams uiParams;
         //private readonly GUIStyle lStyleC   = new GUIStyle("label");
@@ -56,6 +87,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         private static GUILayoutOption optItemHeight;
         private static GUILayoutOption optUnitHeight;
         private static GUILayoutOption optInputWidth;
+        private static GUILayoutOption optButonWidthS;
+        private static GUILayoutOption optButonWidth;
+        private static GUILayoutOption optIconWidth;
         private static float labelWidth;
         private static float sliderInputWidth;
         private static float sliderMargin;           // スライダーのy軸マージン
@@ -86,9 +120,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             buttonMargin  = uiparams.margin*3f;
             sliderInputWidth = uiparams.fontSizeS *0.5625f * 8; // 最大8文字分としてフォントサイズの比率
 
+            optIconWidth  = GUILayout.Width(16);
+            optButonWidth = GUILayout.Width((uiparams.textureRect.width-20)*0.23f);
+            optButonWidthS = GUILayout.Width((uiparams.textureRect.width-20)*0.20f);
             optInputWidth = GUILayout.Width(sliderInputWidth);
             optItemHeight = GUILayout.Height(uiparams.itemHeight);
             optUnitHeight = GUILayout.Height(uiparams.unitHeight);
+            
 
             txtColor = uiparams.textStyleSC.normal.textColor;
 
@@ -106,142 +144,178 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 
             bStyleSS.fontSize = uiparams.fontSizeSS;
         };
+        private static bool includeTex = false;
+        private static bool includeShader = true;
+        private static bool includeOthers = true;
 
-        public ACCMaterial original;
+        //public ACCMaterial original;
+        private ClipBoardHandler clipHandler = ClipBoardHandler.Instance;
         public ACCMaterial edited;
         public ComboBoxLO shaderCombo;
         public bool expand;
-
-        public ACCMaterialsView(Material m) {
-            original = new ACCMaterial(m);
-            edited = new ACCMaterial(original);
+        private int matIdx;
+        public ACCMaterialsView(Renderer r, Material m, int idx) {
+            //original = new ACCMaterial(m, r);
+            //edited = new ACCMaterial(original);
+            this.matIdx = idx;
+            edited = new ACCMaterial(m, r);
         }
-
-        private void ChangeShader(string shaderName, ref Material material) {
-            Shader shader = Shader.Find(shaderName);
-            if (shader != null) {
-                material.shader = shader;
-                var mat = ShaderMapper.resolve(shaderName);
-                edited.Update(mat);
-                LogUtil.Debug("selected shader updated");
-            }
-        }
+        public Action<string> tipsCall;
 
         private readonly bool[] FLAG_RATIO = {true, true, false};
         private readonly bool[] FLAG_INV  = {false, false, true};
-        public void Show() {
+        
+        public void Show(bool reload) {
+            // TODO tooltipをステータスバーに表示
             GUILayout.BeginVertical();
             try {
-                string matName = (expand? "- " : "+ ") + edited.name;
-                if (GUILayout.Button(matName, bStyleLeft, optUnitHeight)) {
-                    expand = !expand;
-                }
-                if (!expand) return;
+                GUILayout.BeginHorizontal();
+                try {
+                    var texIcon = expand? MinusIcon : PlusIcon;
+                    if (GUILayout.Button(texIcon, bStyleLeft, optUnitHeight, optIconWidth)) {
+                        expand = !expand;
+                    }
+                    if (GUILayout.Button(edited.name, bStyleLeft, optUnitHeight)) {
+                        expand = !expand;
+                    }
+                    if (!expand) return;
 
-                Material material = edited.material;                          
-                //GUILayout.Label(edited.name, uiParams.lStyleC, optItemHeight);
+                } finally {
+                    GUILayout.EndHorizontal();
+                }
+
+                GUILayout.BeginHorizontal();
+                try {
+                    // コピー
+                    if (GUILayout.Button(CopyIcon, optUnitHeight,optButonWidthS)) {
+                        
+                        ClipboardHelper.clipBoard = MateHandler.Instance.ToText(edited);
+                        if (tipsCall != null) {
+                            tipsCall("マテリアル情報をクリップボードに\nコピーしました");
+                        }
+                    }
+
+                    GUI.enabled &= clipHandler.isMateText;
+                    var icons = PasteIcon;
+                    if (GUILayout.Button(icons[0], optUnitHeight,optButonWidthS)) {
+                        try {
+                            MateHandler.Instance.Write(edited, clipHandler.mateText);
+                            if (tipsCall != null) {
+                                tipsCall("マテリアル情報を貼付けました");
+                            }
+                        } catch(Exception e) {
+                            LogUtil.Error("failed to import mateText", e);
+                        }
+                    }
+                    includeOthers = GUILayout.Toggle(includeOthers, "CF", uiParams.tStyleSS);
+                    includeShader = GUILayout.Toggle(includeShader, "S", uiParams.tStyleSS);
+                    includeTex    = GUILayout.Toggle(includeTex, "T", uiParams.tStyleSS);
+                    GUI.enabled &= (includeTex |includeShader| includeOthers);
+                    if (GUILayout.Button(icons[1], optUnitHeight,optButonWidth)) {
+                        try {
+                            int FLAG = 0;
+                            if (includeTex)    FLAG |= MateHandler.MATE_TEX;
+                            if (includeShader) FLAG |= MateHandler.MATE_SHADER;
+                            if (includeOthers) FLAG |= MateHandler.MATE_COLOR | MateHandler.MATE_FLOAT;
+                            LogUtil.DebugF("flag: tex={0}, shader={1}, others={2}", includeTex, includeShader, includeOthers);
+                            MateHandler.Instance.Write(edited, clipHandler.mateText, FLAG);
+                        } catch(Exception e) {
+                            LogUtil.Error("failed to import mateText", e);
+                        }
+                        if (tipsCall != null) {
+                            tipsCall("マテリアル情報を貼付けました");
+                        }
+                    }
+                } finally {
+                    GUI.enabled = true;
+                    GUILayout.EndHorizontal();
+                }
+
+                Material material = edited.material;
+                int idx = edited.type.idx;
     
-                string shaderName = edited.shader.Name;
-                int idx = ShaderMapper.getTypeIndex(shaderName);
-    
-                GUIContent selected = (idx != -1)? ShaderNames[idx] : ShaderNames[4];
-                shaderCombo = shaderCombo ?? new ComboBoxLO(selected, ShaderNames, uiParams.bStyleSC, uiParams.boxStyle, uiParams.listStyle, false);
+                if (shaderCombo == null) {
+                    GUIContent selected = (idx >= 0 && idx < ShaderNames.Length) ? ShaderNames[idx] : GUIContent.none;
+                    shaderCombo = new ComboBoxLO(selected, ShaderNames, uiParams.bStyleSC, uiParams.boxStyle, uiParams.listStyle, false);
+                } else {
+                    shaderCombo.SelectedItemIndex = idx;
+                }
                 shaderCombo.Show(GUILayout.ExpandWidth(true));//uiParams.optInsideWidth);
     
                 int selectedIdx = shaderCombo.SelectedItemIndex;
-                if (idx != selectedIdx) {
-                    LogUtil.Debug("selected shader changed", idx, "=>", selectedIdx);
+                if (idx != selectedIdx && selectedIdx != -1) {
+                    LogUtil.Debug("shader changed", idx, "=>", selectedIdx);
                     // シェーダ変更
                     var shaderName0 = ShaderNames[selectedIdx].text;
-                    ChangeShader(shaderName0, ref material);
+                    edited.ChangeShader(shaderName0, selectedIdx);
                 }
-                MaterialType mat = edited.type;
+                // MaterialType mat = edited.type;
+                if (reload) {
+                    edited.renderQueue.Set( material.renderQueue );
+                }
     
-                SetupFloatSlider("RQ", ref edited.renderQueue,
+                SetupFloatSlider("RQ", edited.renderQueue,
                                  edited.renderQueue.range.editMin, edited.renderQueue.range.editMax,
                                  (rq) => {
-                                     material.SetFloat("_SetManualRenderQueue", rq);
+                                     material.SetFloat(ShaderPropType.RenderQueue.propId, rq);
                                      material.renderQueue = (int)rq;
-                                 }, 3000, 3100, 3200, 3300);
+                                 }, ShaderPropType.RenderQueue.presetVals);
 
-                Action<string, string, EditColor> ColorSlider = (label, key, edit) => {
-                    // TODO シェーダ変更などで未設定のプロパティにデフォルトカラーを設定
-                    if (!edit.val.HasValue) {
-                        edit.Set( Color.white );
-                        LogUtil.DebugF("value is empty. set white. color={0}, vals={1}, syncs={2}",
-                               edit.val, edit.editVals, edit.isSyncs);
+
+                ShaderType sdType = edited.type;
+                for (int i=0; i< sdType.colProps.Length; i++) {
+                    var colProp = sdType.colProps[i];
+                    var editColor = edited.editColors[i];
+                    if (reload) {
+                        editColor.Set(material.GetColor(colProp.propId));
+                    } else {
+                        if (!editColor.val.HasValue) {
+                            editColor.Set(colProp.defaultVal);
+                            LogUtil.DebugF("value is empty. set white. color={0}, vals={1}, syncs={2}",
+                                editColor.val, editColor.editVals, editColor.isSyncs);
+                        }
                     }
 
-                    Color beforeColor = edit.val.Value;
-                    setColorSlider(label, ref edit, mat.isTrans);
-                    if (edit.val.Value != beforeColor) {
-                        material.SetColor(key, edit.val.Value);
+                        
+                    Color beforeColor = editColor.val.Value;
+                    setColorSlider(colProp.name, ref editColor, colProp.colorType);
+                    if (editColor.val.Value != beforeColor) {
+                        material.SetColor(colProp.propId, editColor.val.Value);
+                    }   
+                }
+                
+                for (int i=0; i< sdType.fProps.Length; i++) {
+                    var prop = sdType.fProps[i];
+                    switch (prop.valType) {
+                        case ValType.Float:
+                            // slider
+                            var fprop = prop;
+                            if (reload) {
+                                edited.editVals[i].Set(material.GetFloat(fprop.propId));
+                            }
+                            // fprop.SetValue(mat, val);
+                            SetupFloatSlider(prop.name, edited.editVals[i],
+                                             fprop.sliderMin, fprop.sliderMax, 
+                                             (val) => fprop.SetValue(material, val),
+                                              fprop.opts, fprop.presetVals);
+                            break;
+                        case ValType.Bool:
+                            // TODO チェックボックス
+                            break;
                     }
-                };
+                }
 
-                if (mat.hasColor)   ColorSlider("Color", "_Color", edited.color);
-                if (mat.isLighted)  ColorSlider("Shadow Color", "_ShadowColor", edited.shadowColor);
-                if (mat.isOutlined) ColorSlider("Outline Color", "_OutlineColor", edited.outlineColor);
-                if (mat.isToony)    ColorSlider("Rim Color", "_RimColor", edited.rimColor);
-    
-                if (mat.isLighted) {
-                    SetupFloatSlider("Shininess", ref edited.shininess, 
-                                     settings.shininessMin, settings.shininessMax,
-                                    (val) => material.SetFloat("_Shininess", val), FLAG_RATIO,  0, 0.1f, 0.5f, 1, 5);
-                }
-                if (mat.isOutlined) {
-                    SetupFloatSlider("OutLineWidth", ref edited.outlineWidth,
-                                     settings.outlineWidthMin, settings.outlineWidthMax,
-                                     (val) => material.SetFloat("_OutlineWidth", val), null, 0.0001f, 0.001f, 0.002f);
-                }
-                if (mat.isToony) {
-                    SetupFloatSlider("RimPower", ref edited.rimPower, 
-                                    settings.rimPowerMin, settings.rimPowerMax,
-                                    (val) => material.SetFloat("_RimPower", val), FLAG_INV, 0, 25f, 50f, 100f);
-
-                    SetupFloatSlider("RimShift", ref edited.rimShift,
-                                    settings.rimShiftMin, settings.rimShiftMax,
-                                    (val) => material.SetFloat("_RimShift", val), FLAG_RATIO, 0f, 0.25f, 0.5f, 1f);
-                }
-                if (mat.isHair) {
-                    SetupFloatSlider("HiRate", ref edited.hiRate,
-                                     settings.hiRateMin, settings.hiRateMax,
-                                     (val) => material.SetFloat("_HiRate", val), FLAG_RATIO, 0f, 0.5f, 1.0f);
-
-                    SetupFloatSlider("HiPow", ref edited.hiPow,
-                                     settings.hiPowMin, settings.hiPowMax,
-                                     (val) => material.SetFloat("_HiPow", val), FLAG_RATIO, 0.001f, 1f, 50f);
-                }
-                if (mat.hasFloat1) {
-                    SetupFloatSlider("FloatValue1", ref edited.floatVal1,
-                                     settings.floatVal1Min, settings.floatVal1Max,
-                                     (val) => material.SetFloat("_FloatValue1", val), 0, 100f, 200f);
-                }
-                if (mat.hasFloat2) {
-                    SetupFloatSlider("FloatValue2", ref edited.floatVal2,
-                                     settings.floatVal2Min, settings.floatVal2Max,
-                                     (val) => material.SetFloat("_FloatValue2", val), -15, 0, 1, 15);
-                }
-                if (mat.hasFloat3) {
-                    SetupFloatSlider("FloatValue3", ref edited.floatVal3,
-                                     settings.floatVal3Min, settings.floatVal3Max,
-                                     (val) => material.SetFloat("_FloatValue3", val), FLAG_RATIO, 0, 0.5f, 1f);
-                }
-                if (mat.hasCutoff) {
-                    SetupFloatSlider("Cutoff", ref edited.cutoff,
-                                     0f, 100f,
-                                     (val) => material.SetFloat("_Cutoff", val));
-                }
             } finally {
                 GUILayout.EndVertical();
             }
         }
-        private void SetupFloatSlider(string label, ref EditValue edit, float sliderMin, float sliderMax,
+            
+        private void SetupFloatSlider(string label, EditValue edit, float sliderMin, float sliderMax,
                                       Action<float> func, params float[] vals) {
-            SetupFloatSlider(label, ref edit, sliderMin, sliderMax, func, null, vals);
+            SetupFloatSlider(label, edit, sliderMin, sliderMax, func, null, vals);
         }
 
-        private void SetupFloatSlider(string label, ref EditValue edit, float sliderMin, float sliderMax,
+        private void SetupFloatSlider(string label, EditValue edit, float sliderMin, float sliderMax,
                                       Action<float> func, bool[] mulVals, params float[] vals) {
             GUILayout.BeginHorizontal();
             GUILayout.Label(label, uiParams.lStyle, optItemHeight);
@@ -273,7 +347,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     }
                 }
                 if (mulVals[2]) {
-                    if (GUILayout.Button("*-1", bStyleSS, bWidthWOpt)) {
+                    if (GUILayout.Button("x-1", bStyleSS, bWidthWOpt)) {
                         edit.Set(edit.val * -1f);
                         changed = true;
                     }
@@ -281,13 +355,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             }
             GUILayout.EndHorizontal();
 
-            if (changed || drawValueSlider(null, ref edit, sliderMin, sliderMax)) {
+            if (changed || drawValueSlider(null, edit, sliderMin, sliderMax)) {
                 func(edit.val);
             }
         }
 
         private static readonly float delta = 0.1f;
-        private void setColorSlider(string label, ref EditColor edit, bool isTrans) {
+        private void setColorSlider(string label, ref EditColor edit, ColorType colType) {
             GUILayout.BeginHorizontal();
             GUILayout.Label(label, uiParams.lStyle, optItemHeight);
 
@@ -323,18 +397,21 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             }            
             GUILayout.EndHorizontal();
  
-            changed |= drawValueSlider("R", ref edit, 0, ref c.r);
-            changed |= drawValueSlider("G", ref edit, 1, ref c.g);
-            changed |= drawValueSlider("B", ref edit, 2, ref c.b);
-            if (edit.hasAlpha && isTrans) {
-                changed |= drawValueSlider("A", ref edit, 3, ref c.a);
+            int idx = 0;
+            if (colType == ColorType.rgb || colType == ColorType.rgba) {
+                changed |= drawValueSlider("R", ref edit, idx++, ref c.r);
+                changed |= drawValueSlider("G", ref edit, idx++, ref c.g);
+                changed |= drawValueSlider("B", ref edit, idx++, ref c.b);
+            }
+            if (colType == ColorType.rgba || colType == ColorType.a) {
+                changed |= drawValueSlider("A", ref edit, idx, ref c.a);
             }
             if (changed) {
                 edit.Set(c);
             }
         }
 
-        private bool drawValueSlider(string label, ref EditValue edit, float sliderMin, float sliderMax) {
+        private bool drawValueSlider(string label, EditValue edit, float sliderMin, float sliderMax) {
             bool changed = false;
             bool fontChanged = false;
             GUILayout.BeginHorizontal(optItemHeight);
@@ -386,7 +463,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     fontChanged = true;
                 }
 
-                EditRange range = EditColor.GetRange(idx);
+                EditRange range = edit.GetRange(idx);
                 var val2 = GUILayout.TextField(edit.editVals[idx], uiParams.textStyleSC, optInputWidth);
                 if (edit.editVals[idx] != val2) { // 直接書き換えられたケース
                     edit.Set(idx, val2, range);

@@ -33,7 +33,7 @@ public abstract class ComboBoxBase
         this.buttonStyle = buttonStyle;
         this.boxStyle = boxStyle;
         this.listStyle = listStyle;
-        initIndex();
+        InitIndex();
         InitSize();
     }
 
@@ -46,13 +46,14 @@ public abstract class ComboBoxBase
         itemHeight = listStyle.CalcHeight(listContent[0], 1.0f);
 
     }
-    protected void initIndex() {
+    protected void InitIndex() {
         for (int i=0; i<listContent.Length; i++) {
             if (buttonContent.text == listContent[i].text) {
                 selectedItemIndex = i;
-                break;
+                return;
             }
         }
+        selectedItemIndex = -1;
     }
     public int SelectItem(string item) {
         string itemLow = item.ToLower();
@@ -74,7 +75,17 @@ public abstract class ComboBoxBase
 
     public int SelectedItemIndex{
         get {  return selectedItemIndex;  }
-        set {  selectedItemIndex = value; }
+        set {
+            if (selectedItemIndex != value) {
+                if (value < listContent.Length && value >= 0) {
+                    selectedItemIndex = value;
+                    buttonContent = listContent[selectedItemIndex];
+                } else {
+                    buttonContent = GUIContent.none;
+                    selectedItemIndex = -1;
+                }
+            }
+        }
     }
 }
  
@@ -125,11 +136,10 @@ public class ComboBox : ComboBoxBase
             var listRect = new Rect( rect.x, rect.y + itemHeight,
                       rect.width, itemHeight * listContent.Length );
  
-            GUI.Box( listRect, "", boxStyle );
+            GUI.Box( listRect, string.Empty, boxStyle );
             int newSelectedItemIndex = GUI.SelectionGrid( listRect, selectedItemIndex, listContent, 1, listStyle );
             if( newSelectedItemIndex != selectedItemIndex ) {
-                selectedItemIndex = newSelectedItemIndex;
-                buttonContent = listContent[selectedItemIndex];
+                SelectedItemIndex = newSelectedItemIndex;
             }
         }
  
@@ -193,10 +203,11 @@ public class ComboBoxLO : ComboBoxBase
                 int newSelectedItemIndex = GUILayout.SelectionGrid(selectedItemIndex, listContent, 1, listStyle, 
                                                                    GUILayout.Width(itemWidth), GUILayout.Height(height));
                 if( newSelectedItemIndex != selectedItemIndex ) {
-                    selectedItemIndex = newSelectedItemIndex;
                     // ラベル指定に応じて
                     if (!labelFixed) {
-                        buttonContent = listContent[selectedItemIndex];
+                        SelectedItemIndex = newSelectedItemIndex;
+                    } else {
+                        selectedItemIndex = newSelectedItemIndex;
                     }
                 }
             }
@@ -207,6 +218,5 @@ public class ComboBoxLO : ComboBoxBase
         isClickedComboButton &= !done;
         return selectedItemIndex;
     }
-
 }
 }

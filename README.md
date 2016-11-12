@@ -5,8 +5,8 @@ CM3D2.AlwaysColorChangeEx.Plugin
 不具合が残っている可能性もありますし、本来設定しない値に設定できてしまう可能性もあります。  
 本プラグインの使用は自己責任でお願いします。
 
-オリジナル作者である[kf-cm3d2](https://github.com/kf-cm3d2) さんとは別人による改造版です。  
-[オリジナル](https://github.com/kf-cm3d2/CM3D2.AlwaysColorChange.Plugin)から変更しすぎたため、別プロジェクト化しました。  
+オリジナル作者である[kf-cm3d2][] さんとは別人による改造版です。  
+[オリジナル][Original]から変更しすぎたため、別プロジェクト化しました。  
 
 ---
 ## ■ 導入
@@ -14,14 +14,14 @@ CM3D2.AlwaysColorChangeEx.Plugin
 UnityInjectorが導入済みであること
 
 #### ◇動作確認環境
-  - バージョン：**1.29**  
+  - バージョン：**1.37**  
   - プラグイン：UnityInjector
   - ※Sybarisを使用する場合は、160410版で内部動作が変わっているようなので注意  
       ACCexの[0.2.2.0](#0220)以前の版を使用している場合は、Sybaris-160410版でmenuのエクスポートが動作しません.
 
 #### ◇インストール  
 
-[Releases](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/releases)ページから、対応するバージョンのzipファイルをダウンロードし、  
+[Releases][]ページから、対応するバージョンのzipファイルをダウンロードし、  
 解凍後、UnityInjectorフォルダ以下をプラグインフォルダにコピーしてください。
 
 #### ◇自分でコンパイルする場合  
@@ -47,20 +47,20 @@ cmpile.batファイルの以下の環境変数のパスを設定して、バッ�
 　強制的に **メイド選択画面** になります。
 
 ##### ◇機能説明（概要）
-* **[メイド選択](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E3%83%A1%E3%82%A4%E3%83%89%E9%81%B8%E6%8A%9E)**  
+* **[メイド選択][maid_Select]**  
   操作対象のメイドを選択します。  
   撮影モードや他プラグインで複数メイドを表示した場合に利用してください。
-* **[マスク選択](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E3%83%9E%E3%82%B9%E3%82%AF%E3%82%A2%E3%82%A4%E3%83%86%E3%83%A0%E9%81%B8%E6%8A%9E)**  
+* **[マスク選択][mask_Select]**  
   maskItemで消去されているアイテムを表示させることができます。  
    マスクアイテム選択画面で、各スロットのマスクの有無を指定してください。
   「適用」ボタンで反映します。
-* **[表示ノード選択](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E8%A1%A8%E7%A4%BA%E3%83%8E%E3%83%BC%E3%83%89%E9%81%B8%E6%8A%9E)**   
+* **[表示ノード選択][node_Select]**   
   ノード（身体の部位）の表示・非表示を切り替えられます。  
   「適用」ボタンで反映します。
-* **[プリセット保存](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E3%83%97%E3%83%AA%E3%82%BB%E3%83%83%E3%83%88%E4%BF%9D%E5%AD%98)**  
+* **[プリセット保存][preset_Save]**  
   現在の衣装・設定値をプリセットとして保存します。  
   プリセット適用で呼び出すことがます。  
-* **[プリセット適用](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E3%83%97%E3%83%AA%E3%82%BB%E3%83%83%E3%83%88%E9%81%A9%E7%94%A8)**  
+* **[プリセット適用][preset_Apply]**  
   保存したプリセットを選択・適用します。
   適用時に、プリセットから適用する項目を選択できます。
   - マスク
@@ -69,10 +69,10 @@ cmpile.batファイルの以下の環境変数のパスを設定して、バッ�
   - 衣装
   - 衣装外し  
     これがチェックされている場合、プリセットで衣装を設定していないスロットは衣装を外します  
-* **[menuエクスポート](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#menu%E3%82%A8%E3%82%AF%E3%82%B9%E3%83%9D%E3%83%BC%E3%83%88)**  
+* **[menuエクスポート][menu_Export]**  
   現在の選択スロットのアイテムをエクスポートします。  
   関連するめくれやずらしmodelなどにも対応
-* **[テクスチャ変更](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E3%83%86%E3%82%AF%E3%82%B9%E3%83%81%E3%83%A3%E5%A4%89%E6%9B%B4)**  
+* **[テクスチャ変更][tex_Change]**  
   テクスチャファイル選択による変更と、スライダーによる色変更が可能です。  
   - ファイル選択によるテクスチャ変更  
     CM3D2のarcに同梱されているtexファイル、あるいはMODに登録されているtexファイルは、    
@@ -94,113 +94,73 @@ F12キーでメニューが開きます。
 * Config/AlwaysColroChangeEx.ini
 
 のToggleWindowキーで指定してください。  
-iniファイルの詳細は[wiki](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/ini%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB)を参照
+iniファイルの詳細は[wiki][wiki_ini]を参照
 
 ![GUI](http://i.imgur.com/Qyo9FqB.png, "TOP")
-### ■ [画面説明](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E)
+### ■ [画面説明][desc_1]
 
-### ■ [既知の問題](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/Known-Issue)
+### ■ [既知の問題][issue]
 
-### ■ [TODO](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/TODO)
+### ■ [TODO][]
+
 
 ## ■ 権利・規約
 
-* オリジナルの作者である[kf-cm3d2](https://github.com/kf-cm3d2)さんの
-意向である以下に従ってください。  
-(オリジナルの[プロジェクト](https://github.com/kf-cm3d2/CM3D2.AlwaysColorChange.Plugin)READMEに記載)
+* オリジナルの作者である[kf-cm3d2][]さんの意向である以下に従ってください。  
+(オリジナルの[プロジェクト][Original] READMEに記載)
 ~~~
 ソースの改変・再配布等は自由にしていただいてかまいません。  
 むしろやりたいこと・それを超える機能を実装してくれる人歓迎。  
 ~~~
 
-* CustomJsonWriter.csは、[JsonFx](http://www.jsonfx.net/license/)のソースを元にしています。  
+* CustomJsonWriter.csは、[JsonFx][]のソースを元にしています。  
 
-* また、KISS公式の[利用規約](http://kissdiary.blog11.fc2.com/blog-entry-577.html)から逸脱した利用はお控えください  
+* また、KISS公式の[利用規約][KISS_Rule]から逸脱した利用はお控えください  
 
 ### ■ その他
-オリジナル作者[kf-cm3d2]様とこれまで不具合報告をくださった方々に感謝を。  
-
+オリジナル作者[kf-cm3d2]様とこれまで不具合報告をくださった方々に感謝。  
 
 ## ■ 更新履歴
-#### 0.2.4.0 (最新版)
+
+#### 0.2.9.0 (Pre-Release)
+* **機能拡張 (Enhance)**
+ * プリセット機能
+	 * 保存一覧で、クリックした名前をフォームに反映するよう変更
+ * カラーチェンジ機能（マテリアル編集機能）
+   * コピペ機能追加（shader/tex/color/floatのコピー・ペースト)
+	 * 部分貼付け機能追加（shader/tex/color/floatのペースト)
+	 * ゲーム上の表示データを定期的にロードするよう変更
+ * 動作対象シーンの管理を変更(iniで動作シーンを指定可能に)
 * **不具合修正 (Fixed)**
- * 複数メイドプラグイン用の措置
-   - 上記プラグインが生成した２人目以降のメイドは、プリセット適用でエラーが発生するため、  
-   適用操作ができないよう修正
-* **機能拡張 (Enhance)**
-   * プリセット適用・保存機能
-     - 身体の設定値対応（身長や胸サイズ等)
-     - 無限色対応
-   * カラーチェンジ画面
-     - スライダー値の変更ボタン「<」,「>」,「\*-1」追加
+ * iniファイルの一部の設定値が反映されない問題を修正
+ * プリセットが一部適用されない問題を修正
 * **その他(Misc)**
- * Stream作成時のBuffer設定忘れを修正
- * プラグイン名を略称に修正（ログに出る文字列が変わるだけ）
-
-#### 0.2.3.0 
- * **不具合修正 (Fixed)**
-  * **カラーチェンジ画面**
-    - メイド変更時、一回前の操作と同一メニューIDのアイテムを指定した場合に、  
-     以前のアイテムに対して変更が適用されてしまった問題を修正
-* **機能拡張 (Enhance)**
-  * **メイド選択画面**
-    - 「一覧更新」ボタンを追加
-* **その他(Misc)**
-  * しばりす 160410版の仕様変更への暫定対応
-    - arc内のファイル参照処理で、一括読み込みしかできなくなった問題に対応  
-      arc外の非公式MODであれば既存と同様の処理  
-      そうでない場合は一旦ストリーミングラッパーで参照し、  
-      ヘッダ読み込みにより順次読み込み不可であれば、メモリへの一括読み込みを行う
-
-
-#### 0.2.2.0
- * **機能拡張 (Enhance)**
-  * **カラーチェンジ画面**
-    - スライダー値の直接入力のUI見直し  
-      テキスト入力で正常値以外も入力可能に。  
-      ⇒値が範囲外や数値でない場合など反映されない値は赤字に。
-    - スライダー上部に設定値ボタンを追加(暫定)
-    - マテリアル名クリックで表示を畳めるように修正  
-      ⇒マテリアル数が3以上の場合に最初から畳んだ状態で表示
-    - 法線シェーダを追加
-    - 複数メイドプラグイン用に暫定対応（カラーチェンジ画面のみ）
-      - 上記プラグインが呼び出すメイドは、スロットIDが公式のメイドと異なる状態になっているため、対応する処理を追加  
-      ※ ACCex上のスロット名がすべて英字固定となるなど制限あり  
-
-   * **テクスチャ色変更画面**
-     ドロップダウンから選択時に即座に適用するように変更
-      - 以前のように「選」ボタン押下を必要とする場合は  
-      ini設定で対応可能に。
-
-* **その他 (Misc)**
-  * UI関係
-    - 略称をACCexに変更
-    - ドラッグ操作(ウィンドウ移動)を修正  
-    （全範囲ではなくウィンドウ上側のエリアでのみドラッグ可能）
-    - テクスチャ色変更画面のスライダ位置のズレを修正
-  * 設定関係
-    - RimShiftを含む各スライダー範囲のデフォルト値を修正
-    - テキスト入力範囲をiniファイルで設定可能に
-  * menuの変更チェック処理を軽量化
-  * 対象シーンに日常・ダンス(rhythmix to you)追加
-  * 修飾キー未指定時の動作を修正
-  　- 修飾キーが押下されたケースを考慮
-  * 13人目以降のメイドを選択可能に修正
-    - 未確認
-  * コードリファクタ
-    - ロガー名
-    - namespace修正等
-
-#### 0.2.1.0
- * **不具合修正 (Fixed)**
-  * テクスチャの色変更機能の反映タイミングを修正
-    - スライダー移動時、KeyUpタイミングのみで反映するよう修正  
-  * 手持アイテムや拘束具・バイブなどのカラーチェンジができなくなっていた問題を修正  
- * **その他 (Misc)**
-  * 脱衣などで非表示になっているスロットを編集可能に変更  
-    - 未読み込みのスロットは除外
+ * 追加導入されたtoonテクスチャに、今更対応
+ * iniでtoonテクスチャを追加指定した時、重複を無視するよう変更
+ * 追加分以外についてもtoonテクスチャをiniで変更できるよう修正
+ * RimShiftのデフォルト指定範囲を修正（Max:1）
+ * 全体的にリファクタ（途中）
+ * 一部リソース削除
+ * README修正（ KISSの利用規約URLが古かった等々 修正)
 
 #### 以前の更新履歴
- * [Releases](https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/releases)
- を参照
+ * [Releases][] を参照
  * プロジェクトリネーム( **0.1.0.0** )以前の履歴は、commit logを参照
+ 
+[maid_Select]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E3%83%A1%E3%82%A4%E3%83%89%E9%81%B8%E6%8A%9E
+[mask_Select]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E3%83%9E%E3%82%B9%E3%82%AF%E3%82%A2%E3%82%A4%E3%83%86%E3%83%A0%E9%81%B8%E6%8A%9E
+[node_Select]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E8%A1%A8%E7%A4%BA%E3%83%8E%E3%83%BC%E3%83%89%E9%81%B8%E6%8A%9E
+[preset_Save]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E3%83%97%E3%83%AA%E3%82%BB%E3%83%83%E3%83%88%E4%BF%9D%E5%AD%98
+[preset_Apply]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E3%83%97%E3%83%AA%E3%82%BB%E3%83%83%E3%83%88%E9%81%A9%E7%94%A8
+[menu_Export]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#menu%E3%82%A8%E3%82%AF%E3%82%B9%E3%83%9D%E3%83%BC%E3%83%88
+[tex_Change]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E3%83%86%E3%82%AF%E3%82%B9%E3%83%81%E3%83%A3%E5%A4%89%E6%9B%B4
+[wiki_ini]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/ini%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB
+[desc_1]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E
+[issue]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/Known-Issue
+[TODO]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/TODO
+[KISS_Rule]:http://kisskiss.tv/kiss/diary.php?no=558
+[JsonFx]:http://www.jsonfx.net/license/
+[Releases]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/releases
+[Original]:https://github.com/kf-cm3d2/CM3D2.AlwaysColorChange.Plugin
+[kf-cm3d2]:https://github.com/kf-cm3d2
+[icon_link]:https://sozai.cman.jp/

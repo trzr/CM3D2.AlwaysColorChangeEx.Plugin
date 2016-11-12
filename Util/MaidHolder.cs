@@ -18,9 +18,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         public static MaidHolder Instance {
             get { return instance;  }
         }
-
-        private static readonly Material[] EmptyList = new Material[0];
-        private static readonly List<Material>   EmptyList1 = new List<Material>(0);
+        private readonly int SLOT_COUNT;
+//        public static void Init() {
+//            if (SLOT_COUNT <= 0) {
+//                SLOT_COUNT = TBody.m_strDefSlotName.Length/cnt;
+//            }
+//        }
+        private readonly Material[] EmptyList = new Material[0];
+        private readonly List<Material>   EmptyList1 = new List<Material>(0);
         
         public string MaidName { get; private set; }
         // 選択中のメイド
@@ -30,6 +35,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 
         private MaidHolder() {
             MaidName = string.Empty;
+            int cnt = PrivateAccessor.Get<int>(typeof(TBody),"strSlotNameItemCnt");
+            SLOT_COUNT = TBody.m_strDefSlotName.Length/cnt;
         }
         public bool Applicable() {
             return (currentMaid != null) && !currentMaid.boAllProcPropBUSY;
@@ -41,12 +48,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         public bool CurrentEnabled() {
             return currentMaid != null && currentMaid.enabled;
         }
-        private static readonly int cnt = PrivateAccessor.Get<int>(typeof(TBody),"strSlotNameItemCnt");
+
         public bool isOfficial;
         public bool checkOfficial(Maid maid) {
-            int slotCount = TBody.m_strDefSlotName.Length/cnt;
-            LogUtil.Debug("slotCount:", slotCount, ", maid. count=", maid.body0.goSlot.Count);
-            return (maid.body0.goSlot.Count == slotCount);
+            LogUtil.Debug("slotCount:", SLOT_COUNT, ", maid. count=", maid.body0.goSlot.Count);
+            return (maid.body0.goSlot.Count == SLOT_COUNT);
         }
         /// <summary>
         /// メイドを更新する.
@@ -132,12 +138,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             return GetMaterials(currentMaid.body0.GetSlot(slotName));
         }
 
-        public Material[] GetMaterials(TBodySkin slot)
+        public Renderer GetRenderer(TBody.SlotID slotID) {
+            int slotNo = (int)slotID;
+            return slotNo >= currentMaid.body0.goSlot.Count
+                ? null
+                : GetRenderer(currentMaid.body0.GetSlot(slotNo));
+        }
+        public Renderer GetRenderer(TBodySkin slot) 
         {
             GameObject gobj = slot.obj;
-            if (gobj == null) {
-                return EmptyList;
-            }
+            if (gobj == null) return null;
 
             Transform[] componentsInChildren = gobj.transform.GetComponentsInChildren<Transform>(true);
             foreach (Transform tf in componentsInChildren) {
@@ -145,18 +155,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 if (r != null && r.material != null && r.materials.Length > 0 && r.material.shader != null) {
                     // 確認：複数回ヒットするケースが存在するか？
                     // もし、存在するとマテリアル番号と一致しなくなる恐れがあるため存在しないはずだが…
-                    return r.materials;
-
-                    //// 確認用ログ
-                    //if (materialList.Count > 1) {
-                    //    LogUtil.Log("multiple materials exist.", materialList.Count, slot.m_strModelFileName);
-                    //}
+                    return r;
                 }
             }
-            return EmptyList;
+            return null;
+        }
+        public Material[] GetMaterials(TBodySkin slot)
+        {
+            var renderer = GetRenderer(slot);
+            return renderer == null ? EmptyList : renderer.materials;
         }
         public Material GetMaterial(int matNo) {
-            return GetMaterial(currentMaid.body0.GetSlot(currentSlot.Name), matNo);
+            return GetMaterial(currentMaid.body0.GetSlot((int)currentSlot.Id), matNo);
         }
         public Material GetMaterial(TBodySkin slot, int matNo)
         {

@@ -106,6 +106,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
     {
         public string name;
         public string shader;
+        // TODO
         public CCColor color;
         public CCColor shadowColor;
         public CCColor rimColor;
@@ -122,86 +123,130 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public List<TextureInfo> texList;
 
         public CCMaterial() {}
-        public CCMaterial(Material m, MaterialType mate) {
+
+        public CCMaterial(Material m, ShaderType type) {
             name = m.name;
             shader = m.shader.name;
             
-            if (mate.hasColor) {
-                color = new CCColor(m.GetColor("_Color"));
+            foreach (var colProp in type.colProps) {
+                var ccc = new CCColor(m.GetColor(colProp.propId));
+                switch(colProp.key) {
+                    case PropKey._Color:
+                        color = ccc;
+                        break;
+                    case PropKey._ShadowColor:
+                        shadowColor = ccc;
+                        break;
+                    case PropKey._RimColor:
+                        rimColor = ccc;
+                        break;
+                    case PropKey._OutlineColor:
+                        outlineColor = ccc;
+                        break;
+//        _SpecColor,
+//        _ReflectColor,
+//        _Emission,                        
+                }                        
             }
-            if (mate.isLighted) {
-                shadowColor = new CCColor(m.GetColor("_ShadowColor"));
+
+            foreach (var prop in type.fProps) {
+                var fVal = m.GetFloat(prop.propId);
+                switch(prop.key) {
+                    case PropKey._Shininess:
+                        shininess = fVal;
+                        break;
+                    case PropKey._OutlineWidth:
+                        outlineWidth = fVal;
+                        break;
+                    case PropKey._RimPower:
+                        rimPower = fVal;
+                        break;
+                    case PropKey._RimShift:
+                        rimShift = fVal;
+                        break;
+                    case PropKey._HiRate:
+                        hiRate = fVal;
+                        break;
+                    case PropKey._HiPow:
+                        hiPow = fVal;
+                        break;
+                    case PropKey._FloatValue1:
+                        floatVal1 = fVal;
+                        break;
+                    case PropKey._FloatValue2:
+                        floatVal2 = fVal;
+                        break;
+                    case PropKey._FloatValue3:
+                        floatVal3 = fVal;
+                        break;
+                }                        
             }
-            if (mate.isToony) {
-                rimColor = new CCColor(m.GetColor("_RimColor"));
-            }
-            if (mate.isOutlined) {
-                outlineColor = new CCColor(m.GetColor("_OutlineColor"));
-            }
-            if (mate.isLighted) {
-                shininess    = m.GetFloat("_Shininess");
-            }
-            if (mate.isOutlined) {
-                outlineWidth = m.GetFloat("_OutlineWidth");
-            }
-            if (mate.isToony) {
-                rimPower     = m.GetFloat("_RimPower");
-                rimShift     = m.GetFloat("_RimShift");
-            }
-            if (mate.isHair) {
-                hiRate       = m.GetFloat("_HiRate");
-                hiPow        = m.GetFloat("_HiPow");
-            }
-            if (mate.hasFloat1) {
-                floatVal1    = m.GetFloat("_FloatValue1");
-            }
-            if (mate.hasFloat2) {
-                floatVal2    = m.GetFloat("_FloatValue2");
-            }
-            if (mate.hasFloat3) {
-                floatVal3    = m.GetFloat("_FloatValue3");
-            }           
-        }
+        }        
+
         public bool Apply(Material m) {
             Shader sh = Shader.Find(shader);
             if (sh == null) return false;
 
             m.shader = sh;
-            MaterialType mate = ShaderMapper.resolve(shader);
-            if (mate.hasColor && color != null) {
-                m.SetColor("_Color", color.ToColor());
+            var type = ShaderType.Resolve(sh.name);
+            if (type == ShaderType.UNKNOWN) return false;
+
+            foreach (var colProp in type.colProps) {
+                CCColor cc = null;
+                switch(colProp.key) {
+                    case PropKey._Color:
+                        cc = color;
+                        break;
+                    case PropKey._ShadowColor:
+                        cc = shadowColor;
+                        break;
+                    case PropKey._RimColor:
+                        cc = rimColor;
+                        break;
+                    case PropKey._OutlineColor:
+                        cc = outlineColor;
+                        break;
+//        _SpecColor,
+//        _ReflectColor,
+//        _Emission,                        
+                }
+                if (cc != null) m.SetColor(colProp.propId, cc.ToColor());
+                
             }
-            if (mate.isLighted && shadowColor != null) {
-                m.SetColor("_ShadowColor", shadowColor.ToColor());
-            }
-            if (mate.isToony && rimColor != null) {
-                m.SetColor("_RimColor", rimColor.ToColor());
-            }
-            if (mate.isOutlined && outlineColor != null) {
-                m.SetColor("_OutlineColor", outlineColor.ToColor());
-            }
-            if (mate.isLighted && shininess.HasValue) {
-                m.SetFloat("_Shininess", shininess.Value);
-            }
-            if (mate.isOutlined && outlineWidth.HasValue) {
-                m.SetFloat("_OutlineWidth", outlineWidth.Value);
-            }
-            if (mate.isToony) {
-                if (rimPower.HasValue) m.SetFloat("_RimPower", rimPower.Value);
-                if (rimShift.HasValue) m.SetFloat("_RimShift", rimShift.Value);
-            }
-            if (mate.isHair) {
-                if (hiRate.HasValue) m.SetFloat("_HiRate", hiRate.Value);
-                if (hiPow.HasValue)  m.SetFloat("_HiPow", hiPow.Value);
-            }
-            if (mate.hasFloat1) {
-                if (floatVal1.HasValue) m.SetFloat("_FloatValue1", floatVal1.Value);
-            }
-            if (mate.hasFloat2) {
-                if (floatVal2.HasValue) m.SetFloat("_FloatValue2", floatVal2.Value);
-            }
-            if (mate.hasFloat3) {
-                if (floatVal3.HasValue) m.SetFloat("_FloatValue3", floatVal3.Value);
+
+            foreach (var prop in type.fProps) {
+                float? fVal = null;
+                switch(prop.key) {
+                    case PropKey._Shininess:
+                        fVal = shininess;
+                        break;
+                    case PropKey._OutlineWidth:
+                        fVal = outlineWidth;
+                        break;
+                    case PropKey._RimPower:
+                        fVal = rimPower;
+                        break;
+                    case PropKey._RimShift:
+                        fVal = rimShift;
+                        break;
+                    case PropKey._HiRate:
+                        fVal = hiRate;
+                        break;
+                    case PropKey._HiPow:
+                        fVal = hiPow;
+                        break;
+                    case PropKey._FloatValue1:
+                        fVal = floatVal1;
+                        break;
+                    case PropKey._FloatValue2:
+                        fVal = floatVal2;
+                        break;
+                    case PropKey._FloatValue3:
+                        fVal = floatVal3;
+                        break;
+                }
+                if (fVal.HasValue) m.SetFloat(prop.propId, fVal.Value);
+                
             }
             return true;
         }

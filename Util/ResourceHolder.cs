@@ -1,12 +1,11 @@
-﻿
-using System;
+﻿using System;
 using System.Reflection;
 using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 {
     /// <summary>
-    /// Description of ResouceHolder.
+    /// リソースのロードユーティリティ
     /// </summary>
     public sealed class ResourceHolder
     {
@@ -22,6 +21,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         private Texture2D dirImage;
         private Texture2D fileImage;
         private Texture2D pictImage;
+        private Texture2D copyImage;
+        private Texture2D pasteImage;
+        private Texture2D plusImage;
+        private Texture2D minusImage;
         public Texture2D PictImage {
             get {
                 if (pictImage == null) pictImage = LoadTex("picture");
@@ -40,26 +43,58 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 return dirImage;
             }
         }
+        public Texture2D CopyImage {
+            get {
+                if (copyImage == null) copyImage = LoadTex("copy");
+                return copyImage;
+            }
+        }
+        public Texture2D PasteImage {
+            get {
+                if (pasteImage == null) pasteImage = LoadTex("paste");
+                return pasteImage;
+            }
+        }
+        public Texture2D PlusImage {
+            get {
+                if (plusImage == null) plusImage = LoadTex("plus");
+                return plusImage;
+            }
+        }
+        public Texture2D MinusImage {
+            get {
+                if (minusImage == null) minusImage = LoadTex("minus");
+                return minusImage;
+            }
+        }
         private Texture2D LoadTex(string name) {
             try {
                 using (var fs = asmbl.GetManifestResourceStream(name + ".png")) {
                     var tex2d = outUtil.LoadTexture(fs);
                     tex2d.name = name;
-                    LogUtil.Debug("load resource file image");
+                    LogUtil.Debug("resource file image loaded :", name);
                     return tex2d;
                 }
             } catch(Exception e) {
-                LogUtil.Debug(e);
-                return null;
+                LogUtil.Log("アイコンリソースのロードに失敗しました。空として扱います", name, e);
+                return new Texture2D(2, 2);
             }
         }
-        
         public void Clear() {
-            if (dirImage != null) UnityEngine.Object.DestroyImmediate(dirImage);
-            if (fileImage != null) UnityEngine.Object.DestroyImmediate(fileImage);
-            dirImage = null;
+            if (pictImage != null)  UnityEngine.Object.DestroyImmediate(pictImage);
+            if (dirImage  != null)  UnityEngine.Object.DestroyImmediate(dirImage);
+            if (fileImage != null)  UnityEngine.Object.DestroyImmediate(fileImage);
+            if (copyImage != null)  UnityEngine.Object.DestroyImmediate(copyImage);
+            if (pasteImage != null) UnityEngine.Object.DestroyImmediate(pasteImage);
+            if (plusImage  != null) UnityEngine.Object.DestroyImmediate(plusImage);
+            if (minusImage != null) UnityEngine.Object.DestroyImmediate(minusImage);
+            pictImage = null;
+            dirImage  = null;
             fileImage = null;
-
+            copyImage = null;
+            pasteImage = null;
+            plusImage  = null;
+            minusImage = null;
         }
     }
 }

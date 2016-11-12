@@ -68,19 +68,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 slotItem.mask = maskState;
 
                 foreach (Material material in materialList) {
-                    string shaderName = material.shader.name;
-                    MaterialType mate = ShaderMapper.resolve(shaderName);
-                    if (mate == null) continue;
-
-                    var cmat = new CCMaterial(material, mate);
+                    var type = ShaderType.Resolve(material.shader.name);
+                    if (type == ShaderType.UNKNOWN) continue;
+                    var cmat = new CCMaterial(material, type);
                     slotItem.Add(cmat);
-                    foreach (var propName in mate.texPropNames) {
-                        var tex2d = material.GetTexture(propName) as Texture2D;
+                    foreach (var texProp in type.texProps) {
+                        var tex2d = material.GetTexture(texProp.propId) as Texture2D;
                         if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) continue;
 
                         var ti = new TextureInfo();
                         cmat.Add(ti);
-                        ti.propName = propName;
+                        ti.propName = texProp.keyName;
                         ti.texFile = tex2d.name;
                         var fp = texModifier.GetFilter(maid, slotInfo.Id.ToString(), material.name, tex2d.name);
                         if (fp != null && !fp.hasNotChanged()) ti.filter = new TexFilter(fp);
@@ -89,7 +87,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 preset.slots.Add(slotItem);
             }
 
-            for (int i = (int)MPN_TYPE_RANGE.BODY_START; i <= (int)MPN_TYPE_RANGE.BODY_END; i++) {
+            for (int i = TypeUtil.BODY_START; i <= TypeUtil.BODY_END; i++) {
                 var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
                 MaidProp mp = maid.GetProp(mpn);
                 if (mp != null) {
@@ -101,7 +99,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 }
             }
 
-            for (int i = (int)MPN_TYPE_RANGE.WEAR_START; i <= (int)MPN_TYPE_RANGE.WEAR_END; i++) {
+            for (int i = TypeUtil.WEAR_START; i <= TypeUtil.WEAR_END; i++) {
                 var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
                 MaidProp mp = maid.GetProp(mpn);
                 if (mp != null && !String.IsNullOrEmpty(mp.strFileName)) {
@@ -117,7 +115,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
 //            }
 
             // 無限色
-            for (int j = (int)MaidParts.PARTS_COLOR.NONE+1; j < (int)MaidParts.PARTS_COLOR.MAX; j++) {
+            for (int j = TypeUtil.PARTSCOLOR_START; j <= TypeUtil.PARTSCOLOR_END; j++) {
                 var pcEnum = (MaidParts.PARTS_COLOR)j;
                 MaidParts.PartsColor part = maid.Parts.GetPartsColor(pcEnum);
                 preset.partsColors[pcEnum.ToString()] = new CCPartsColor(part);
@@ -181,7 +179,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                         if (mp.min > mpn.min)  {mp.min = mpn.min;}
                         if (mp.max < mpn.max)  {mp.max = mpn.max;}
                     } else {
-                        LogUtil.Debug("MaidPropの適用が出来ませんでした。mpn(", mpn.name,") is null");
+                        LogUtil.Debug("failed to apply MaidProp. mpn:", mpn.name);
                     }
                 }
             }
@@ -196,7 +194,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                     if (mp.min > mpn.min)  {mp.min = mpn.min;}
                     if (mp.max < mpn.max)  {mp.max = mpn.max;}
                 } else {
-                    LogUtil.Debug("MaidPropの適用が出来ませんでした。mpn(", mpn.name,") is null");
+                    LogUtil.Debug("failed to apply MaidProp. mpn:", mpn.name);
                 }
             }
         }
@@ -223,7 +221,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                     if (++matNo < materials.Length) {
                         Material m = materials[matNo];
                         if (cmat.name != m.name) {
-                            LogUtil.DebugF("マテリアル名が一致しないため、適用しません。 slot={0}, matNo={1}, name=({2}<=>{3})", 
+                            LogUtil.DebugF("Material name mismatched. skipping apply preset-slot={0}, matNo={1}, name=({2}<=>{3})", 
                                      ccslot.id, matNo, cmat.name, m.name);
                             continue;
                         }
@@ -270,6 +268,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 }
             }
         }
+        // disable once MemberCanBeMadeStatic.Local
         public void ApplyPresetPartsColor(Maid maid, PresetData preset) {
             foreach(var pc in preset.partsColors) {
                 MaidParts.PARTS_COLOR partsColor;
@@ -297,6 +296,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 xdoc.Save(fileName);
             }
         }
+
+        /// <summary>
+        /// XMLファイルからプリセット情報をロードする
+        /// 旧版との互換性用メソッド
+        /// </summary>
+        /// <param name="fileName">XMLファイル名</param>
+        /// <returns>ロードされたプリセット情報</returns>
         public Dictionary<string, PresetData> LoadXML(string fileName) {
 
             var xdoc = XDocument.Load(fileName);

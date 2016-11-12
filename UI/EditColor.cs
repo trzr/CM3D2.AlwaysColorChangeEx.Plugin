@@ -1,5 +1,6 @@
 ﻿
 using System;
+using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
@@ -11,32 +12,39 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
     {
         internal static readonly EditRange range  = new EditRange("F3", 0f, 2f);
         internal static readonly EditRange range_a = new EditRange("F3", 0f, 1f);
+        private static readonly string[] empty = new string[0];
 
         public bool hasAlpha;
         public Color? val;
+        public ColorType type;
 
         public bool[] isSyncs;
         public string[] editVals;
         
-        public EditColor(Color? val1, bool hasAlpha = false) {
-            this.hasAlpha = hasAlpha;
+        public EditColor(Color? val1, ColorType type = ColorType.rgb) {
+            this.type = type;
             Set( val1 );
         }
 
         private string[] ToEdit(ref Color? c0) {
             Color c = c0.Value;
-            if (hasAlpha) {
-                return new string[] {
-                    c.r.ToString(range.format),
-                    c.g.ToString(range.format),
-                    c.b.ToString(range.format),
-                    c.a.ToString(range.format)};
-            } else {
-                return new string[] {
+            switch(type) {
+                case ColorType.rgb:
+                    return new string[] {
                     c.r.ToString(range.format),
                     c.g.ToString(range.format),
                     c.b.ToString(range.format)};
+                case ColorType.rgba:
+                    return new string[] {
+                        c.r.ToString(range.format),
+                        c.g.ToString(range.format),
+                        c.b.ToString(range.format),
+                        c.a.ToString(range_a.format)};
+                case ColorType.a:
+                    return new string[] {
+                        c.a.ToString(range_a.format)};
             }
+            return empty;
         }
 
         public void Set(Color? val1) {
@@ -55,6 +63,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             for (int i=0; i< isSyncs.Length; i++ ) isSyncs[i] = true;
         }
         public float GetValue(int idx) {
+            if (type == ColorType.a) {
+                return val.Value.a;
+            }
+
             switch(idx) {
                 case 0:
                     return val.Value.r;
@@ -67,8 +79,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             }
             return 0;
         }
-        public static EditRange GetRange(int idx) {
-            return (idx == 3)? range_a : range;
+        public EditRange GetRange(int idx) {
+            switch(type) {
+                case ColorType.rgb:
+                    return range;
+                case ColorType.rgba:
+                    return (idx == 3)? range_a : range;
+                case ColorType.a:
+                default:
+                    return range_a;
+            }
         }
 
         public void Set(int idx, string editVal1, EditRange er = null) {
@@ -84,20 +104,25 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     else sync = true;
 
                     if (sync) {
+                        
                         Color c = val.Value;
-                        switch(idx) {
-                            case 0:
-                                c.r = v;
-                                break;
-                            case 1:
-                                c.g = v;
-                                break;
-                            case 2:
-                                c.b = v;
-                                break;
-                            case 3:
-                                c.a = v;
-                                break;
+                        if (type == ColorType.a) {
+                            c.a = v;
+                        } else {
+                            switch(idx) {
+                                case 0:
+                                    c.r = v;
+                                    break;
+                                case 1:
+                                    c.g = v;
+                                    break;
+                                case 2:
+                                    c.b = v;
+                                    break;
+                                case 3:
+                                    c.a = v;
+                                    break;
+                            }                                
                         }
                         val = c;
                     }

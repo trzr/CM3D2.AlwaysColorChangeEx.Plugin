@@ -546,7 +546,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public bool hasParamChanged      { get; set;} // materialのパラメータ変更
         public bool hasTexColorChanged   { get; set;} // texの色変更
         public bool hasTexFileChanged    { get; set;} // texファイルの変更
-        public Dictionary<string, TargetTexture> texDic = new Dictionary<string, TargetTexture>(5);
+        public Dictionary<PropKey, TargetTexture> texDic = new Dictionary<PropKey, TargetTexture>(5);
 
         public ACCMaterial   editedMat { get; set;}
         public ACCMaterialEx srcMat    { get; set;}
@@ -572,7 +572,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             } else if (!string.IsNullOrEmpty(filename)) {
                 LogUtil.Debug("load material file", filename);
                 srcMat = ACCMaterialEx.Load(filename);
-                shaderChanged = (editedMat.shader != srcMat.shader);
+                shaderChanged = (editedMat.type != srcMat.type);
             }
 
             // pmat チェック
@@ -592,7 +592,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     if (srcRq < 0) this.needPmatChange = true;
                     LogUtil.DebugF("render queue: src={0}, edited={1}", srcRq, edited.renderQueue);
     
-                    this.needPmatChange |= (Math.Abs(edited.renderQueue.val - srcRq) > 0.01f);
+                    this.needPmatChange |= !NumberUtil.Equals(edited.renderQueue.val, srcRq, 0.01f);
                     this.pmatExport = needPmatChange;
                 }
             }
@@ -606,21 +606,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             var maid = MaidHolder.Instance.currentMaid;
 
             // テクスチャの変更フラグチェック
-            foreach (string propName in editedMat.type.texPropNames) {
-                LogUtil.Debug("propName:", propName);
-                Texture tex = editedMat.material.GetTexture(propName);
-                var filter = ACCTexturesView.GetFilter(maid, slotName, editedMat.material, propName);
+            foreach (var texProp in editedMat.type.texProps) {
+            //foreach (string propName in editedMat.type1.texPropNames) {
+                LogUtil.Debug("propName:", texProp.key);
+                
+                Texture tex = editedMat.material.GetTexture(texProp.propId);
+                var filter = ACCTexturesView.GetFilter(maid, slotName, editedMat.material, texProp.propId);
                 var colorChanged = (filter != null) && !filter.hasNotChanged();
                 var fileChanged = false;
                 if (tex != null && srcMat != null) {
                     ACCTextureEx baseTex;
-                    if (srcMat.texDic.TryGetValue(propName, out baseTex)) {
+                    if (srcMat.texDic.TryGetValue(texProp.key, out baseTex)) {
                         fileChanged = (baseTex.editname != tex.name);
                     }
                 }
                 var trgtTex = new TargetTexture(colorChanged, fileChanged, tex);
                 trgtTex.filter = filter;
-                texDic[propName] = trgtTex;
+                texDic[texProp.key] = trgtTex;
                 hasTexColorChanged  |= colorChanged;
                 hasTexFileChanged   |= fileChanged;
             }
@@ -631,10 +633,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             return editedMat.renderQueue.val;
         }
         public string ShaderName() {
-            return editedMat.type.shader.Name;
+            return editedMat.type.name;
         }
         public string ShaderNameOrDefault(string defaultVal) {
-            return (editedMat != null) ? editedMat.type.shader.Name : defaultVal;
+            return (editedMat != null) ? editedMat.type.name : defaultVal;
         }
     }
     public class TargetTexture {
@@ -746,7 +748,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                                     param[0] = editfile;
                                 }
                             } catch(Exception e) {
-                                LogUtil.Debug("対応するスロットが見つかりませんでした。", slot0, e);
+                                LogUtil.Debug("failed to parse SlotID:", slot0, e);
                                 // LogUtil.DebugLog("failed to parse additem slot", slot0, e);
                             }
                         }

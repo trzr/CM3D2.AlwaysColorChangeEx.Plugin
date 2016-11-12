@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
-using System.Reflection;
 using UnityEngine;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
@@ -12,21 +10,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
     public class ACCTexturesView {
         private static readonly MaidHolder holder = MaidHolder.Instance;
         public static EditTarget editTarget = new EditTarget();
-        public static readonly string[] TOON_NAMES = {
-            "noTex",
-            "toonBlueA1",   "toonBlueA2",   "toonBrownA1",
-            "toonGrayA1",
-            "toonGreenA1",  "toonGreenA2",  "toonOrangeA1",
-            "toonPinkA1",   "toonPinkA2",   "toonPurpleA1",
-            "toonRedA1",    "toonRedA2",
-            "toonYellowA1", "toonYellowA2", "toonYellowA3",
-            "toonFace", "toonFace002",
-            "toonSkin", "toonSkin002",
-            "toonBlackA1",
-            "toonFace_Shadow",
-            "toonDress_Shadow",
-            "toonSkin_Shadow",
-        };
         private const float EPSILON = 0.00001f;
         private static Settings settings = Settings.Instance;
         private static TextureModifier textureModifier = TextureModifier.Instance;
@@ -96,6 +79,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         public static bool IsChangedTexColor(Maid maid, string slot, Material material, string propName) {
             return textureModifier.IsChanged(maid, slot, material, propName);
         }
+        public static TextureModifier.FilterParam GetFilter(Maid maid, string slot, Material material, int propId) {
+            return textureModifier.GetFilter(maid, slot, material, propId);
+        }
 
         public static TextureModifier.FilterParam GetFilter(Maid maid, string slot, Material material, string propName) {
             return textureModifier.GetFilter(maid, slot, material, propName);
@@ -110,22 +96,28 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         private static GUIContent[] ItemNames {
             get {
                 if (itemNames == null) {
+                    var loaded = new HashSet<string>(); // 重複防止用set
                     var list = new List<GUIContent>();
-                    foreach (string name in TOON_NAMES) {
+                    foreach (string name in settings.toonTexes) {
                         var texfile = name + FileConst.EXT_TEXTURE;
                         Texture2D tex = load(texfile);
                         list.Add(new GUIContent(name, tex, name));
+                        loaded.Add(texfile.ToLower());
                     }
 
                     foreach (var texfile in settings.toonTexAddon) {
                         var filename = texfile;
-                        if (!texfile.EndsWith(FileConst.EXT_TEXTURE, StringComparison.OrdinalIgnoreCase)) {
+                        if (texfile.LastIndexOf('.') == -1) {
                             filename += FileConst.EXT_TEXTURE;
                         }
+                        var namel = filename.ToLower();
+                        if (loaded.Contains(namel)) continue;
+                        
                         Texture2D tex = load(filename);
                         if (tex != null) {
                             list.Add(new GUIContent(texfile, tex, texfile));
                         }
+                        loaded.Add(namel);
                     }
                     itemNames = list.ToArray();
 
@@ -145,26 +137,38 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         }
 
         private static int GetIndex(string rampName) {
-            for (int i=0; i< TOON_NAMES.Length; i++) {
-                if (TOON_NAMES[i] == rampName) {
+            for (int i=0; i< ItemNames.Length; i++) {
+                if (ItemNames[i].text == rampName) {
                     return i;
                 }
             }
             return -1;
         }
-
-        public static List<ACCTexture> Load(Material mate, MaterialType matType) {
+        public static List<ACCTexture> Load(Material mate, ShaderType type) {
             
-            if (matType == null) {
-                matType = ShaderMapper.resolve(mate.shader.name);
+            if (type == null) {
+                type = ShaderType.Resolve(mate.shader.name);
             }
 
-            var ret = new List<ACCTexture>(matType.texPropNames.Length);
-            foreach (string propName in matType.texPropNames) {
-               ret.Add(new ACCTexture(mate, propName, matType));
+            var ret = new List<ACCTexture>(type.texProps.Length);
+            foreach (var texProp in type.texProps) {
+                var tex = ACCTexture.Create(mate, texProp, type);
+                if (tex != null) ret.Add(tex);
             }
             return ret;
         }
+//        public static List<ACCTexture> Load(Material mate, MaterialType matType) {
+//            
+//            if (matType == null) {
+//                matType = ShaderMapper.resolve(mate.shader.name);
+//            }
+//
+//            var ret = new List<ACCTexture>(matType.texPropNames.Length);
+//            foreach (string propName in matType.texPropNames) {
+//               ret.Add(new ACCTexture(mate, propName, matType));
+//            }
+//            return ret;
+//        }
 
         public static FileBrowser fileBrowser;
         private string textureDir;
@@ -175,13 +179,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         public bool expand;
         private Dictionary<string, ComboBoxLO> combos = new Dictionary<string, ComboBoxLO>(2);
         Material material;
-        MaterialType matType;
+        //MaterialType matType;
+        ShaderType type;
 
         public ACCTexturesView(Material m, int matNo) {
             this.material = m;
-            this.matType = ShaderMapper.resolve(m.shader.name);
+            //this.matType = ShaderMapper.resolve(m.shader.name);
 
-            this.original = Load(m, matType);
+            // this.original = Load(m, matType);
+            this.type = ShaderType.Resolve(m.shader.name);
+            this.original = Load(m, type);
             this.edited = new List<ACCTexture>(original.Count);
             foreach ( ACCTexture tex in original ) {
                 edited.Add(new ACCTexture(tex));
@@ -201,14 +208,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 if (!expand) return;
 
                 foreach (ACCTexture editTex in edited) {
-                    bool bTargetElement = (matNo == editTarget.matNo && editTex.propName == editTarget.propName);
+                    bool bTargetElement = (matNo == editTarget.matNo && editTex.propKey == editTarget.propKey);
     
                     GUILayout.BeginHorizontal();
                     try {
                         // エディット用スライダーの開閉
                         if (!textureModifier.IsValidTarget(holder.currentMaid, holder.currentSlot.Name, material, editTex.propName)) {
-                            // 参照先が Texture2D が取れなかった (例 : RenderTexture ) 場合はとりあえず
-                            // あきらめて何もしない。無理やり書いても良いのかもしれないけど……
+                            // 参照先が Texture2D が取れなかった (例 : RenderTexture ) 場合は何もしない
                             var tmp = GUI.enabled;
                             GUI.enabled = false;
                             GUILayout.Button("+変更", uiParams.bStyle, buttonLWidth);
@@ -224,10 +230,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                                 editTarget.slotName = holder.currentSlot.Name;
                                 editTarget.matNo = matNo;
                                 editTarget.propName = editTex.propName;
+                                editTarget.propKey  = editTex.propKey;
                             }
                         }
                         GUILayout.Label(editTex.propName, uiParams.lStyle);
-                        if (bTargetElement && editTex.type.isToony && editTex.propName == "_MainTex") {
+                        if (bTargetElement && editTex.type.hasShadow && editTex.propKey == ShaderPropType.MainTex.key) {
                             if ( GUILayout.Button("_ShadowTexに反映", uiParams.bStyleSC) ) {
                                 // 現在のFilterを_ShadowTexにも反映 
                                 textureModifier.DuplicateFilter(holder.currentMaid, holder.currentSlot.Name, material, editTex.propName, "_ShadowTex");

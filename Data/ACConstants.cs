@@ -71,7 +71,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             {TBody.SlotID.kousoku_lower, new SlotInfo(TBody.SlotID.kousoku_lower, MPN.kousoku_lower, "拘束具：下", true)},
             {TBody.SlotID.accAnl,      new SlotInfo(TBody.SlotID.accAnl,    MPN.accanl,  "アナルバイブ", true)},
             {TBody.SlotID.accVag,      new SlotInfo(TBody.SlotID.accVag,    MPN.accvag,  "バイブ", true)},
-            // TODO MPNが未対応？
             {TBody.SlotID.chinko,      new SlotInfo(TBody.SlotID.chinko,   MPN.null_mpn, "チ○コ", true, settings.enableMask)},
             {TBody.SlotID.moza,        new SlotInfo(TBody.SlotID.moza,   MPN.moza, "モザイク", settings.enableMoza, settings.enableMoza)},
         };

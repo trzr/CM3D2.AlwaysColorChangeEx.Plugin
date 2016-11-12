@@ -362,20 +362,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             string shaderName2 = reader.ReadString();
             if (trgtMat.shaderChanged) {
                 shaderName1 = trgtMat.ShaderNameOrDefault(shaderName1);
-                shaderName2 = ShaderMapper.GatShader2(shaderName1);
+                shaderName2 = ShaderType.GetShader2(shaderName1);
             }
             writer.Write(shaderName1);
             writer.Write(shaderName2);
 
-            var matType = trgtMat.editedMat.type;
-            var writed = new HashSet<string>();
+            //var matType = trgtMat.editedMat.type1;
+            var shaderType = trgtMat.editedMat.type;
+            var writed = new HashSet<PropKey>();
             while(true) {
                 string type = reader.ReadString();
                 //writer.Write(type);
                 if (type == "end") break;
 
                 string propName = reader.ReadString();
-                if (!matType.IsValidProp(propName)) {
+                //shaderType.
+                var shaderProp = shaderType.GetShaderProp(propName);
+                if (shaderProp == null) {
                     // シェーダに対応していないプロパティは読み捨て
                     DiscardMateProp(reader, type);
                     continue;
@@ -392,7 +395,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                         // 
                         // texプロパティがある場合にのみ設定
                         TargetTexture trgtTex = null;
-                        trgtMat.texDic.TryGetValue(propName, out trgtTex);
+                        trgtMat.texDic.TryGetValue(shaderProp.key, out trgtTex);
                         if (trgtTex == null || trgtTex.tex == null || trgtTex.fileChanged || trgtTex.colorChanged) {
                             // 変更がある場合にのみ書き換え (空のものはnull指定)
                             trgtTex.worksuffix = trgtMat.worksuffix;
@@ -421,33 +424,34 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                         break;
                     }
                 }
-                writed.Add(propName);
+                writed.Add(shaderProp.key);
             }
 
             // シェーダで設定されるプロパティ数が一致しない場合、不足propを追記
-            if (matType.propNameSet.Count != writed.Count) {
-                foreach (var name in matType.propNameSet) {
-                    var propName = name.ToString();
-                    if (writed.Contains(propName)) continue;
+            
+            if (shaderType.KeyCount() != writed.Count()) {
+                foreach (var texProp in shaderType.texProps) {
+                    if (writed.Contains(texProp.key)) continue;
 
-                    // prop追記
-                    PropType type = ShaderMapper.GetType(name);
-                    switch(type) {
-                        case PropType.tex:
-                            TargetTexture trgtTex = null;
-                            trgtMat.texDic.TryGetValue(propName, out trgtTex);
-                            WriteTex(writer, propName, trgtMat, trgtTex);
-                            break;
-                        case PropType.col:
-                            Write(writer, type.ToString(), propName);
-                            Write(writer, trgtMat.editedMat.material.GetColor(propName));
-                            break;
-                        case PropType.f:
-                            Write(writer, type.ToString(), propName);
-                            Write(writer, trgtMat.editedMat.material.GetFloat(propName));
-                            break;
-                    }
+                    TargetTexture trgtTex = null;
+                    trgtMat.texDic.TryGetValue(texProp.key, out trgtTex);
+                    WriteTex(writer, texProp.keyName, trgtMat, trgtTex);
                 }
+
+                foreach (var prop in shaderType.colProps) {
+                    if (writed.Contains(prop.key)) continue;
+
+                    Write(writer, prop.type.ToString(), prop.keyName);
+                    Write(writer, trgtMat.editedMat.material.GetColor(prop.propId));
+                }
+                
+                foreach (var prop in shaderType.fProps) {
+                    if (writed.Contains(prop.key)) continue;
+
+                    Write(writer, prop.type.ToString(), prop.keyName);
+                    Write(writer, trgtMat.editedMat.material.GetFloat(prop.propId));
+                }
+
             }
 
             writer.Write("end");
@@ -477,8 +481,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             case "null":
                 break;
             case "texRT":            // texRTはない
-                writer.Write("");
-                writer.Write("");
+                writer.Write(string.Empty);
+                writer.Write(string.Empty);
                 break;
             }
         }

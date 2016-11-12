@@ -1,9 +1,9 @@
 ﻿// テクスチャの色変え処理
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
@@ -11,9 +11,9 @@ using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin
 {
-    public class TextureModifier
+    public class TextureModifier 
     {
-        private readonly static TextureModifier instance = new TextureModifier();
+        private static readonly TextureModifier instance = new TextureModifier();
         public static TextureModifier Instance {
             get { return instance; }
         }
@@ -119,6 +119,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             FilterParam filterParam = filterParams.Get(key.ToString());
             return (filterParam != null) && !filterParam.hasNotChanged();
         }
+        public FilterParam GetFilter(Maid maid, string slotName, Material mat, int propId) {
+            var tex2d = mat.GetTexture(propId) as Texture2D;
+            if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) return null;
+
+            return GetFilter(maid, slotName, mat.name, tex2d.name);
+        }
+        
         public FilterParam GetFilter(Maid maid, string slotName, Material mat, string propName) {
             var tex2d = mat.GetTexture(propName) as Texture2D;
             if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) return null;
@@ -460,6 +467,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                             message = "png出力に失敗しました。";
                             LogUtil.Log(message, e);
                         }
+                        //StartCoroutine( DelaySecond(10, () => {message = string.Empty; }) );
                     }
                     GUILayout.Space(margin * 4f);
                 } finally {
@@ -663,11 +671,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 float d = max - min;
 
                 // FIXME float compare
-                if (d != 0f) {
+                if (!NumberUtil.Equals(d, 0f)) {
                     s = (l > 0.5f) ? (d / (2f - max - min)) : (d / (max + min));
-                    if (max == c.r) {
+                    if (NumberUtil.Equals(max, c.r)) {
                         h = (c.g - c.b) / d + (c.g < c.b ? 6f : 0f);
-                    } else if (max == c.g) {
+                    } else if (NumberUtil.Equals(max, c.g)) {
                         h = (c.b - c.r) / d + 2f;
                     } else {
                         h = (c.r - c.g) / d + 4f;
@@ -686,7 +694,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 float s = hsl.y;
                 float l = hsl.z;
 
-                if (s == 0f) {
+                if (NumberUtil.Equals(s, 0f)) {
                     c.r = l;
                     c.g = l;
                     c.b = l;
@@ -725,6 +733,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
         public string slotName;
         public int matNo;
         public string propName;
+        public PropKey propKey;
 
         public EditTarget() {
             Clear();
@@ -735,6 +744,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             slotName = string.Empty;
             matNo = -1;
             propName = string.Empty;
+            propKey = PropKey.Unkown;
         }
         public bool IsValid() {
             return (matNo >= 0 && slotName.Length != 0 && propName.Length != 0);

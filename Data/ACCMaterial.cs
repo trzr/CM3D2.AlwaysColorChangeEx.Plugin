@@ -13,232 +13,296 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
     /// <summary>
     /// マテリアルの変更情報を扱うデータクラス.
     /// スライダー操作中のデータを保持する.
-    /// 
-    /// CCMaterialと重複有り.　統合可能ならしたいが… 
     /// </summary>
     public class ACCMaterial {
         internal static Settings settings = Settings.Instance;
 
         private readonly string[] emptyEdit = new string[0];
-        private const float DEFAULT_FV1 = 10f;
-        private const float DEFAULT_FV2 = 1f;
-        private const float DEFAULT_FV3 = 1f;
-        public static readonly string PROP_COLOR    = PropName._Color.ToString();
-        public static readonly string PROP_SHADOWC  = PropName._ShadowColor.ToString();
-        public static readonly string PROP_OUTLINEC = PropName._OutlineColor.ToString();
-        public static readonly string PROP_RIMC     = PropName._RimColor.ToString();
 
         public ACCMaterial original {get; private set;}
+        public Renderer renderer;
         public Material material;
         public string name;
-        public ShaderName shader;
-        public MaterialType type;
+        public ShaderType type;
 
         public EditValue renderQueue  = new EditValue(2000f, EditRange.renderQueue);
 
-        public EditColor color        = new EditColor(null, true);
-        public EditColor shadowColor  = new EditColor(null);
-        public EditColor rimColor     = new EditColor(null);
-        public EditColor outlineColor = new EditColor(null);
-        
-        public EditValue shininess    = new EditValue(0f, EditRange.shininess);
-        public EditValue outlineWidth = new EditValue(0.002f, EditRange.outlineWidth);
-        public EditValue rimPower     = new EditValue(25f, EditRange.rimPower);
-        public EditValue rimShift     = new EditValue(0f, EditRange.rimShift);
-        public EditValue hiRate       = new EditValue(0f, EditRange.hiRate);
-        public EditValue hiPow        = new EditValue(0.001f, EditRange.hiPow);
-        public EditValue floatVal1    = new EditValue(DEFAULT_FV1, EditRange.floatVal1);
-        public EditValue floatVal2    = new EditValue(DEFAULT_FV2, EditRange.floatVal2);
-        public EditValue floatVal3    = new EditValue(DEFAULT_FV3, EditRange.floatVal3);
-        public EditValue cutoff       = new EditValue(0, EditRange.floatVal3);
+
+        public EditColor[] editColors;
+        public EditValue[] editVals;
 
         public string rqEdit;
-        protected ACCMaterial() {}
+        protected ACCMaterial(ShaderType type) {
+            this.type = type;
+            InitType();
+        }
 
+        // 編集前と後でオブジェクトを分ける場合用（未使用）
         public ACCMaterial(ACCMaterial src) {
             this.original = src;
+            this.renderer = src.renderer;
             this.material = src.material;
             this.name = src.name;
-            this.shader = src.shader;
+            //this.shader = src.shader;
+            //this.type1 = src.type1;
             this.type = src.type;
 
             this.renderQueue = src.renderQueue;
-            this.color = src.color;
-            this.shadowColor = src.shadowColor;
-            this.rimColor = src.rimColor;
-            this.outlineColor = src.outlineColor;
-            this.shininess = src.shininess;
-            this.outlineWidth = src.outlineWidth;
-            this.rimPower = src.rimPower;
-            this.rimShift = src.rimShift;
-            this.hiRate = src.hiRate;
-            this.hiPow = src.hiPow;
-            this.floatVal1 = src.floatVal1;
-            this.floatVal2 = src.floatVal2;
-            this.floatVal3 = src.floatVal3;
-
-            this.cutoff = src.cutoff;
+            
+            // TODO 配列の中身はディープコピーとする 
+            this.editColors = src.editColors;
+            this.editVals = src.editVals;
+            
         }
 
-        public ACCMaterial(Material m) {
+        
+        public ACCMaterial(Material m, Renderer r = null) {
             this.material = m;
+            this.renderer = r;
             name = m.name;
-            type = ShaderMapper.resolve(m.shader.name);
-            shader = type.shader;
+            type = ShaderType.Resolve(m.shader.name);
+            if (type == ShaderType.UNKNOWN) throw new Exception("ShaderType has not found:" + m.shader.name);
+
             renderQueue.Set( m.renderQueue );
+
             rqEdit = renderQueue.ToString();
+            
+            InitType();
+        }
+        private void InitType() {
+            // Color生成
+            var colProps = type.colProps;
+            this.editColors = new EditColor[colProps.Length];
+            for (int i=0; i<colProps.Length; i++) {
+                var colProp = colProps[i];
+                var ec = new EditColor(null, colProp.colorType);
+                if (material != null) {
+                    ec.Set( material.GetColor(colProps[i].propId) );
+                } else {
+                    ec.Set( colProps[i].defaultVal );
+                }
+                editColors[i] = ec;
+            }
 
-            if (type.hasColor) {
-                color.Set( m.GetColor(PROP_COLOR) );
-            }
-            if (type.isLighted) {
-                shadowColor.Set( m.GetColor(PROP_SHADOWC) );
-                shininess.Set( m.GetFloat("_Shininess") );
-            }
-            if (type.isOutlined) {
-                outlineColor.Set( m.GetColor(PROP_OUTLINEC) );
-                outlineWidth.Set( m.GetFloat("_OutlineWidth") );
-            }
-            if (type.isToony) {
-                rimColor.Set( m.GetColor(PROP_RIMC) );
-
-                rimPower.Set( m.GetFloat("_RimPower") );
-                rimShift.Set( m.GetFloat("_RimShift") );
-            }
-            if (type.isHair) {
-                hiRate.Set( m.GetFloat("_HiRate") );
-                hiPow.Set( m.GetFloat("_HiPow") );
-            }
-            if (type.hasFloat1) {
-                floatVal1.Set( m.GetFloat("_FloatValue1") );
-            }
-            if (type.hasFloat2) {
-                floatVal2.Set( m.GetFloat("_FloatValue2") );
-            }
-            if (type.hasFloat3) {
-                floatVal3.Set( m.GetFloat("_FloatValue3") );
-            }
-            if (type.hasCutoff) {
-                cutoff.Set( m.GetFloat("_Cutoff") );
+            // float生成
+            var props = type.fProps;
+            this.editVals = new EditValue[props.Length];
+            for (int i=0; i<props.Length; i++) {
+                float val = props[i].defaultVal;
+                if (material != null) {
+                    val = material.GetFloat(props[i].propId);
+                }
+                editVals[i] = new EditValue(val, props[i].range);
             }
         }
-        public void Update(MaterialType matType) {
-            if (this.type == matType) return;
-                
-            this.type = matType;
-            this.shader = matType.shader;
-            if (matType.hasColor) {
-                if (!color.val.HasValue) {
-                    if (material != null) color.Set( material.GetColor(PROP_COLOR) );
-                    else {
-                        color.Set( (original != null && original.color.val.HasValue) ? original.color.val: Color.white );
+
+        private Color GetColor(int i) {
+            if (i < editColors.Length) {
+                return editColors[i].val.HasValue ? editColors[i].val.Value : type.colProps[i].defaultVal;
+            }
+            return Color.white;
+        }
+
+        public void ChangeShader(string shaderName, int shaderIdx=-1) {
+            Shader shader = Shader.Find(shaderName);
+            if (shader != null) {
+                material.shader = shader;
+                var type1 = (shaderIdx != -1) ? ShaderType.Resolve(shaderIdx) : ShaderType.Resolve(shaderName);
+                if (type1 != ShaderType.UNKNOWN) {
+                    Update(type1);
+                    LogUtil.Debug("selected shader updated");
+                }
+
+            //} else {
+            //    // var script = CustomShaderHolder.ShaderScripts[shaderIdx];
+            //    // var matType = CustomShaderHolder.customMat[shaderIdx];
+            //    // material = new Material(script);
+            //    // // http://forum.unity3d.com/threads/setting-renderer-materials-by-index-doesnt-work.59150/
+            //    // // 一見無駄な処理だが、materialsに直接代入しなければ反映されない（Unity）
+            //    // var mats = edited.renderer.materials;
+            //    // mats[matIdx] = material;
+            //    // renderer.materials = mats;
+            //    //
+            //    // Update(matType);
+            //    
+            //    Shader selected;
+            //    if (CustomShaderHolder.customShader.TryGetValue(shaderIdx, out selected)) {
+            //        material.shader = selected;
+            //        var matType = CustomShaderHolder.customMat[shaderIdx];
+            //        Update(matType);
+            //        LogUtil.Debug("shader udated.", shaderName);
+            //    } else {
+            //        LogUtil.Debug("shader not found.", shaderName);
+            //    }
+            }
+        }
+        public void Update(ShaderType sdrType) {
+            if (this.type == sdrType) return;
+            // TODO 変更前のマテリアルから設定値をロード
+
+
+            // カラーは同一サイズの場合はそのまま使用            
+            if (type.colProps.Length != sdrType.colProps.Length) {
+                var colProps = sdrType.colProps;
+                var createdColors = new EditColor[colProps.Length];
+                for (int i=0; i<colProps.Length; i++) {
+                    var colProp = colProps[i];
+                    if (i < this.editColors.Length && editColors[i].val.HasValue) {
+                        createdColors[i] = editColors[i];
+                    } else {
+                        var ec = new EditColor(null, colProp.colorType);
+                        if (material != null) {
+                            ec.Set( material.GetColor(colProps[i].propId) );
+                        } else {
+                            ec.Set( (original != null)? original.GetColor(i): colProps[i].defaultVal );
+                        }
+                        createdColors[i] = ec;
                     }
                 }
-            } else {
-                color.Set( null );
+                editColors = createdColors;
             }
-            if (matType.isLighted) {
-                if (!shadowColor.val.HasValue) {
-                    if (material != null) shadowColor.Set( material.GetColor(PROP_SHADOWC) );
-                    else shadowColor.Set( (original != null && original.shadowColor.val.HasValue) ? original.shadowColor.val : Color.white );
+            
+            
+            var props = sdrType.fProps;
+            var createdVals = new EditValue[props.Length];
+            for (int i=0; i<props.Length; i++) {
+                float val;
+                if (material != null) {
+                    val = material.GetFloat(props[i].propId);
+                } else {
+                    val = props[i].defaultVal;//(original != null)? original.GetColor(i): Color.white;
                 }
-            } else {
-                shadowColor.Set( null );
+                createdVals[i] = new EditValue(val, props[i].range);
             }
-            if (matType.isOutlined) {
-                if (!outlineColor.val.HasValue) {
-                    if (material != null) outlineColor.Set( material.GetColor(PROP_OUTLINEC) );
-                    else outlineColor.Set( (original != null && original.outlineColor.val.HasValue) ? original.outlineColor.val : Color.black );
-                }
-            } else {
-                outlineColor.Set( null );
-            }
-            if (matType.isToony) {
-                if (!rimColor.val.HasValue) {
-                    if (material != null) rimColor.Set( material.GetColor(PROP_RIMC) );
-                    else rimColor.Set( (original != null && original.rimColor.val.HasValue) ? original.rimColor.val: Color.white );
-                }
-            } else {
-                rimColor.Set( null );
-            }
-            // TODO テクスチャ情報の初期化
-        }
-        public void ReflectTo(Material m) {
-            m.SetFloat("_SetManualRenderQueue", renderQueue.val);
-            m.renderQueue = (int)renderQueue.val;
+            this.editVals = createdVals;
 
-            if (type.hasColor) {
-                m.SetColor(PROP_COLOR, color.val.Value);
+            // テクスチャ情報の初期化
+            foreach (var texProp in sdrType.texProps) {
+                // セットしてないテクスチャは空テクスチャをセット
+                if (!material.HasProperty(texProp.keyName)) {
+                    material.SetTexture(texProp.propId, new Texture());
+                }
             }
-            if (type.isLighted) {
-                m.SetColor(PROP_SHADOWC, shadowColor.val.Value);
-                m.SetFloat("_Shininess", shininess.val);
-            }
-            if (type.isOutlined) {
-                m.SetColor(PROP_OUTLINEC, outlineColor.val.Value);
-                m.SetFloat("_OutlineWidth", outlineWidth.val);
-            }
-            if (type.isToony) {
-                m.SetColor(PROP_RIMC, rimColor.val.Value);
-                m.SetFloat("_RimPower", rimPower.val);
-                m.SetFloat("_RimShift", rimShift.val);
-            }
-            if (type.isHair) {
-                m.SetFloat("_HiRate", hiRate.val);
-                m.SetFloat("_HiPow", hiPow.val);
-            }
-            if (type.isHair) {
-                m.SetFloat("_HiRate", hiRate.val);
-                m.SetFloat("_HiPow", hiPow.val);
-            }
-            if (type.hasFloat1) {
-                m.SetFloat("_FloatValue1", floatVal1.val);
-            }
-            if (type.hasFloat2) {
-                m.SetFloat("_FloatValue2", floatVal2.val);
-            }
-            if (type.hasFloat3) {
-                m.SetFloat("_FloatValue3", floatVal3.val);
-            }
-            if (type.hasCutoff) {
-                m.SetFloat("_Cutoff", cutoff.val);
-            }
+
+            type = sdrType;
         }
 
+//        public void ReflectTo(Material m) {
+//            m.SetFloat("_SetManualRenderQueue", renderQueue.val);
+//            m.renderQueue = (int)renderQueue.val;
+//
+//            if (type1.hasColor) {
+//                m.SetColor(PROP_COLOR, color.val.Value);
+//            }
+//            if (type1.isLighted) {
+//                m.SetColor(PROP_SHADOWC, shadowColor.val.Value);
+//                m.SetFloat("_Shininess", shininess.val);
+//            }
+//            if (type1.isOutlined) {
+//                m.SetColor(PROP_OUTLINEC, outlineColor.val.Value);
+//                m.SetFloat("_OutlineWidth", outlineWidth.val);
+//            }
+//            if (type1.isToony) {
+//                m.SetColor(PROP_RIMC, rimColor.val.Value);
+//                m.SetFloat("_RimPower", rimPower.val);
+//                m.SetFloat("_RimShift", rimShift.val);
+//            }
+//            if (type1.isHair) {
+//                m.SetFloat("_HiRate", hiRate.val);
+//                m.SetFloat("_HiPow", hiPow.val);
+//            }
+//            if (type1.isHair) {
+//                m.SetFloat("_HiRate", hiRate.val);
+//                m.SetFloat("_HiPow", hiPow.val);
+//            }
+//            if (type1.hasFloat1) {
+//                m.SetFloat("_FloatValue1", floatVal1.val);
+//            }
+//            if (type1.hasFloat2) {
+//                m.SetFloat("_FloatValue2", floatVal2.val);
+//            }
+//            if (type1.hasFloat3) {
+//                m.SetFloat("_FloatValue3", floatVal3.val);
+//            }
+//            if (type1.hasCutoff) {
+//                m.SetFloat("_Cutoff", cutoff.val);
+//            }
+//        }
         public bool hasChanged(ACCMaterial mate) {
             // 同一シェーダを想定
-            if (type.hasColor) {
-                if (color != mate.color) return true;
+            for (int i=0; i< editColors.Length; i++) {
+                if (this.editColors[i].val != mate.editColors[i].val) return true;
             }
-            if (type.isLighted) {
-                if (shadowColor != mate.shadowColor) return true;
-                if (!NumberUtil.Equals(shininess.val, mate.shininess.val)) return true;
-            }
-            if (type.isOutlined) {
-                if (outlineColor != mate.outlineColor) return true;
-                if (!NumberUtil.Equals(outlineWidth.val, mate.outlineWidth.val)) return true;
-            }
-            if (type.isToony) {
-                if (rimColor != mate.rimColor) return true;
-                if (!NumberUtil.Equals(rimPower.val, mate.rimPower.val) || !NumberUtil.Equals(rimShift.val, mate.rimShift.val)) return true;
-            }
-            if (type.isHair) {
-                if (!NumberUtil.Equals(hiRate.val, mate.hiRate.val) || !NumberUtil.Equals(hiPow.val, mate.hiPow.val)) return true;
-            }
-            if (type.hasFloat1) {
-                if (!NumberUtil.Equals(floatVal1.val, mate.floatVal1.val)) return true;
-            }
-            if (type.hasFloat2) {
-                if (!NumberUtil.Equals(floatVal2.val, mate.floatVal2.val)) return true;
-            }
-            if (type.hasFloat3) {
-                if (!NumberUtil.Equals(floatVal3.val, mate.floatVal3.val)) return true;
-            }
-            if (type.hasCutoff) {
-                if (!NumberUtil.Equals(cutoff.val, mate.cutoff.val)) return true;
+            for (int i=0; i< editVals.Length; i++) {
+                if ( !NumberUtil.Equals(this.editVals[i].val, mate.editVals[i].val) ) return true;
             }
             return false;
         }
+                
+        public void SetColor(string propName, Color c) {
+            try {
+                var propKey = (PropKey)Enum.Parse(typeof(PropKey), propName);
+                for (int i=0; i<type.colProps.Length; i++) {
+                    var colProp = type.colProps[i];
+                    if (colProp.key == propKey) {
+                        editColors[i].Set ( c );
+                        return;
+                    }
+                }
+                LogUtil.Debug("propName mismatched:", propName);
+            } catch(Exception e) {
+                LogUtil.Debug("unsupported propName found:", propName, e);
+            }
+        }
+        public void SetFloat(string propName, float f) {
+            try {
+                var propKey = (PropKey)Enum.Parse(typeof(PropKey), propName);
+                for (int i=0; i<type.fProps.Length; i++) {
+                    var prop = type.fProps[i];
+                    if (prop.key == propKey) {
+                        editVals[i].Set( f );
+                        return;
+                    }
+                }
+                LogUtil.Debug("propName mismatched:", propName);
+            } catch(Exception e) {
+                LogUtil.Debug("unsupported propName found:", propName, e);
+            }
+        }
+//        public bool hasChanged(ACCMaterial mate) {
+//            // 同一シェーダを想定
+//            if (type.hasColor) {
+//                if (color != mate.color) return true;
+//            }
+//            if (type.isLighted) {
+//                if (shadowColor != mate.shadowColor) return true;
+//                if (!NumberUtil.Equals(shininess.val, mate.shininess.val)) return true;
+//            }
+//            if (type.isOutlined) {
+//                if (outlineColor != mate.outlineColor) return true;
+//                if (!NumberUtil.Equals(outlineWidth.val, mate.outlineWidth.val)) return true;
+//            }
+//            if (type.isToony) {
+//                if (rimColor != mate.rimColor) return true;
+//                if (!NumberUtil.Equals(rimPower.val, mate.rimPower.val) || !NumberUtil.Equals(rimShift.val, mate.rimShift.val)) return true;
+//            }
+//            if (type.isHair) {
+//                if (!NumberUtil.Equals(hiRate.val, mate.hiRate.val) || !NumberUtil.Equals(hiPow.val, mate.hiPow.val)) return true;
+//            }
+//            if (type.hasFloat1) {
+//                if (!NumberUtil.Equals(floatVal1.val, mate.floatVal1.val)) return true;
+//            }
+//            if (type.hasFloat2) {
+//                if (!NumberUtil.Equals(floatVal2.val, mate.floatVal2.val)) return true;
+//            }
+//            if (type.hasFloat3) {
+//                if (!NumberUtil.Equals(floatVal3.val, mate.floatVal3.val)) return true;
+//            }
+//            if (type.hasCutoff) {
+//                if (!NumberUtil.Equals(cutoff.val, mate.cutoff.val)) return true;
+//            }
+//            return false;
+//        }
 //        public bool ShaderChanged() {
 //            return original != null && (shader != original.shader);
 //        }
@@ -248,10 +312,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
     /// </summary>
     public class ACCMaterialEx : ACCMaterial {
         private static readonly FileUtilEx outUtil = FileUtilEx.Instance;
-        public Dictionary<string, ACCTextureEx> texDic = new Dictionary<string, ACCTextureEx>(5);
+        public Dictionary<PropKey, ACCTextureEx> texDic = new Dictionary<PropKey, ACCTextureEx>(5);
         public string name1;
         public string name2;
-        private ACCMaterialEx() : base() { }
+        private ACCMaterialEx(ShaderType type) : base(type) { }
+
 
         public static ACCMaterialEx Load(string file) {
 
@@ -278,13 +343,19 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             }
         }
         private static ACCMaterialEx Load(BinaryReader reader) {
-            var created = new ACCMaterialEx();
             int version = reader.ReadInt32();
-            created.name1 = reader.ReadString();
-            created.name2 = reader.ReadString();
+            string name1 = reader.ReadString();
+            string name2 = reader.ReadString();
             string shaderName1 = reader.ReadString();
-            created.type = ShaderMapper.resolve(shaderName1);
-            created.shader = created.type.shader;
+            var shaderType = ShaderType.Resolve(shaderName1);
+            
+            var created = new ACCMaterialEx(shaderType);
+            created.name1 = name1;
+            created.name2 = name2;
+
+            //created.shader = created.type;
+            //created.type1 = ShaderMapper.resolve(shaderName1);
+            //created.shader = created.type1.shader;
             
             string shaderName2 = reader.ReadString();
 
@@ -298,6 +369,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         string sub = reader.ReadString();
                         switch (sub) {
                         case "tex2d":
+                            
                             var tex = new ACCTextureEx(propName);
                             tex.editname = reader.ReadString();
                             tex.txtpath  = reader.ReadString();
@@ -305,7 +377,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                                                         reader.ReadSingle());
                             tex.texScale  = new Vector2(reader.ReadSingle(),
                                                         reader.ReadSingle());                                
-                            created.texDic[propName] = tex;
+                            created.texDic[tex.propKey] = tex;
                             break;
                         case "null":
                             break;
@@ -319,62 +391,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 case "vec":
                     var c = new Color(reader.ReadSingle(), reader.ReadSingle(),
                                       reader.ReadSingle(), reader.ReadSingle());
-                    try {
-                        var pnc = (PropName)Enum.Parse(typeof(PropName), propName);
-                        switch (pnc) {
-                        case PropName._Color:
-                            created.color.Set( c );
-                            break;
-                        case PropName._ShadowColor:
-                            created.shadowColor.Set( c );
-                            break;
-                        case PropName._RimColor:
-                            created.rimColor.Set( c );
-                            break;
-                        case PropName._OutlineColor:
-                            created.outlineColor.Set( c );
-                            break;
-                        }
-                    } catch(Exception e) {
-                        LogUtil.Debug("unsupported propName found", propName, e);
-                    }
+                    created.SetColor(propName, c);
                     break;
                 case "f":
                     float f = reader.ReadSingle();
-                    try {
-                        var pnf = (PropName)Enum.Parse(typeof(PropName), propName);
-                        switch (pnf) {
-                        case PropName._Shininess:
-                            created.shininess.Set( f );
-                            break;
-                        case PropName._OutlineWidth:
-                            created.outlineWidth.Set( f );
-                            break;
-                        case PropName._RimPower:
-                            created.rimPower.Set( f );
-                            break;
-                        case PropName._RimShift:
-                            created.rimShift.Set( f );
-                            break;
-                        case PropName._HiRate:
-                            created.hiRate.Set( f );
-                            break;
-                        case PropName._HiPow:
-                            created.hiPow.Set( f );
-                            break;
-                        case PropName._FloatValue1:
-                            created.floatVal1.Set( f );
-                            break;
-                        case PropName._FloatValue2:
-                            created.floatVal2.Set( f );
-                            break;
-                        case PropName._FloatValue3:
-                            created.floatVal3.Set( f );
-                            break;
-                        }
-                    } catch(Exception e) {
-                        LogUtil.Debug("unsupported propName found", propName, e);
-                    }
+                    created.SetFloat(propName, f);
                     break;
                 }
             }
@@ -392,85 +413,46 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             writer.Write(mate.name1);
             writer.Write(mate.name2);
 
-            var shaderName1 = mate.type.shader.Name;
+            var shaderName1 = mate.type.name;
             writer.Write(shaderName1);
-            var shaderName2 = ShaderMapper.GatShader2(shaderName1);
+            var shaderName2 = ShaderType.GetShader2(shaderName1);
             writer.Write(shaderName2);
 
-            EnumExt<PropName>.Exec(
-                propName => {
-                    if ( !mate.type.IsValidProp(propName) ) return;
+            // tex
+            for (int i=0; i<mate.type.texProps.Length; i++) {
+                var texProp = mate.type.texProps[i];
+                if (texProp.key == PropKey._RenderTex) {
+                    writer.Write("null");
+                } else {
+                    writer.Write("tex2d");
+                    var tex = mate.texDic[texProp.key];
+                    writer.Write( tex.editname );
+                    writer.Write( tex.txtpath );
+    
+                    outUtil.Write(writer,  tex.texOffset.Value);
+                    outUtil.Write(writer,  tex.texScale.Value);
+                }
+            }
+            // col
+            for (int i=0; i<mate.editColors.Length; i++) {
+                var colProp = mate.type.colProps[i];
+                var eColor = mate.editColors[i];
 
-                    var propNameString = propName.ToString();
+                // PropType.col
+                writer.Write(colProp.type.ToString());
+                writer.Write(colProp.keyName);
+                outUtil.Write(writer, eColor.val.Value);
+            }
+            // f
+            for (int i=0; i<mate.editVals.Length; i++) {
+                var prop = mate.type.fProps[i];
+                var eVal = mate.editVals[i];
 
-                    var type = ShaderMapper.GetType(propName);
-                    writer.Write(type.ToString());
-                    writer.Write(propNameString);
-                    switch (type) {
-                        case PropType.tex:
-                            if (propName == PropName._RenderTex) {
-                                writer.Write("null");
-                            } else {
-                                writer.Write("tex2d");
-                                var tex = mate.texDic[propNameString];
-                                writer.Write( tex.editname );
-                                writer.Write( tex.txtpath );
-
-                                outUtil.Write(writer,  tex.texOffset.Value);
-                                outUtil.Write(writer,  tex.texScale.Value);
-                            }
-                            break;
-                        case PropType.col:
-                            switch (propName) {
-                                case PropName._Color:
-                                    outUtil.Write(writer, mate.color.val.Value);
-                                    break;
-                                case PropName._ShadowColor:
-                                    outUtil.Write(writer, mate.shadowColor.val.Value);
-                                    break;
-                                case PropName._OutlineColor:
-                                    outUtil.Write(writer, mate.outlineColor.val.Value);
-                                    break;
-                                case PropName._RimColor:
-                                    outUtil.Write(writer, mate.rimColor.val.Value);
-                                    break;
-                            }
-                            break;
-                        case PropType.f:
-                            switch (propName) {
-                                case PropName._Shininess:
-                                    writer.Write(mate.shininess.val);
-                                    break;
-                                case PropName._OutlineWidth:
-                                    writer.Write(mate.outlineWidth.val);
-                                    break;
-                                case PropName._RimPower:
-                                    writer.Write(mate.rimPower.val);
-                                    break;
-                                case PropName._RimShift:
-                                    writer.Write(mate.rimShift.val);
-                                    break;
-                                case PropName._HiRate:
-                                    writer.Write(mate.hiRate.val);
-                                    break;
-                                case PropName._HiPow:
-                                    writer.Write(mate.hiPow.val);
-                                    break;
-                                case PropName._FloatValue1:
-                                    writer.Write(mate.floatVal1.val);
-                                    break;
-                                case PropName._FloatValue2:
-                                    writer.Write(mate.floatVal2.val);
-                                    break;
-                                case PropName._FloatValue3:
-                                    writer.Write(mate.floatVal3.val);
-                                    break;
-                            }
-                            break;
-                    }
-                                                         
-             });
-
+                // PropType.f
+                writer.Write(prop.type.ToString());
+                writer.Write(prop.keyName);
+                writer.Write(eVal.val);
+            }
         }
     }
 }

@@ -59,6 +59,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         public static readonly EditRange floatVal2 = new EditRange("F3", settings.floatVal2EditMin, settings.floatVal2EditMax);
         public static readonly EditRange floatVal3 = new EditRange("F3", settings.floatVal3EditMin, settings.floatVal3EditMax);
 
+        public static readonly EditRange boolVal = new EditRange("F0", 0, 1f);
         public float editMin;
         public float editMax;
         public string format;

@@ -35,5 +35,21 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 return default (T);
             }
         }
+        public static void Set<T>(object instance, string fieldName, T value) {
+            try {
+                var field =  instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);//  | BindingFlags.GetField | BindingFlags.SetField 
+                field.SetValue(instance, value);
+            } catch(Exception e) {
+                LogUtil.Debug(e);
+            }
+        }
+        public static void Set<T>(Type type, string fieldName, T value) {
+            try {
+                var field =  type.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Static);//  | BindingFlags.GetField | BindingFlags.SetField 
+                field.SetValue(null, value);
+            } catch(Exception e) {
+                LogUtil.Debug(e);
+            }
+        }
     }
 }

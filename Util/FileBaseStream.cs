@@ -8,7 +8,6 @@ using System.Text;
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 {
     /// <summary>
-    /// Description of FileBaseStream.
     /// </summary>
     public class FileBaseStream : Stream
     {
@@ -87,7 +86,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         public override int ReadByte() {
             var array = new byte[1];
             return this.Read(array, 0, 1) == 0 ? -1 : (int)array[0];
-
             // LogUtil.Debug("readByte=", ret);
         }
 

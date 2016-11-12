@@ -10,6 +10,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
     public static class LogUtil
     {
 
+        public static bool IsDebug() {
+#if DEBUG
+            return true;
+#else
+            return false;
+#endif
+        }
         public static void DebugF(string format, params object[] message) {
 #if DEBUG
             var sb = String.Format(format, message);
