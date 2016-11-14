@@ -46,7 +46,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
         public float rimShiftEditMin     =   0f;
         public float hiRateEditMax       = 100f;
         public float hiRateEditMin       =   0f;
-        public float hiPowEditMax        =  100f;
+        public float hiPowEditMax        = 100f;
         public float hiPowEditMin        =   0.00001f;
         public float floatVal1EditMax    = 500f;
         public float floatVal1EditMin    =   0f;

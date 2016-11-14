@@ -275,7 +275,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                                 editColor.val, editColor.editVals, editColor.isSyncs);
                         }
                     }
-
                         
                     Color beforeColor = editColor.val.Value;
                     setColorSlider(colProp.name, ref editColor, colProp.colorType);
@@ -473,8 +472,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 GUILayout.Space(buttonMargin);
 
             } catch(Exception e) {
-                LogUtil.DebugF("{0}, idx={1}, color={2}, vals={3}, syncs={4}, e={5}",
-                               label, idx, edit.val, edit.editVals, edit.isSyncs, e);
+                LogUtil.DebugF("{0}, idx={1}, color={2}, vals.length={3}, syncs.length={4}, e={5}",
+                               label, idx, edit.val, edit.editVals.Length, edit.isSyncs.Length, e);
                 throw;
             } finally {
                 GUILayout.EndHorizontal();

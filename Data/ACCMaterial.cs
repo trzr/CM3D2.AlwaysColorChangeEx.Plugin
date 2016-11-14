@@ -27,7 +27,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
         public EditValue renderQueue  = new EditValue(2000f, EditRange.renderQueue);
 
-
         public EditColor[] editColors;
         public EditValue[] editVals;
 
@@ -141,26 +140,29 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             // TODO 変更前のマテリアルから設定値をロード
 
 
-            // カラーは同一サイズの場合はそのまま使用            
-            if (type.colProps.Length != sdrType.colProps.Length) {
-                var colProps = sdrType.colProps;
-                var createdColors = new EditColor[colProps.Length];
-                for (int i=0; i<colProps.Length; i++) {
-                    var colProp = colProps[i];
-                    if (i < this.editColors.Length && editColors[i].val.HasValue) {
+            // 同一長の場合でも更新（Alphaの有無が異なるケースがある）            
+            var colProps = sdrType.colProps;
+            var createdColors = new EditColor[colProps.Length];
+            for (int i=0; i<colProps.Length; i++) {
+                var colProp = colProps[i];
+                if (i < this.editColors.Length && editColors[i].val.HasValue) {
+                    // カラータイプが異なる場合は、インスタンスを作り直して色をコピー
+                    if (editColors[i].type == colProp.colorType) {
                         createdColors[i] = editColors[i];
                     } else {
-                        var ec = new EditColor(null, colProp.colorType);
-                        if (material != null) {
-                            ec.Set( material.GetColor(colProps[i].propId) );
-                        } else {
-                            ec.Set( (original != null)? original.GetColor(i): colProps[i].defaultVal );
-                        }
-                        createdColors[i] = ec;
+                        createdColors[i] = new EditColor(editColors[i].val, colProp.colorType); 
                     }
+                } else {
+                    var ec = new EditColor(null, colProp.colorType);
+                    if (material != null) {
+                        ec.Set( material.GetColor(colProps[i].propId) );
+                    } else {
+                        ec.Set( (original != null)? original.GetColor(i): colProps[i].defaultVal );
+                    }
+                    createdColors[i] = ec;
                 }
-                editColors = createdColors;
             }
+            editColors = createdColors;
             
             
             var props = sdrType.fProps;

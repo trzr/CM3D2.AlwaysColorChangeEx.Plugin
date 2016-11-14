@@ -196,7 +196,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             // ゲーム中にバージョン、name1を保持していないので制限事項
             // mateファイルの特定も少し手間が掛かるため、まずは暫定処置
             buff.Append("1000\r\n");
-            buff.Append(target.name).Append("\r\n");
+            buff.Append(target.name.ToLower()).Append("\r\n");
             buff.Append(target.name).Append("\r\n");
             string shaderName = target.type.name;
             buff.Append(shaderName).Append("\r\n");
