@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
+using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 {
@@ -26,7 +27,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         
         // クリップボードを再読み込みし、データであるか判定する
         public void Reload() {
-            string clip = ClipboardHelper.clipBoard;
+                            
+            string clip = GUIUtility.systemCopyBuffer;
+            //ClipboardHelper.clipBoard;
             
             if (clip.Length < MIN_LENGTH || clip.Length > MAX_LENGTH) {
                 mateText = null;
@@ -35,14 +38,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 return;
             }
                 
-            if (prevLength == clip.Length) {
-                //if (mateHeader != null && clip == mateHeader.text) {
-                if (clip == mateText) return;
+            // 負荷軽減のため、文字列チェック無し：長さが変わったときにのみチェック
+            if (prevLength == clip.Length) return;
+                // if (clip == mateText) return;
                 // 前回とフラグ変更なし
-            }
+            //}
+
             prevLength = clip.Length;
             mateText = clip;
             isMateText = MateHandler.IsParsable(clip);
+        }
+        
+        public void SetClipBoard(string text) {
+            GUIUtility.systemCopyBuffer = text;
+//            ClipboardHelper.clipBoard = text;
         }
         
         public void Clear() {

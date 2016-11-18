@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Reflection;
 using System.Collections;
 using System.Collections.Generic;
@@ -144,22 +145,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 ? null
                 : GetRenderer(currentMaid.body0.GetSlot(slotNo));
         }
-        public Renderer GetRenderer(TBodySkin slot) 
-        {
-            GameObject gobj = slot.obj;
-            if (gobj == null) return null;
 
-            Transform[] componentsInChildren = gobj.transform.GetComponentsInChildren<Transform>(true);
-            foreach (Transform tf in componentsInChildren) {
-                Renderer r = tf.renderer;
-                if (r != null && r.material != null && r.materials.Length > 0 && r.material.shader != null) {
-                    // 確認：複数回ヒットするケースが存在するか？
-                    // もし、存在するとマテリアル番号と一致しなくなる恐れがあるため存在しないはずだが…
-                    return r;
-                }
-            }
-            return null;
-        }
         public Material[] GetMaterials(TBodySkin slot)
         {
             var renderer = GetRenderer(slot);
@@ -172,11 +158,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         {
             if (slot.obj == null) return null;
 
-            Transform[] componentsInChildren = slot.obj.transform.GetComponentsInChildren<Transform>(true);
-            foreach (Transform tf in componentsInChildren) {
-                Renderer r = tf.renderer;
-                if (r != null && r.material != null && r.materials.Length > matNo && r.material.shader != null) {
-                    return r.materials[matNo];
+            var r = GetRenderer(slot.obj, matNo);
+            return r != null ? r.materials[matNo] : null;
+        }
+
+        public Renderer GetRenderer(TBodySkin slot) 
+        {
+            GameObject gobj = slot.obj;
+            if (gobj == null) return null;
+
+            return GetRenderer(gobj, 0);
+        }
+        private Renderer GetRenderer(GameObject gobj, int matNo) {
+            // trueにするのはマスク等で非表示のアイテムの情報も扱うため
+            Renderer[] children = gobj.transform.GetComponentsInChildren<Renderer>(true);
+            foreach (Renderer r in children) {
+                if (r.material != null && r.materials.Length > matNo && r.material.shader != null) {
+                    return r;
                 }
             }
             return null;
@@ -194,35 +192,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             global::TBodySkin slot = currentMaid.body0.GetSlot(slotName);
             if (slot.obj == null) return null;
 
-            Transform[] componentsInChildren = slot.obj.transform.GetComponentsInChildren<Transform>(true);
-            foreach (Transform tf in componentsInChildren) {
-                Renderer r = tf.renderer;
-                if (r != null && r.material != null && r.materials.Length > matNo) {
-                    return r.materials[matNo];
-                }
-            }
-            return null;
+            var r = GetRenderer(slot.obj, matNo);
+            return r != null ? r.materials[matNo] : null;
         }
-        private List<Renderer> GetRenderers(string slotName)
-        {
-            TBody body = currentMaid.body0;
-            List<TBodySkin> goSlot = body.goSlot;
-            int index = (int)global::TBody.hashSlotName[slotName];
-            global::TBodySkin tBodySkin = goSlot[index];
-            GameObject obj = tBodySkin.obj;
-            if (obj == null) {
-                return null;
-            }
-            var rendererList = new List<Renderer>();
-            Transform[] children = obj.transform.GetComponentsInChildren<Transform>(true);
-            foreach (Transform tf in children) {
-                Renderer r = tf.renderer;
-                if (r != null) {
-                    rendererList.Add(r);
-                }
-            }
-            return rendererList;
-        }
+
         public void SetDelNodes(PresetData preset, bool bApply) {
             SetDelNodes(currentMaid, preset.delNodes, bApply);
         }

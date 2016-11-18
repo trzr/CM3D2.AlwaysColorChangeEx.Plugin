@@ -188,8 +188,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 try {
                     // コピー
                     if (GUILayout.Button(CopyIcon, optUnitHeight,optButonWidthS)) {
-                        
-                        ClipboardHelper.clipBoard = MateHandler.Instance.ToText(edited);
+                        clipHandler.SetClipBoard ( MateHandler.Instance.ToText(edited) );
                         if (tipsCall != null) {
                             tipsCall("マテリアル情報をクリップボードに\nコピーしました");
                         }

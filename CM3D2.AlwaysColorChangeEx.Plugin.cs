@@ -24,7 +24,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
  PluginFilter("CM3D2OHx64"),
  PluginFilter("CM3D2OHVRx64"),
  PluginName("CM3D2_ACCex"),
- PluginVersion("0.2.9.1")]
+ PluginVersion("0.2.9.2")]
 class AlwaysColorChangeEx : UnityInjector.PluginBase
 {
     // プラグイン名
@@ -124,6 +124,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     private int targetMenuId;
     private bool slotDropped;
     private Material[] targetMaterials;
+    private readonly Material[] EMPTY_ARRAY = new Material[0];
     private List<ACCMaterialsView> materialViews;
     private List<ACCTexturesView> texViews;
     private ACCSaveMenuView saveView;
@@ -428,6 +429,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         return true;
         //return holder.currentMaid != null;
     }
+
     private void InitMaidInfo() {
         // ここでは、最初に選択可能なメイドを選択
         holder.UpdateMaid(ClearMaidData);
@@ -764,7 +766,6 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 if (slotDropped) {
                     if (changeCounter.Next()) {
                         SetMenu(MenuType.Main);
-                        // LogUtil.Log("選択スロットのアイテムが外れたため、メインメニューに戻ります.", menuId);
                         LogUtil.Debug("select slot item dropped. return to main menu.", menuId);
                         slotDropped = false;
                     }
@@ -784,9 +785,13 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 
                 targetMenuId = menuId;
                 var rendererer1 = holder.GetRenderer(slot);
-                targetMaterials = rendererer1.materials;//holder.GetMaterials(slot);
-                materialViews = InitMaterialView(rendererer1, menufile);
-
+                if (rendererer1 != null) {
+                    targetMaterials = rendererer1.materials;
+                    materialViews = InitMaterialView(rendererer1, menufile);
+                } else {
+                    targetMaterials = EMPTY_ARRAY;
+                }
+                
                 // slotにデータが装着されていないかを判定
                 slotDropped = (slot.obj == null);
                 changeCounter.Reset();
