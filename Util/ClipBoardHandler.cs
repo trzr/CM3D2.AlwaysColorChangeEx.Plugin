@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.IO;
+using System.Reflection;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using UnityEngine;
 
@@ -14,8 +15,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         private const int MIN_LENGTH = 20;
         private const int MAX_LENGTH = 3333;
 
-        private ClipBoardHandler() { }
-        private static ClipBoardHandler instance = new ClipBoardHandler();        
+        private static ClipBoardHandler instance = new ClipBoardHandler();
         public static ClipBoardHandler Instance {
             get { return instance;  }
         }
@@ -23,13 +23,29 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         public string mateText;
         public bool isMateText;
         private int prevLength;
+
+        private ClipBoardHandler() {
+            // unity 5-
+            if (!ClipboardCHelper.IsSupport()) {
+                LogUtil.Debug("ClipboardCHelper disabled. using direct GUIUtility.systemCopyBuffer");
+                GetClipboard = () =>  GUIUtility.systemCopyBuffer ;
+                SetClipboard = (text) => {
+                    GUIUtility.systemCopyBuffer = text;
+                };
+            } else {
+                LogUtil.Debug("ClipboardCHelper enabled.");
+                GetClipboard = () => ClipboardCHelper.clipBoard;
+                SetClipboard = (text) => {
+                    ClipboardCHelper.clipBoard = text;
+                };
+            }
+        }
         
-        
+        public Func<string> GetClipboard;
+        public Action<string> SetClipboard;
         // クリップボードを再読み込みし、データであるか判定する
         public void Reload() {
-                            
-            string clip = GUIUtility.systemCopyBuffer;
-            //ClipboardHelper.clipBoard;
+            string clip = GetClipboard();
             
             if (clip.Length < MIN_LENGTH || clip.Length > MAX_LENGTH) {
                 mateText = null;
@@ -37,23 +53,19 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 prevLength = 0;
                 return;
             }
-                
+
             // 負荷軽減のため、文字列チェック無し：長さが変わったときにのみチェック
             if (prevLength == clip.Length) return;
-                // if (clip == mateText) return;
-                // 前回とフラグ変更なし
+            //if (prevLength == clip.Length) {
+            //     // 前回とフラグ変更なし
+            //     if (clip == mateText) return;
             //}
 
             prevLength = clip.Length;
             mateText = clip;
             isMateText = MateHandler.IsParsable(clip);
         }
-        
-        public void SetClipBoard(string text) {
-            GUIUtility.systemCopyBuffer = text;
-//            ClipboardHelper.clipBoard = text;
-        }
-        
+
         public void Clear() {
             mateText = null;
             prevLength = 0;
