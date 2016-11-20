@@ -52,7 +52,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 
         public bool isOfficial;
         public bool checkOfficial(Maid maid) {
-            LogUtil.Debug("slotCount:", SLOT_COUNT, ", maid. count=", maid.body0.goSlot.Count);
+            //LogUtil.Debug("slotCount:", SLOT_COUNT, ", maid. count=", maid.body0.goSlot.Count);
             return (maid.body0.goSlot.Count == SLOT_COUNT);
         }
         /// <summary>

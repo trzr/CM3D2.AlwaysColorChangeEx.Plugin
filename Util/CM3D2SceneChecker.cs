@@ -54,41 +54,33 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 
         private const bool DEFAULT_VAL = false;
         public bool IsVR { get; private set; }
-        private Mode mode = Mode.Normal;
 
+        private Mode mode = Mode.Normal;
         public Mode GetMode() {
             return mode;
         }
-        public bool IsTarget(int level) {
-            switch(mode) {
-                case Mode.Normal:
-                    // 範囲外はデフォルト値
-                    return SCENE_AVAILABLES.Length <= level ? DEFAULT_VAL : SCENE_AVAILABLES[level];
-                case Mode.OH:
-                    return SCENE_OHAVAILABLES.Length <= level ? DEFAULT_VAL : SCENE_OHAVAILABLES[level];
-//                case Mode.ED:                    
-//                    break;
-            }
-            return DEFAULT_VAL;
-        }
-        public bool IsStockTarget(int level) {
-            switch(mode) {
-                case Mode.Normal:
+        public Func<int, bool> IsTarget { get; private set; }
+        private readonly Func<int, bool> isTargetNormal = (level) => SCENE_AVAILABLES.Length <= level ? DEFAULT_VAL : SCENE_AVAILABLES[level];
+        private readonly Func<int, bool> isTargetOH     = (level) => SCENE_OHAVAILABLES.Length <= level ? DEFAULT_VAL : SCENE_OHAVAILABLES[level];
+        
+        public Func<int, bool> IsStockTarget { get; private set;}
+        private readonly Func<int, bool> isStockNormal = (level) => {
                     switch(level) {
                         case 5: case 3: case 27:
                             return true;
                     }
-                    break;
-                case Mode.OH:
+                    return false;
+                };
+        private readonly Func<int, bool> isStockOH = (level) => {  
                     switch(level) {
                         case 4: case 21:
                         return true;
                     }
-                    break;
-//                case Mode.ED:                    
-//                    break;
-            }
             return false;
+                };
+        public CM3D2SceneChecker() {
+            IsTarget = isTargetNormal;
+            IsStockTarget = isStockNormal;
         }
         
         public void Init() {
@@ -139,10 +131,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             var dataPath = Application.dataPath;
             if (dataPath.StartsWith("CM3D2OH", StringComparison.OrdinalIgnoreCase)) {
                 mode = Mode.OH;
+                IsTarget = isTargetOH;
+                IsStockTarget = isStockOH;
 //            } else if (dataPath.StartsWith("CM3D2_ED", StringComparison.OrdinalIgnoreCase)) {
 //                mode = Mode.ED;
             } else {
                 mode = Mode.Normal;
+                IsTarget = isTargetNormal;
+                IsStockTarget = isStockNormal;
             }
             IsVR = (dataPath.Contains("VRx64"));
         }

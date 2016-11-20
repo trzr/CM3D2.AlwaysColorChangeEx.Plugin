@@ -24,7 +24,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
  PluginFilter("CM3D2OHx64"),
  PluginFilter("CM3D2OHVRx64"),
  PluginName("CM3D2_ACCex"),
- PluginVersion("0.2.9.3")]
+ PluginVersion("0.2.9.4")]
 class AlwaysColorChangeEx : UnityInjector.PluginBase
 {
     // プラグイン名
@@ -112,6 +112,8 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     private bool isActive;
     private bool texSliderUpped;
     
+    private const int applyDeleFrame = 10;
+    private const int tipsSecond = 2;
     private IntervalCounter changeCounter = new IntervalCounter(15);
     // ゲーム上の表示データの再ロード間隔
     private IntervalCounter refreshCounter = new IntervalCounter(60);
@@ -134,21 +136,19 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     public void Awake() 
     {
         UnityEngine.Object.DontDestroyOnLoad(this);
-
-        string dllPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-        if (string.IsNullOrEmpty(dllPath)) {
-            // Sybarisのチェック
-            var dllpath = Path.Combine(DataPath, @"..\..\opengl32.dll");
-            var dirPath = Path.Combine(DataPath, @"..\..\Sybaris");
-            if (File.Exists(dllpath) && Directory.Exists(dirPath)) {
-                dirPath = Path.GetFullPath(dirPath);
-                settings.presetDirPath = Path.Combine(dirPath, @"Plugins\UnityInjector\Config\ACCPresets");
-            } else {
-                settings.presetDirPath = Path.Combine(DataPath, "ACCPresets");
-            }
+        
+        // Sybarisのチェック
+            // Sybarisのリダイレクトで存在しないパスが渡されてしまうケースがあるため、Sybarisチェックを先に行う
+        var dllpath = Path.Combine(DataPath, @"..\..\opengl32.dll");
+        var dirPath = Path.Combine(DataPath, @"..\..\Sybaris");
+        if (File.Exists(dllpath) && Directory.Exists(dirPath)) {
+            dirPath = Path.GetFullPath(dirPath);
+            settings.presetDirPath = Path.Combine(dirPath, @"Plugins\UnityInjector\Config\ACCPresets");
         } else {
-            string dllDir = Path.GetDirectoryName(dllPath);
-            settings.presetDirPath = Path.Combine(dllDir, @"Config\ACCPresets");
+            settings.presetDirPath = Path.Combine(DataPath, "ACCPresets");
+            // string dllPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            // string dllDir = Path.GetDirectoryName(dllPath);
+            // settings.presetDirPath = Path.Combine(dllDir, @"Config\ACCPresets");
         }
 
         base.ReloadConfig();
@@ -230,7 +230,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         if (toApplyPresetMaid != null && !toApplyPresetMaid.IsBusy) {
             var targetMaid = toApplyPresetMaid;
             toApplyPresetMaid = null;
-            StartCoroutine( DelayFrame(10, () => ApplyPresetProp(targetMaid, currentPreset)) );
+            StartCoroutine( DelayFrame(applyDeleFrame, () => ApplyPresetProp(targetMaid, currentPreset)) );
         }
 
         // テクスチャエディットの反映
@@ -341,7 +341,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         displayTips = true;
         tips = message;
 
-        StartCoroutine(DelaySecond(2, () => {
+        StartCoroutine(DelaySecond(tipsSecond, () => {
              displayTips = false;
              tips = null;
         }) );
