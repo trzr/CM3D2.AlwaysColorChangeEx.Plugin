@@ -48,6 +48,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
             LogUtil.Error( e );
         }
     }
+    internal MonoBehaviour plugin;
 
     private CM3D2SceneChecker checker = new CM3D2SceneChecker();
 
@@ -132,13 +133,17 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     private ACCSaveMenuView saveView;
     #endregion
 
+    public AlwaysColorChangeEx() {
+        plugin = this;
+    }
+
     #region MonoBehaviour methods
     public void Awake() 
     {
         UnityEngine.Object.DontDestroyOnLoad(this);
         
-        // Sybarisのチェック
-            // Sybarisのリダイレクトで存在しないパスが渡されてしまうケースがあるため、Sybarisチェックを先に行う
+        // リダイレクトで存在しないパスが渡されてしまうケースがあるため、
+        // Sybarisチェックを先に行う (リダイレクトによるパスではディレクトリ作成・削除が動作しない）
         var dllpath = Path.Combine(DataPath, @"..\..\opengl32.dll");
         var dirPath = Path.Combine(DataPath, @"..\..\Sybaris");
         if (File.Exists(dllpath) && Directory.Exists(dirPath)) {
@@ -230,7 +235,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         if (toApplyPresetMaid != null && !toApplyPresetMaid.IsBusy) {
             var targetMaid = toApplyPresetMaid;
             toApplyPresetMaid = null;
-            StartCoroutine( DelayFrame(applyDeleFrame, () => ApplyPresetProp(targetMaid, currentPreset)) );
+            plugin.StartCoroutine( DelayFrame(applyDeleFrame, () => ApplyPresetProp(targetMaid, currentPreset)) );
         }
 
         // テクスチャエディットの反映
@@ -341,7 +346,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         displayTips = true;
         tips = message;
 
-        StartCoroutine(DelaySecond(tipsSecond, () => {
+        plugin.StartCoroutine(DelaySecond(tipsSecond, () => {
              displayTips = false;
              tips = null;
         }) );
@@ -742,9 +747,12 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         return ret;
     }
 
+    private GUIContent title;
     private void DoColorMenu(int winID) {
         TBodySkin slot = holder.GetCurrentSlot();
-        string title = "マテリアル情報変更: " + (holder.isOfficial ? holder.currentSlot.DisplayName : slot.Category);
+        if (title == null) {
+            title = new GUIContent("マテリアル情報変更: " + (holder.isOfficial ? holder.currentSlot.DisplayName : slot.Category));
+        }
             
         GUILayout.Label(title, uiParams.lStyleB);
         // TODO 選択アイテム名、説明等を表示 可能であればアイコンも 
@@ -775,6 +783,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
 
             // ターゲットのmenuファイルが変更された場合にビューを更新
             if (targetMenuId != menuId) {
+                title = null;
                 // .modファイルは未対応
                 var menufile = holder.GetCurrentMenuFile();
 

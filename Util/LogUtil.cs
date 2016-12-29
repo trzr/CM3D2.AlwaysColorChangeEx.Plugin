@@ -26,7 +26,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 
         public static void Debug(params object[] message) {
 #if DEBUG
-            var sb = createMesage(message, "[DEBUG]");
+            var sb = createMessage(message, "[DEBUG]");
             UnityEngine.Debug.Log(sb);
 #endif
         }
@@ -38,7 +38,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
 
         public static StringBuilder Log(params object[] message) {
-            var sb = createMesage(message);
+            var sb = createMessage(message);
             UnityEngine.Debug.Log(sb);
             return sb;
         }
@@ -50,12 +50,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
 
         public static StringBuilder Error(params object[] message) {
-            var sb = createMesage(message);
+            var sb = createMessage(message);
             UnityEngine.Debug.LogError(sb);
             return sb;
         }
 
-        private static StringBuilder createMesage(object[] message, string prefix=null) {
+        private static StringBuilder createMessage(object[] message, string prefix=null) {
             var sb = new StringBuilder();
             if (prefix != null) sb.Append(prefix);
             sb.Append(AlwaysColorChangeEx.PluginName).Append(':');

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin
@@ -106,7 +107,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             "toonFace_shadow",
             "toonDress_shadow",
             "toonSkin_Shadow",
-            "toon_shadow0","toon_shadow1","toon_shadow2",
             "toonBlackmm1","toonBlackm1","toonGraymm1","toonGraym1",
             "toonPurplemm1","toonPurplem1",
             "toonSilvera1",
@@ -189,12 +189,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             if (texlist.Length > 0) {
                 // カンマで分割後trm
                 toonTexAddon = texlist.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
+                LogUtil.Debug("loading toon addon:", toonTexes);
             }
             texlist = string.Empty;
             Get(getValue("ToonTex"),    ref texlist);
             if (texlist.Length > 0) {
                 // カンマで分割後trm
                 toonTexes = texlist.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
+                LogUtil.Debug("loading toon texes:", toonTexes);
             }
 
             Get(getValue("ToonComboAutoApply"), ref toonComboAutoApply);

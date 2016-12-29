@@ -17,7 +17,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             get {
                 if (shaderNames == null) {
 //                    CustomShaderHolder.InitShader();
-                    int length = ShaderMapper.ShaderNames.Length;
+                    int length = ShaderType.shaders.Length;
                     shaderNames = new GUIContent[length];
                     foreach (ShaderType shaderType in ShaderType.shaders) {
                         shaderNames[shaderType.idx] = new GUIContent(shaderType.name, shaderType.dispName);

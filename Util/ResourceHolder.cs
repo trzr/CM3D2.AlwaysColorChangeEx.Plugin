@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
 using UnityEngine;
 
@@ -78,6 +79,22 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             } catch(Exception e) {
                 LogUtil.Log("アイコンリソースのロードに失敗しました。空として扱います", name, e);
                 return new Texture2D(2, 2);
+            }
+        }
+        internal byte[] LoadBytes(string path) {
+            try {
+                var buffer = new byte[8192];
+                using (var fs = asmbl.GetManifestResourceStream(path))
+                using (var ms = new MemoryStream((int)fs.Length)) {
+                    int read;
+                    while ((read = fs.Read(buffer, 0, buffer.Length)) > 0) {
+                        ms.Write(buffer, 0, read);
+                    }
+                    return ms.ToArray();
+                }
+            } catch(Exception e) {
+                LogUtil.Log("リソースのロードに失敗しました。path=", path, e);
+                throw;
             }
         }
         public void Clear() {

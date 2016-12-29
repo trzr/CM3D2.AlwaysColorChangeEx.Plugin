@@ -587,7 +587,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     this.needPmat = true;
 
                     string matName = (srcMat != null)? srcMat.name2 : edited.name;
-                    float srcRq = MaterialType.GetRenderQueue(matName);
+                    float srcRq = MaterialUtil.GetRenderQueue(matName);
                     // 既存のマテリアル名に対応するpmatが存在しない => 変更必要
                     if (srcRq < 0) this.needPmatChange = true;
                     LogUtil.DebugF("render queue: src={0}, edited={1}", srcRq, edited.renderQueue);
