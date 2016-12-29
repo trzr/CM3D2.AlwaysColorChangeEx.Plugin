@@ -49,15 +49,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
     public class EditRange {
         static Settings settings = Settings.Instance;
         public static readonly EditRange renderQueue = new EditRange("F0", 0, 5000f);
-        public static readonly EditRange shininess = new EditRange("F2", settings.shininessEditMin, settings.shininessEditMax);
-        public static readonly EditRange outlineWidth = new EditRange("F5", settings.outlineWidthEditMin, settings.outlineWidthEditMax);
-        public static readonly EditRange rimPower  = new EditRange("F3", settings.rimPowerEditMin, settings.rimPowerEditMax);
-        public static readonly EditRange rimShift  = new EditRange("F3", settings.rimShiftEditMin, settings.rimShiftEditMax);
-        public static readonly EditRange hiRate    = new EditRange("F2", settings.hiRateEditMin, settings.hiRateEditMax);
-        public static readonly EditRange hiPow     = new EditRange("F4", settings.hiPowEditMin, settings.hiPowEditMax);
-        public static readonly EditRange floatVal1 = new EditRange("F2", settings.floatVal1EditMin, settings.floatVal1EditMax);
-        public static readonly EditRange floatVal2 = new EditRange("F3", settings.floatVal2EditMin, settings.floatVal2EditMax);
-        public static readonly EditRange floatVal3 = new EditRange("F3", settings.floatVal3EditMin, settings.floatVal3EditMax);
+        public static readonly EditRange shininess    = new EditRange(settings.shininessFmt, settings.shininessEditMin, settings.shininessEditMax);
+        public static readonly EditRange outlineWidth = new EditRange(settings.outlineWidthFmt, settings.outlineWidthEditMin, settings.outlineWidthEditMax);
+        public static readonly EditRange rimPower  = new EditRange(settings.rimPowerFmt, settings.rimPowerEditMin, settings.rimPowerEditMax);
+        public static readonly EditRange rimShift  = new EditRange(settings.rimShiftFmt, settings.rimShiftEditMin, settings.rimShiftEditMax);
+        public static readonly EditRange hiRate    = new EditRange(settings.hiRateFmt, settings.hiRateEditMin, settings.hiRateEditMax);
+        public static readonly EditRange hiPow     = new EditRange(settings.hiPowFmt, settings.hiPowEditMin, settings.hiPowEditMax);
+        public static readonly EditRange floatVal1 = new EditRange(settings.floatVal1Fmt, settings.floatVal1EditMin, settings.floatVal1EditMax);
+        public static readonly EditRange floatVal2 = new EditRange(settings.floatVal2Fmt, settings.floatVal2EditMin, settings.floatVal2EditMax);
+        public static readonly EditRange floatVal3 = new EditRange(settings.floatVal3Fmt, settings.floatVal3EditMin, settings.floatVal3EditMax);
 
         public static readonly EditRange boolVal = new EditRange("F0", 0, 1f);
         public float editMin;

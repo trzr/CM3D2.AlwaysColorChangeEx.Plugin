@@ -56,6 +56,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
         public float floatVal3EditMax    =  50f;
         public float floatVal3EditMin    =   0f;
 
+        public string shininessFmt    = "F2";
+        public string outlineWidthFmt = "F5";
+        public string rimPowerFmt     = "F3";
+        public string rimShiftFmt     = "F5";
+        public string hiRateFmt       = "F2";
+        public string hiPowFmt        = "F5";
+        public string floatVal1Fmt    = "F2";
+        public string floatVal2Fmt    = "F3";
+        public string floatVal3Fmt    = "F3";
+
         public float[] shininessRange() {
             return new float[] {shininessMin, shininessMax,};
         }
@@ -184,6 +194,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             Get(getValue("EditFloatVal3Max"),    ref floatVal3EditMax);
             Get(getValue("EditFloatVal3Min"),    ref floatVal3EditMin);
 
+            GetFormat(getValue("EditShininessFormat"),    ref shininessFmt);
+            GetFormat(getValue("EditOutlineWidthFormat"), ref outlineWidthFmt);
+            GetFormat(getValue("EditRimPowerFormat"),     ref rimPowerFmt);
+            GetFormat(getValue("EditRimShiftFormat"),     ref rimShiftFmt);
+            GetFormat(getValue("EditHiRateFormat"),       ref hiRateFmt);
+            GetFormat(getValue("EditHiPowFormat"),        ref hiPowFmt);
+            GetFormat(getValue("EditFloatVal1Format"),    ref floatVal1Fmt);
+            GetFormat(getValue("EditFloatVal2Format"),    ref floatVal2Fmt);
+            GetFormat(getValue("EditFloatVal3Format"),    ref floatVal3Fmt);
+
             var texlist = string.Empty;
             Get(getValue("ToonTexAddon"),    ref texlist);
             if (texlist.Length > 0) {
@@ -245,6 +265,19 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             float v;
             if (float.TryParse(floatString, out v)) {
                 output = v;
+            }
+        }
+        const float VERF_VALUE = 12.3f;
+        static void GetFormat(string format, ref string output) {
+            if (format == null) return;
+
+            float f;
+            if (float.TryParse(VERF_VALUE.ToString(format), out f)) {
+                output = format;
+            } else {
+                if (format.Length > 0) {
+                    LogUtil.Log("failed to parse Format string:", format);
+                }
             }
         }
 
