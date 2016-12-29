@@ -101,8 +101,8 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     PresetData currentPreset;
     private string presetName = string.Empty;
     private bool bPresetCastoff = true;
-    private bool bPresetApplyNode = true;
-    private bool bPresetApplyMask = true;
+    private bool bPresetApplyNode = false;
+    private bool bPresetApplyMask = false;
     private bool bPresetApplyBody = true;
     private bool bPresetApplyWear = true;
     private bool bPresetApplyBodyProp   = true;
@@ -1127,26 +1127,26 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
             delNodeDic[key] = true;
         }
         foreach(TBodySkin slot in holder.currentMaid.body0.goSlot) {
-            if (slot.obj != null && slot.boVisible) {
-                Dictionary<string, bool> slotNodes = slot.m_dicDelNodeBody;
-                // 1つでもFalseがあったら非表示とみなす
-                foreach (string key in keys) {
-                    bool v;
-                    if (slotNodes.TryGetValue(key, out v)) {
-                        delNodeDic[key] &= v;
-                    }
-                }
-                if (!slot.m_dicDelNodeParts.Any()) continue;
+            if (slot.obj == null || !slot.boVisible) continue;
 
-                foreach(Dictionary<string, bool> sub in slot.m_dicDelNodeParts.Values) {
-                    foreach(KeyValuePair<string, bool> pair in sub) {
-                        if (delNodeDic.ContainsKey(pair.Key)) {
-                            delNodeDic[pair.Key] &= pair.Value;
-                        }
+            Dictionary<string, bool> slotNodes = slot.m_dicDelNodeBody;
+            // 1つでもFalseがあったら非表示とみなす
+            foreach (string key in keys) {
+                bool v;
+                if (slotNodes.TryGetValue(key, out v)) {
+                    delNodeDic[key] &= v;
+                }
+            }
+            if (!slot.m_dicDelNodeParts.Any()) continue;
+
+            foreach(Dictionary<string, bool> sub in slot.m_dicDelNodeParts.Values) {
+                foreach(KeyValuePair<string, bool> pair in sub) {
+                    if (delNodeDic.ContainsKey(pair.Key)) {
+                        delNodeDic[pair.Key] &= pair.Value;
                     }
                 }
             }
-        }
+            }
         return delNodeDic;
     }
     private void DoNodeSelectMenu(int winID)
@@ -1182,10 +1182,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
             try {
                 GUILayoutOption bWidth = GUILayout.Width(uiParams.subConWidth*0.33f);
                 if (GUILayout.Button("同期", uiParams.bStyle, uiParams.optBtnHeight, bWidth)) {
-                    dDelNodeDisps = GetDelNodes();
-                    foreach (var nodes in dDelNodeDisps) {
-                        dDelNodes[nodes.Key] = nodes.Value;
-                    }
+                    SyncNodes();
                 }
                 if (GUILayout.Button("すべてON", uiParams.bStyle, uiParams.optBtnHeight, bWidth)) {
                     var keys = new List<string>(dDelNodes.Keys);
@@ -1255,14 +1252,32 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         } finally {
             GUILayout.EndVertical();
         }
-        if (GUILayout.Button("適用", uiParams.bStyle, uiParams.optSubConWidth, uiParams.optBtnHeight)) {
+        GUILayout.BeginHorizontal();
+        try {
+            if (GUILayout.Button("適用", uiParams.bStyle, uiParams.optSubConHalfWidth, uiParams.optBtnHeight)) {
             holder.SetDelNodes(dDelNodes, true);
-            dDelNodeDisps = new Dictionary<string, bool>(body.m_dicDelNodeBody);
+                //dDelNodeDisps = new Dictionary<string, bool>(body.m_dicDelNodeBody);
+                plugin.StartCoroutine(DelayFrame(3, SyncNodes));
+            }
+            GUILayout.Space(uiParams.margin);
+            if (GUILayout.Button("強制適用", uiParams.bStyle, uiParams.optSubConHalfWidth, uiParams.optBtnHeight)) {
+                holder.SetDelNodesForce(dDelNodes, true);
+                //dDelNodeDisps = new Dictionary<string, bool>(body.m_dicDelNodeBody);
+                plugin.StartCoroutine(DelayFrame(3, SyncNodes));
+            }
+        } finally {
+            GUILayout.EndHorizontal();
         }
         if (GUILayout.Button( "閉じる", uiParams.bStyle, uiParams.optSubConWidth, uiParams.optBtnHeight)) {
             SetMenu(MenuType.Main);
         }
         GUI.DragWindow(uiParams.titleBarRect);
+    }
+    private void SyncNodes() {
+        dDelNodeDisps = GetDelNodes();
+        foreach (var nodes in dDelNodeDisps) {
+            dDelNodes[nodes.Key] = nodes.Value;
+        }
     }
 
     bool bPresetSavable;

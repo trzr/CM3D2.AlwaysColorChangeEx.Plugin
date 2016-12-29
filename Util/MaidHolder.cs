@@ -210,7 +210,53 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         {
             if (!dDelNodes.Any()) return;
 
+            foreach (KeyValuePair<string, bool> entry in dDelNodes) {
+                var nodeItem = ACConstants.NodeNames[entry.Key];
+                if (entry.Value) { // 
+                    foreach (TBodySkin slot in maid.body0.goSlot) {
+                        if (slot.obj == null) continue;
+                        // 強制表示
+                        if (slot.m_dicDelNodeBody.ContainsKey(entry.Key)) {
+                            slot.m_dicDelNodeBody[entry.Key] = true; // entry.Value
+                        }
+                    }
+                } else {
+                    bool hasSet = false;
+                    foreach (TBody.SlotID slotId in nodeItem.slots) {
+                        var slot = maid.body0.GetSlot((int)slotId);
+                        if (slot.obj == null) continue;
+
+                        // slot.boVisible = true;
+                        if (slot.m_dicDelNodeBody.ContainsKey(entry.Key)) {
+                            slot.m_dicDelNodeBody[entry.Key] = false; // entry.Value
+                        }
+                        hasSet = true;
+                        break;
+                    }
+                    if (!hasSet) {
+                        // もしどこにもない場合はbodyにセット
+                        var slot = maid.body0.GetSlot((int)TBody.SlotID.body);
+                        if (slot.obj == null) continue;
+
+                        //slot.boVisible = true;
+                        if (slot.m_dicDelNodeBody.ContainsKey(entry.Key)) {
+                            slot.m_dicDelNodeBody[entry.Key] = false; // entry.Value
+                        }
+                    }
+                }
+            }
+            if (bApply) FixFlag();
+        }
+        public void SetDelNodesForce(Dictionary<string, bool> dDelNodes, bool bApply) {
+            SetDelNodesForce(currentMaid, dDelNodes, bApply);
+        }
+        // 強引に全スロットに対してノード非表示を適用
+        public void SetDelNodesForce(Maid maid, Dictionary<string, bool> dDelNodes, bool bApply) 
+        {
+            if (!dDelNodes.Any()) return;
+
             foreach (TBodySkin slot in maid.body0.goSlot) {
+                if (slot.obj == null) continue;
                 slot.boVisible = true;
                 foreach (KeyValuePair<string, bool> entry in dDelNodes) {
                     if (slot.m_dicDelNodeBody.ContainsKey(entry.Key)) {
@@ -220,6 +266,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
             if (bApply) FixFlag();
         }
+
         private Hashtable GetMaskTable() 
         {
             return currentMaid == null 
@@ -237,7 +284,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         {
 //            Hashtable m_foceHide = GetMaskTable();
 //            if (m_foceHide == null) {
-//                LogUtil.ErrorLog("cannot take MaskTable");
+//                LogUtil.Error("cannot take MaskTable");
 //                return;
 //            }
             
