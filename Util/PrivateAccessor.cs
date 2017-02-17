@@ -19,7 +19,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         private PrivateAccessor() { }
         public static T Get<T>(object instance, string fieldName) {
             try {
-                var field =  instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);//  | BindingFlags.GetField | BindingFlags.SetField 
+                var field =  instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);//  | BindingFlags.GetField | BindingFlags.SetField 
                 return (T)field.GetValue(instance);
             } catch(Exception e) {
                 LogUtil.Debug(e);
@@ -28,7 +28,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
         public static T Get<T>(Type type, string fieldName) {
             try {
-                var field =  type.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Static);//  | BindingFlags.GetField | BindingFlags.SetField 
+                var field =  type.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);//  | BindingFlags.GetField | BindingFlags.SetField 
                 return (T)field.GetValue(null);
             } catch(Exception e) {
                 LogUtil.Debug(e);
@@ -37,7 +37,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
         public static void Set<T>(object instance, string fieldName, T value) {
             try {
-                var field =  instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);//  | BindingFlags.GetField | BindingFlags.SetField 
+                var field =  instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);//  | BindingFlags.GetField | BindingFlags.SetField 
                 field.SetValue(instance, value);
             } catch(Exception e) {
                 LogUtil.Debug(e);
@@ -45,7 +45,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
         public static void Set<T>(Type type, string fieldName, T value) {
             try {
-                var field =  type.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Static);//  | BindingFlags.GetField | BindingFlags.SetField 
+                var field =  type.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);//  | BindingFlags.GetField | BindingFlags.SetField 
                 field.SetValue(null, value);
             } catch(Exception e) {
                 LogUtil.Debug(e);
