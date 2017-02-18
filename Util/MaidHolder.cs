@@ -37,6 +37,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         private MaidHolder() {
             MaidName = string.Empty;
             int cnt = PrivateAccessor.Get<int>(typeof(TBody),"strSlotNameItemCnt");
+            if (cnt <= 0) {
+                cnt = 3;
+            }
             SLOT_COUNT = TBody.m_strDefSlotName.Length/cnt;
         }
         public bool Applicable() {
