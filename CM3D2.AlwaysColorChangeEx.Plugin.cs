@@ -237,7 +237,9 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
             toApplyPresetMaid = null;
             plugin.StartCoroutine( DelayFrame(applyDeleFrame, () => ApplyPresetProp(targetMaid, currentPreset)) );
         }
-
+        if (ACCTexturesView.fileBrowser != null) {
+            ACCTexturesView.fileBrowser.Update();
+        }
         // テクスチャエディットの反映
         if (menuType == MenuType.Texture) {
             // マウスが離されたタイミングでのみテクスチャ反映
@@ -259,6 +261,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         if (menuType == MenuType.None) return;
         if (settings.SSWithoutUI && !IsEnabledUICamera()) return; // UI無し撮影
 
+        try {
         if (Event.current.type == EventType.Layout) {
             if (!holder.CurrentActivated()) {
                 // メイド未選択、あるいは選択中のメイドが無効化された場合
@@ -312,11 +315,9 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 mouseDowned = false;
             }
             mouseDowned |= cursorContains && Input.GetMouseButtonDown(0);
-        } else {
-            //Event.current.type == EventType.repaint
-            if (ACCTexturesView.fileBrowser != null) {
-                ACCTexturesView.fileBrowser.OnGUI();
+
             }
+        } finally {
         }
     }
     #endregion

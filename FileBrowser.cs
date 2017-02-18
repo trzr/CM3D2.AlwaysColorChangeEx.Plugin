@@ -232,92 +232,94 @@ public class FileBrowser
             nonMatchingFilesWithImages[i] = new GUIContent(nonMatchingFiles[i], NoFileImage);
         }
     }
+    public void Update() {
+        SwitchDirectoryNow();
+    }
 
     public void OnGUI()
     {
         GUILayout.BeginArea(screenRect, name, GUI.skin.window);
-        GUILayout.BeginHorizontal();
         try {
-            for (int parentIdx = 0; parentIdx < currentDirParts.Length; ++parentIdx) {
-                if (parentIdx == currentDirParts.Length - 1) {
-                    GUILayout.Label(currentDirParts[parentIdx], CentredText);
-    
-                } else if (GUILayout.Button(currentDirParts[parentIdx])) {
-                    string parentDirName = currentDir;
-                    for (int i = currentDirParts.Length - 1; i > parentIdx; --i) {
-                        parentDirName = Path.GetDirectoryName(parentDirName);
+            GUILayout.BeginHorizontal();
+            try {
+                for (int parentIdx = 0; parentIdx < currentDirParts.Length; ++parentIdx) {
+                    if (parentIdx == currentDirParts.Length - 1) {
+                        GUILayout.Label(currentDirParts[parentIdx], CentredText);
+
+                    } else if (GUILayout.Button(currentDirParts[parentIdx])) {
+                        string parentDirName = currentDir;
+                        for (int i = currentDirParts.Length - 1; i > parentIdx; --i) {
+                            parentDirName = Path.GetDirectoryName(parentDirName);
+                        }
+                        SetNewDirectory(parentDirName);
                     }
-                    SetNewDirectory(parentDirName);
                 }
+
+                GUILayout.FlexibleSpace();
+            } finally {
+                GUILayout.EndHorizontal();
             }
-    
+            scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, 
+                                                         GUI.skin.horizontalScrollbar, 
+                                                         GUI.skin.verticalScrollbar, GUI.skin.box );
+            selectedDir = GUILayoutx.SelectionList(selectedDir, dirsWithImages, labelStyle, DirectoryClickCallback);
+            if (selectedDir > -1) {
+                selectedFile = selectedNonMatchingDirs = -1;
+                //selectedName = dirsWithImages[selectedDir].text;
+            }
+
+            selectedNonMatchingDirs = GUILayoutx.SelectionList(selectedNonMatchingDirs, nonMatchingDirsWithImages, labelStyle, NonMatchingDirectoryClickCallback);
+            if (selectedNonMatchingDirs > -1) {
+                selectedDir = selectedFile = -1;
+                //selectedName = string.Empty;
+            }
+            GUI.enabled = BrowserType == FileBrowserType.File;
+            selectedFile = GUILayoutx.SelectionList(selectedFile, filesWithImages, labelStyle, FileClickCallback);
+            GUI.enabled = true;
+            if (selectedFile > -1) {
+                selectedDir = selectedNonMatchingDirs = -1;
+                //selectedName = filesWithImages[selectedDir].text;
+            }
+            GUI.enabled = false;
+            GUILayoutx.SelectionList( -1, nonMatchingFilesWithImages, labelStyle );
+            GUI.enabled = true;
+
+            GUILayout.EndScrollView();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(selectedName);
             GUILayout.FlexibleSpace();
-        } finally {
-            GUILayout.EndHorizontal();
-        }
-        scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, 
-                                                     GUI.skin.horizontalScrollbar, 
-                                                     GUI.skin.verticalScrollbar, GUI.skin.box );
-        selectedDir = GUILayoutx.SelectionList(selectedDir, dirsWithImages, labelStyle, DirectoryClickCallback);
-        if (selectedDir > -1) {
-            selectedFile = selectedNonMatchingDirs = -1;
-            //selectedName = dirsWithImages[selectedDir].text;
-        }
-
-        selectedNonMatchingDirs = GUILayoutx.SelectionList(selectedNonMatchingDirs, nonMatchingDirsWithImages, labelStyle, NonMatchingDirectoryClickCallback);
-        if (selectedNonMatchingDirs > -1) {
-            selectedDir = selectedFile = -1;
-            //selectedName = string.Empty;
-        }
-        GUI.enabled = BrowserType == FileBrowserType.File;
-        selectedFile = GUILayoutx.SelectionList(selectedFile, filesWithImages, labelStyle, FileClickCallback);
-        GUI.enabled = true;
-        if (selectedFile > -1) {
-            selectedDir = selectedNonMatchingDirs = -1;
-            //selectedName = filesWithImages[selectedDir].text;
-        }
-        GUI.enabled = false;
-        GUILayoutx.SelectionList( -1, nonMatchingFilesWithImages, labelStyle );
-        GUI.enabled = true;
-
-        GUILayout.EndScrollView();
-        GUILayout.BeginHorizontal();
-        GUILayout.Label(selectedName);
-        GUILayout.FlexibleSpace();
-        if (GUILayout.Button("キャンセル", GUILayout.Width(120))) {
-            callback(null);
-        }
-        if (BrowserType == FileBrowserType.File) {
-            GUI.enabled = selectedFile > -1;
-            selectedName = GUI.enabled ? filesWithImages[selectedFile].text : string.Empty;
-        } else {
-            if (SelectionPatterns == null) {
-                GUI.enabled = selectedDir > -1;
-                selectedName = GUI.enabled ? dirsWithImages[selectedDir].text : string.Empty;
-            } else {
-                GUI.enabled = selectedDir > -1 ||
-                    (  currentDirMatches && selectedNonMatchingDirs == -1 && selectedFile == -1 );
-                selectedName = selectedDir > -1 ? dirsWithImages[selectedDir].text : string.Empty;
+            if (GUILayout.Button("キャンセル", GUILayout.Width(120))) {
+                callback(null);
             }
-        }
-
-        if (GUILayout.Button("選択", GUILayout.Width(120))) {
             if (BrowserType == FileBrowserType.File) {
-                callback(Path.Combine(currentDir, files[selectedFile]));
+                GUI.enabled = selectedFile > -1;
+                selectedName = GUI.enabled ? filesWithImages[selectedFile].text : string.Empty;
             } else {
-                if (selectedDir > -1) {
-                    callback(Path.Combine(currentDir, directories[selectedDir]));
+                if (SelectionPatterns == null) {
+                    GUI.enabled = selectedDir > -1;
+                    selectedName = GUI.enabled ? dirsWithImages[selectedDir].text : string.Empty;
                 } else {
-                    callback(currentDir);
+                    GUI.enabled = selectedDir > -1 ||
+                        (  currentDirMatches && selectedNonMatchingDirs == -1 && selectedFile == -1 );
+                    selectedName = selectedDir > -1 ? dirsWithImages[selectedDir].text : string.Empty;
                 }
             }
-        }
-        GUI.enabled = true;
-        GUILayout.EndHorizontal();
-        GUILayout.EndArea();
 
-        if (Event.current.type == EventType.Repaint) {
-            SwitchDirectoryNow();
+            if (GUILayout.Button("選択", GUILayout.Width(120))) {
+                if (BrowserType == FileBrowserType.File) {
+                    callback(Path.Combine(currentDir, files[selectedFile]));
+                } else {
+                    if (selectedDir > -1) {
+                        callback(Path.Combine(currentDir, directories[selectedDir]));
+                    } else {
+                        callback(currentDir);
+                    }
+                }
+            }
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+        } finally {
+            GUILayout.EndArea();
         }
     }
 
