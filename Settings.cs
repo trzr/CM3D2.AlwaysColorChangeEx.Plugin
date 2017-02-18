@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using UnityEngine;
 
@@ -209,14 +210,26 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             if (texlist.Length > 0) {
                 // カンマで分割後trm
                 toonTexAddon = texlist.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
-                LogUtil.Debug("loading toon addon:", toonTexes);
+                if (LogUtil.IsDebug()) {
+                    var buff = new StringBuilder();
+                    foreach (var tex in toonTexAddon) {
+                        buff.Append(tex).Append(',');
+                    }
+                    LogUtil.Debug("loading toon addon: ", buff);
+                }
             }
             texlist = string.Empty;
             Get(getValue("ToonTex"),    ref texlist);
             if (texlist.Length > 0) {
                 // カンマで分割後trm
                 toonTexes = texlist.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
-                LogUtil.Debug("loading toon texes:", toonTexes);
+                if (LogUtil.IsDebug()) {
+                    var buff = new StringBuilder();
+                    foreach (var tex in toonTexes) {
+                        buff.Append(tex).Append(',');
+                    }
+                    LogUtil.Debug("loading toon texes: ", buff);
+                }
             }
 
             Get(getValue("ToonComboAutoApply"), ref toonComboAutoApply);
