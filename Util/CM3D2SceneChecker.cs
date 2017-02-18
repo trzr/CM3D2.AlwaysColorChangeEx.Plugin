@@ -40,19 +40,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             false, false, true,  false, true,
             true,  true,  false, false, false,
             true,  false, true,  true,  true,
-            true,  true,  true,  true,  true, // 29c
-            true,  true,  true,
+            true,  true,  true,  true,  true, // 29
+            true,  true,  true,  true,  true,
+            true,  
         };
         private static bool[]  SCENE_OHAVAILABLES = new bool[] {
             false, false, true,  true,  true,
             true,  false, false, true,  false,
             true,  true,  true,  false, true,
             true,  true,  false, true,  true,
-            true,  true,  true,  true,  true, // 23c
-            true,  true            
+            true,  true,  true,  true,  true, // 24
+            true,  true,  true,
         };
 
-        private const bool DEFAULT_VAL = false;
+        private const bool DEFAULT_VAL = true;
         public bool IsVR { get; private set; }
 
         private Mode mode = Mode.Normal;
