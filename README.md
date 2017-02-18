@@ -14,7 +14,7 @@ CM3D2.AlwaysColorChangeEx.Plugin
 UnityInjectorが導入済みであること
 
 #### ◇動作確認環境
-  - バージョン：**1.41/1.40.1**  
+  - バージョン：**1.46**  
   - プラグイン：UnityInjector
 
 #### ◇インストール  
