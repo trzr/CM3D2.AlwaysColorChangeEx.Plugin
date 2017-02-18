@@ -105,7 +105,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public void ChangeShader(string shaderName, int shaderIdx=-1) {
             Shader shader = Shader.Find(shaderName);
             if (shader != null) {
+                var rq = material.renderQueue;
                 material.shader = shader;
+                material.renderQueue = rq;
                 var type1 = (shaderIdx != -1) ? ShaderType.Resolve(shaderIdx) : ShaderType.Resolve(shaderName);
                 if (type1 != ShaderType.UNKNOWN) {
                     Update(type1);
