@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 using UnityEngine;
 
@@ -37,8 +38,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     break;
                 case ValType.Tex:
                     type = PropType.tex;
-                    break;                    
-            }            
+                    break;
+            }
         }
 
         public string name;
@@ -48,8 +49,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public PropType type;
         public ValType valType;
     }
+    public class PresetOperation {
+        public string label;
+        public Func<float, float> func;
+        public PresetOperation(string label, Func<float, float> func) {
+            this.label = label;
+            this.func = func;
+        }
+    }
     public class ShaderPropFloat :ShaderProp
     {
+
         public ShaderPropFloat(string name, PropKey key, int id) : base(name, key, id, ValType.Float) { }
         public ShaderPropFloat(PropKey key) : base(key, ValType.Float) { }
 
@@ -57,11 +67,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public ShaderPropFloat(PropKey key, ValType valType) : base(key, valType) { }
 
         public ShaderPropFloat(PropKey key, string format, float[] range,
-                                  bool[] opts, float defaultVal, params float[] presetVals) 
+                                  PresetOperation[] opts, float defaultVal, params float[] presetVals) 
             : this(key, new EditRange(format, range[2], range[3]), range, opts, defaultVal, presetVals) {
         }
         public ShaderPropFloat(PropKey key, EditRange range, float[] sliderRange,
-                                  bool[] opts, float defaultVal, params float[] presetVals) : base(key, ValType.Float) {
+                                  PresetOperation[] opts, float defaultVal, params float[] presetVals) : base(key, ValType.Float) {
             this.range = range;
             this.sliderMin = sliderRange[0];
             this.sliderMax = sliderRange[1];
@@ -76,7 +86,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public float sliderMax;
 
         public float defaultVal;
-        public bool[] opts;
+        public PresetOperation[] opts;
         public float[] presetVals;
 
         public void SetValue(Material m, float val) {
@@ -124,8 +134,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         }
     }
     public static class ShaderPropType {
-        private static readonly bool[] FLAG_RATIO = {true, true, false};
-        private static readonly bool[] FLAG_INV  = {false, false, true};
+        static PresetOperation sliderL = new PresetOperation("<", (val) => val*0.9f);
+        static PresetOperation sliderR = new PresetOperation(">", (val) => val*1.1f);
+        static PresetOperation invert  = new PresetOperation("x-1", (val) => val*-1f);
+        static PresetOperation plus1   = new PresetOperation("+", (val) => val+1);
+        static PresetOperation plus10   = new PresetOperation("++", (val) => val+10);
+        static PresetOperation minus1  = new PresetOperation("-", (val) => val-1);
+        static PresetOperation minus10  = new PresetOperation("--", (val) => val-10);
+
+        private static readonly PresetOperation[] PRESET_RATIO = {sliderL, sliderR};
+        private static readonly PresetOperation[] PRESET_INV = { invert };
+        private static readonly PresetOperation[] PRESET_PM = { minus10, minus1, plus1, plus10};
 
         private static readonly Settings settings = Settings.Instance;
         private static Dictionary<string, ShaderProp> customProps = new Dictionary<string, ShaderProp>();
@@ -134,51 +153,51 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             if (!initialized) {
                 // 設定値を利用するため、LazyInitとする
                 RenderQueue      = new ShaderPropFloat(PropKey._SetManualRenderQueue, EditRange.renderQueue,
-                                                       new float[]{0, 5000f,}, null, 3000, 3000, 3100, 3200, 3300);
+                                                       new float[]{0, 5000f,}, PRESET_PM, 3000, 2000, 3000);
 
                 Shininess        = new ShaderPropFloat(PropKey._Shininess, EditRange.shininess,
-                                                       settings.shininessRange(), FLAG_RATIO, 0, 0, 0.1f, 0.5f, 1, 5);
+                                                       settings.shininessRange(), PRESET_RATIO, 0, 0, 0.1f, 0.5f, 1, 5);
                 OutlineWidth     = new ShaderPropFloat(PropKey._OutlineWidth, EditRange.outlineWidth,
                                                        settings.outlineWidthRange(), null, 0.0001f, 0.0001f, 0.001f, 0.002f);
                 RimPower         = new ShaderPropFloat(PropKey._RimPower, EditRange.rimPower,
-                                                       settings.rimPowerRange(), FLAG_INV, 0f, 0f, 25f, 50f, 100f);
+                                                       settings.rimPowerRange(), PRESET_INV, 0f, 0f, 25f, 50f, 100f);
                 RimShift         = new ShaderPropFloat(PropKey._RimShift, EditRange.rimShift,
-                                                       settings.rimShiftRange(), FLAG_RATIO, 0f, 0f, 0.25f, 0.5f, 1f);
+                                                       settings.rimShiftRange(), PRESET_RATIO, 0f, 0f, 0.25f, 0.5f, 1f);
                 HiRate           = new ShaderPropFloat(PropKey._HiRate, EditRange.hiRate, 
-                                                       settings.hiRateRange(), FLAG_RATIO, 0f, 0f, 0.5f, 1.0f);
+                                                       settings.hiRateRange(), PRESET_RATIO, 0f, 0f, 0.5f, 1.0f);
                 HiPow            = new ShaderPropFloat(PropKey._HiPow, EditRange.hiPow,
-                                                       settings.hiPowRange(), FLAG_RATIO,  0.001f, 0.001f, 1f, 50f);
+                                                       settings.hiPowRange(), PRESET_RATIO,  0.001f, 0.001f, 1f, 50f);
                 FloatValue1      = new ShaderPropFloat(PropKey._FloatValue1, EditRange.floatVal1,
                                                        settings.hiPowRange(), null,  10f, 0f, 100f, 200f);
                 FloatValue2      = new ShaderPropFloat(PropKey._FloatValue2, EditRange.floatVal2,
-                                                       settings.hiPowRange(), FLAG_INV,  1f, -15, 0f, 1f, 15f);
+                                                       settings.hiPowRange(), PRESET_INV,  1f, -15, 0f, 1f, 15f);
                 FloatValue3      = new ShaderPropFloat(PropKey._FloatValue3, EditRange.floatVal3,
-                                                       settings.hiPowRange(), FLAG_RATIO,  1f, 0f, 0.5f, 1f);
+                                                       settings.hiPowRange(), PRESET_RATIO,  1f, 0f, 0.5f, 1f);
                 Parallax         = new ShaderPropFloat(PropKey._Parallax, "F4",
-                                                       new float[] {0.005f, 0.08f, 0.001f, 0.1f}, FLAG_RATIO, 0.02f, 0.02f);
+                                                       new float[] {0.005f, 0.08f, 0.001f, 0.1f}, PRESET_RATIO, 0.02f, 0.02f);
                 Cutoff           = new ShaderPropFloat(PropKey._Cutoff, "F3",
-                                                       new float[] {0f, 1f, 0f, 1f}, FLAG_RATIO, 0.5f, 0.5f);
+                                                       new float[] {0f, 1f, 0f, 1f}, PRESET_RATIO, 0.5f, 0.5f);
                 EmissionLM       = new ShaderPropBool(PropKey._EmissionLM);
                 UseMulticolTex   = new ShaderPropBool(PropKey._UseMulticolTex);
 
                 Strength         = new ShaderPropFloat(PropKey._Strength, "F2",
-                                                       new float[] {0f, 1f, 0f, 1f}, FLAG_RATIO, 0.2f, 0.2f);
+                                                       new float[] {0f, 1f, 0f, 1f}, PRESET_RATIO, 0.2f, 0.2f);
                 StencilComp      = new ShaderPropFloat(PropKey._StencilComp, "F0",
-                                                       new float[] {0f, 255f, 0f, 255f}, FLAG_RATIO, 8f, 8f);
+                                                       new float[] {0f, 255f, 0f, 255f}, PRESET_RATIO, 8f, 8f);
                 Stencil          = new ShaderPropFloat(PropKey._Stencil, "F0",
-                                                       new float[] {0f, 255f, 0f, 255f}, FLAG_RATIO, 0f, 0f);
+                                                       new float[] {0f, 255f, 0f, 255f}, PRESET_RATIO, 0f, 0f);
                 StencilOp        = new ShaderPropFloat(PropKey._StencilOp, "F0",
-                                                       new float[] {0f, 255f, 0f, 255f}, FLAG_RATIO, 0f, 0f);
+                                                       new float[] {0f, 255f, 0f, 255f}, PRESET_RATIO, 0f, 0f);
                 StencilWriteMask = new ShaderPropFloat(PropKey._StencilWriteMask, "F0",
-                                                       new float[] {0f, 255f, 0f, 255f}, FLAG_RATIO, 255f, 255f);
+                                                       new float[] {0f, 255f, 0f, 255f}, PRESET_RATIO, 255f, 255f);
                 StencilReadMask  = new ShaderPropFloat(PropKey._StencilReadMask, "F0",
-                                                       new float[] {0f, 255f, 0f, 255f}, FLAG_RATIO, 255f, 255f);
+                                                       new float[] {0f, 255f, 0f, 255f}, PRESET_RATIO, 255f, 255f);
                 ColorMask        = new ShaderPropFloat(PropKey._ColorMask, "F0",
-                                                       new float[] {0f, 255f, 0f, 255f}, FLAG_RATIO, 255f, 255f);
+                                                       new float[] {0f, 255f, 0f, 255f}, PRESET_RATIO, 255f, 255f);
                 EnvAlpha         = new ShaderPropFloat(PropKey._EnvAlpha, "F1",
-                                                       new float[] {0f, 1f, 0f, 1f}, FLAG_RATIO, 0f, 0f);
+                                                       new float[] {0f, 1f, 0f, 1f}, PRESET_RATIO, 0f, 0f);
                 EnvAdd           = new ShaderPropFloat(PropKey._EnvAdd, "F1",
-                                                       new float[] {1f, 2f, 1f, 2f}, FLAG_RATIO, 1f, 1f);
+                                                       new float[] {1f, 2f, 1f, 2f}, PRESET_RATIO, 1f, 1f);
 
                 initialized = true;
             }

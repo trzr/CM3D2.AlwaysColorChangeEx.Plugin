@@ -147,16 +147,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         private static bool includeTex = false;
         private static bool includeShader = true;
         private static bool includeOthers = true;
-
+        private static RQResolver rqResolver = RQResolver.Instance;
         //public ACCMaterial original;
         private ClipBoardHandler clipHandler = ClipBoardHandler.Instance;
         public ACCMaterial edited;
         public ComboBoxLO shaderCombo;
         public bool expand;
         private int matIdx;
-        public ACCMaterialsView(Renderer r, Material m, int idx) {
+        private int slotIdx;
+        public ACCMaterialsView(Renderer r, Material m, int slotIdx, int idx) {
             //original = new ACCMaterial(m, r);
             //edited = new ACCMaterial(original);
+            this.slotIdx = slotIdx;
             this.matIdx = idx;
             edited = new ACCMaterial(m, r);
         }
@@ -232,7 +234,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 
                 Material material = edited.material;
                 int idx = edited.type.idx;
-    
+
                 if (shaderCombo == null) {
                     GUIContent selected = (idx >= 0 && idx < ShaderNames.Length) ? ShaderNames[idx] : GUIContent.none;
                     shaderCombo = new ComboBoxLO(selected, ShaderNames, uiParams.bStyleSC, uiParams.boxStyle, uiParams.listStyle, false);
@@ -240,10 +242,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     shaderCombo.SelectedItemIndex = idx;
                 }
                 shaderCombo.Show(GUILayout.ExpandWidth(true));//uiParams.optInsideWidth);
-    
+
                 int selectedIdx = shaderCombo.SelectedItemIndex;
                 if (idx != selectedIdx && selectedIdx != -1) {
-                    LogUtil.Debug("shader changed", idx, "=>", selectedIdx);
+                    LogUtil.Debug("shader changed", idx, "=>", selectedIdx );
                     // シェーダ変更
                     var shaderName0 = ShaderNames[selectedIdx].text;
                     edited.ChangeShader(shaderName0, selectedIdx);
@@ -252,13 +254,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 if (reload) {
                     edited.renderQueue.Set( material.renderQueue );
                 }
-    
+
                 SetupFloatSlider("RQ", edited.renderQueue,
                                  edited.renderQueue.range.editMin, edited.renderQueue.range.editMax,
                                  (rq) => {
                                      material.SetFloat(ShaderPropType.RenderQueue.propId, rq);
                                      material.renderQueue = (int)rq;
-                                 }, ShaderPropType.RenderQueue.presetVals);
+                                 }, 
+                                 ShaderPropType.RenderQueue.opts,
+                                 ShaderPropType.RenderQueue.presetVals,
+                                 rqResolver.resolve(slotIdx));
 
 
                 ShaderType sdType = edited.type;
@@ -279,9 +284,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     setColorSlider(colProp.name, ref editColor, colProp.colorType);
                     if (editColor.val.Value != beforeColor) {
                         material.SetColor(colProp.propId, editColor.val.Value);
-                    }   
+                    }
                 }
-                
+
                 for (int i=0; i< sdType.fProps.Length; i++) {
                     var prop = sdType.fProps[i];
                     switch (prop.valType) {
@@ -295,7 +300,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                             SetupFloatSlider(prop.name, edited.editVals[i],
                                              fprop.sliderMin, fprop.sliderMax, 
                                              (val) => fprop.SetValue(material, val),
-                                              fprop.opts, fprop.presetVals);
+                                              fprop.opts, null, fprop.presetVals);
                             break;
                         case ValType.Bool:
                             // TODO チェックボックス
@@ -309,44 +314,38 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         }
             
         private void SetupFloatSlider(string label, EditValue edit, float sliderMin, float sliderMax,
-                                      Action<float> func, params float[] vals) {
-            SetupFloatSlider(label, edit, sliderMin, sliderMax, func, null, vals);
+                                      Action<float> func, float[] vals1, float[] vals2) {
+            SetupFloatSlider(label, edit, sliderMin, sliderMax, func, null, vals1, vals2);
         }
 
+        
         private void SetupFloatSlider(string label, EditValue edit, float sliderMin, float sliderMax,
-                                      Action<float> func, bool[] mulVals, params float[] vals) {
+                                      Action<float> func, PresetOperation[] presetOprs, float[] vals1, float[] vals2) {
             GUILayout.BeginHorizontal();
             GUILayout.Label(label, uiParams.lStyle, optItemHeight);
             GUILayout.Space(uiParams.marginL);
 
             bool changed = false;
-            for (int i=0; i< vals.Length; i++) {
-                string blabel = vals[i].ToString();
+            Action<float> preset = (val) =>  {
+                string blabel = val.ToString();
                 GUILayoutOption opt;
                 if (blabel.Length <= 1) opt = bWidthOpt;
                 else if (blabel.Length <= 3) opt = bWidthWOpt;
                 else opt = GUILayout.Width(baseWidth*0.5f*(blabel.Length+1));
                 if (GUILayout.Button(blabel, bStyleSS, opt)) {
-                    edit.Set( vals[i] );
+                    edit.Set( val );
                     changed = true;
                 }
-            }
-            if (mulVals != null && mulVals.Length >= 3) {
-                if (mulVals[0]) {
-                    if (GUILayout.Button("<", bStyleSS, bWidthOpt)) {
-                        edit.SetWithCheck(edit.val * 0.9f);
-                        changed = true;
-                    }
-                }
-                if (mulVals[1]) {
-                    if (GUILayout.Button(">", bStyleSS, bWidthOpt)) {
-                        edit.SetWithCheck(edit.val * 1.1f);
-                        changed = true;
-                    }
-                }
-                if (mulVals[2]) {
-                    if (GUILayout.Button("x-1", bStyleSS, bWidthWOpt)) {
-                        edit.Set(edit.val * -1f);
+            };
+
+            if (vals1 != null) foreach (float val in vals1) { preset(val); }
+            if (vals2 != null) foreach (float val in vals2) { preset(val); }
+            
+            if (presetOprs != null) {
+                foreach (var pset in presetOprs) {
+                    var widthOpt = (pset.label.Length == 1) ? bWidthOpt : bWidthWOpt;
+                    if (GUILayout.Button(pset.label, bStyleSS, widthOpt)) {
+                        edit.SetWithCheck(pset.func(edit.val));
                         changed = true;
                     }
                 }
@@ -374,7 +373,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     changed = true;
                 }
             }
-            if (GUILayout.Button("-", bStyleSS, bWidthOpt)) {                
+            if (GUILayout.Button("-", bStyleSS, bWidthOpt)) {
                 if (c.r < delta) c.r = 0;
                 else c.r -= delta;
                 if (c.g < delta) c.g = 0;
@@ -382,8 +381,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 if (c.b < delta) c.b = 0;
                 else c.b -= delta;
 
-                changed = true;                
-            }            
+                changed = true;
+            }
             if (GUILayout.Button("+", bStyleSS, bWidthOpt)) {
                 if (c.r + delta > 2.0f) c.r = 2;
                 else c.r += delta;
@@ -391,8 +390,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 else c.g += delta;
                 if (c.b + delta > 2.0f) c.b = 2;
                 else c.b += delta;
-                changed = true;                
-            }            
+                changed = true;
+            }
             GUILayout.EndHorizontal();
  
             int idx = 0;

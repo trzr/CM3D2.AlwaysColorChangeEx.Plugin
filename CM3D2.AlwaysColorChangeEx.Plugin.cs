@@ -731,14 +731,14 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         GUI.DragWindow(uiParams.titleBarRect);
     }
 
-    private List<ACCMaterialsView> InitMaterialView(Renderer r, string menufile) {
+    private List<ACCMaterialsView> InitMaterialView(Renderer r, string menufile, int slotIdx) {
         // TODO menufile
         
         var materials = r.materials;
         int idx = 0;
         var ret = new List<ACCMaterialsView>(materials.Length);
         foreach (Material material in materials) { 
-            var view = new ACCMaterialsView(r, material, idx++);
+            var view = new ACCMaterialsView(r, material, slotIdx, idx++);
                 view.tipsCall = SetTips;
             ret.Add(view);
 
@@ -797,7 +797,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                 var rendererer1 = holder.GetRenderer(slot);
                 if (rendererer1 != null) {
                     targetMaterials = rendererer1.materials;
-                    materialViews = InitMaterialView(rendererer1, menufile);
+                    materialViews = InitMaterialView(rendererer1, menufile, slot.CategoryIdx);
                 } else {
                     targetMaterials = EMPTY_ARRAY;
                 }
