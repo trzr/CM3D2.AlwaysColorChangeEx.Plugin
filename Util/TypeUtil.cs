@@ -6,7 +6,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
     /// </summary>
     public class TypeUtil
     {
-        public TypeUtil() { }
+        private TypeUtil() { }
         public const int BODY_START = (int)MPN_TYPE_RANGE.BODY_START;
         public const int BODY_END   = (int)MPN_TYPE_RANGE.BODY_END;
         public const int WEAR_START = (int)MPN_TYPE_RANGE.WEAR_START;

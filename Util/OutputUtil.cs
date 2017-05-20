@@ -104,7 +104,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             using (var dataStream = new MemoryStream())
                 using (var dataWriter = new BinaryWriter(dataStream)) {
                 int num2 = (int)reader.ReadInt32();
-                while (true) {
+                while (reader.PeekChar() != -1) {
                     int size = (int) reader.ReadByte();
                     if (size == 0) {
                         dataWriter.Write((byte)0);

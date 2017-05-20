@@ -8,6 +8,7 @@ using System.Text;
 using UnityEngine;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin
 {

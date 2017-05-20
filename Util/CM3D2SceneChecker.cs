@@ -15,25 +15,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             OH,
         }
 
-//    private enum TargetLevel {
-//        SceneCompetitiveShow = 2,    // 品評会
-//        SceneDaily = 3,              // 日常
-//        SceneDance_DDFL = 4,         // ダンス:ドキドキ☆Fallin' Love
-//        SceneEdit = 5,               // エディット
-//        SceneUserEdit = 12,          // 男エディット
-//        SceneYotogi = 14,            // 夜伽
-//        SceneADV = 15,               // ADVパート
-//        SceneStartDaily = 16,        // 
-//        SceneDance_ETYL = 20,        // ダンス:entrance to you
-//        SceneDance_SCL_Release = 22, // ダンス:scarlet leap
-//        SceneDeskCustomize     = 23, // デスクトップカスタマイズ
-//        SceneFreeModeSelect    = 24, // イベント回想
-//        SceneMaidBattle        = 25, // メイドバトル
-//        SceneDance_SMT_Release = 26, // ダンス:stellar my tears
-//        ScenePhotoMode = 27,         // 撮影モード
-//        SceneDance_RTY_Release = 28, // ダンス:rhythmix to you
-//    }
-// 29
         private static bool[]  SCENE_AVAILABLES = new bool[] {
             false, false, true,  true,  true,
             true,  false, false, true,  false,
@@ -54,7 +35,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         };
 
         private const bool DEFAULT_VAL = true;
-        public bool IsVR { get; private set; }
 
         private Mode mode = Mode.Normal;
         public Mode GetMode() {
@@ -73,17 +53,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                     return false;
                 };
         private readonly Func<int, bool> isStockOH = (level) => {  
-                    switch(level) {
+                    switch(level) { 
                         case 4: case 21:
                         return true;
                     }
-            return false;
+                    return false;
                 };
         public CM3D2SceneChecker() {
             IsTarget = isTargetNormal;
             IsStockTarget = isStockNormal;
         }
-        
         public void Init() {
             CheckMode();
             Settings settings = Settings.Instance;
@@ -127,7 +106,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
         }
 
-
         public void CheckMode() {
             var dataPath = Application.dataPath;
             if (dataPath.StartsWith("CM3D2OH", StringComparison.OrdinalIgnoreCase)) {
@@ -141,7 +119,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 IsTarget = isTargetNormal;
                 IsStockTarget = isStockNormal;
             }
-            IsVR = (dataPath.Contains("VRx64"));
+
         }
     }
 }

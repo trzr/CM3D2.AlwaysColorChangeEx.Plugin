@@ -76,7 +76,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             return false;
         }
 
-        private static int BUFFER_SIZE = 8192;
+        private const int BUFFER_SIZE = 8192;
         // 外部DLL依存
         // 一旦バイト配列にロードすることなくStreamオブジェクトとして参照可能とする
         public Stream GetStream(string filename) {
@@ -296,7 +296,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             }
             
             // morph
-            while (true) {
+            while (reader.PeekChar() != -1) {
                 string name = reader.ReadString();
                 writer.Write(name);
                 if (name == "end") break;
@@ -370,7 +370,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             //var matType = trgtMat.editedMat.type1;
             var shaderType = trgtMat.editedMat.type;
             var writed = new HashSet<PropKey>();
-            while(true) {
+            while(reader.PeekChar() != -1) {
                 string type = reader.ReadString();
                 //writer.Write(type);
                 if (type == "end") break;

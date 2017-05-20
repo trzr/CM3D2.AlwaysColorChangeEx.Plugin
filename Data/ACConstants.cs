@@ -92,7 +92,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 //        public static readonly Dictionary<int, SlotInfo> MaskSlots = new Dictionary<int, SlotInfo>(Enum.GetNames(typeof(TBody.SlotID)).Length);
 
         public static readonly Dictionary<string, NodeItem> NodeNames = new Dictionary<string, NodeItem>() {
-            {"Bip01 Head",         new NodeItem("頭", 0, TBody.SlotID.accHead,TBody.SlotID.headset) },
+            {"Bip01 Head",         new NodeItem("頭", 0, TBody.SlotID.accHead,TBody.SlotID.headset, TBody.SlotID.hairT,  TBody.SlotID.hairF,  TBody.SlotID.hairR,  TBody.SlotID.hairS,  TBody.SlotID.hairAho) },
             {"Bip01 Neck_SCL_",    new NodeItem("首", 0, TBody.SlotID.accKubi, TBody.SlotID.accKubiwa) },
             {"Mune_L_sub",         new NodeItem("左胸上", 1, TBody.SlotID.bra, TBody.SlotID.mizugi, TBody.SlotID.wear, TBody.SlotID.onepiece)},
             {"Mune_L",             new NodeItem("左胸下", 2, TBody.SlotID.bra, TBody.SlotID.mizugi, TBody.SlotID.wear, TBody.SlotID.onepiece) },
