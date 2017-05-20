@@ -87,7 +87,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                     throw new ACCException(msg.ToString());
                 }
 
-                // if (aFileBase.GetSize() < BUFFER_SIZE) {                
+                // if (aFileBase.GetSize() < BUFFER_SIZE) {
                 return new BufferedStream(new FileBaseStream(aFileBase), BUFFER_SIZE);
             } catch (ACCException) {
                 throw;
@@ -113,6 +113,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 throw new ACCException(msg.ToString(), e);
             }
         }
+
         public byte[] LoadInternal(string filename) {
             try {
                 using (AFileBase aFileBase = global::GameUty.FileOpen(filename)) {
@@ -129,15 +130,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 throw new ACCException(msg.ToString(), e);
             }
         }
+
         public Texture2D LoadTexture(string filename) {
-            byte[] data = ImportCM.LoadTexture(filename);
-            var tex2d = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-            tex2d.LoadImage(data);
+            var tex2d = TexUtil.Instance.Load(filename);
             tex2d.name = Path.GetFileNameWithoutExtension(filename);
             tex2d.wrapMode = TextureWrapMode.Clamp;
 
             return tex2d;
         }
+
         public Texture2D LoadTexture(Stream stream) {
             var bytes = new byte[stream.Length];
             stream.Read(bytes, 0, bytes.Length);
@@ -580,8 +581,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         public void CopyTex(string infile, string outfilepath, string txtpath, TextureModifier.FilterParam filter) 
         {
             // テクスチャをロードし、フィルタを適用
-            var srcTex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-            srcTex.LoadImage( ImportCM.LoadTexture(infile) );
+            var srcTex = TexUtil.Instance.Load(infile);
             Texture2D dstTex;
             dstTex = (filter != null) ? ACCTexturesView.Filter(srcTex, filter) : srcTex;
 

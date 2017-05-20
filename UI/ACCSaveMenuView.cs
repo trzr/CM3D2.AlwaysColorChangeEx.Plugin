@@ -770,13 +770,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                             Texture2D loadedTex   = null;
                             Texture2D filteredTex = null;
                             if (!tex.fileChanged) { // texファイル変更済の場合はロードされたデータ済みから出力（そのままtex2dを使用)
-                                loadedTex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
                                 string texfile = tex.workfilename + FileConst.EXT_TEXTURE;
                                 if (!fileUtil.Exists(texfile)) {
                                     LogUtil.LogF("リソース参照で使用されているtexファイル({0})が見つかりません。texファイルを出力できません。", texfile);
                                     continue;
                                 }
-                                loadedTex.LoadImage( ImportCM.LoadTexture(texfile) );
+                                loadedTex = TexUtil.Instance.Load(texfile);
                                 tex2d = loadedTex;
                             }
 
