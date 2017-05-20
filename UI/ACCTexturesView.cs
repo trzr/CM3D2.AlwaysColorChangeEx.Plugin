@@ -129,7 +129,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             Texture2D tex = null;
             if (outUtil.Exists(texfile)) {
                 tex = outUtil.LoadTexture(texfile);
-                CM3D2.AlwaysColorChangeEx.Plugin.Util.TextureScale.Bilinear(tex, 100, 5); // サイズ変更
+                TextureScale.Bilinear(tex, 100, 5); // サイズ変更
                 //TextureScale.Bilinear(tex, 84, 4);
                 //TextureScale.Bilinear(tex, 126, 7);
             }

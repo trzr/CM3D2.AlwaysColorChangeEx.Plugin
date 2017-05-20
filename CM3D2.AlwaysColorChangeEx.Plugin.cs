@@ -159,7 +159,6 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
 
         checker.Init();
         
-        MigratePresets();
         LoadPresetList();
         uiParams.Update();
 
@@ -1487,32 +1486,6 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
             }
         } catch(Exception e) {
             LogUtil.Debug(e);
-        }
-    }
-    /// <summary>
-    /// 旧版のプリセットXMLを読み込み、JSONファイル形式で出力する
-    /// あくまで互換性のためであり、通常は不要機能
-    /// </summary>
-    private void MigratePresets() {
-        // 新版のディレクトリがある場合はスキップ 
-        if (Directory.Exists(settings.presetDirPath)) return;
-
-        // 旧設定ファイルパスからXMLファイルの存在確認
-        var oldXml = settings.presetPath ?? Path.Combine(DataPath, "AlwaysColorChangeEx.xml");
-        if (File.Exists(oldXml)) {
-            var presets = presetMgr.LoadXML(oldXml);
-            if (presets == null) return;
-
-            Directory.CreateDirectory(settings.presetDirPath);
-
-            try {
-                foreach(var preset in presets) {
-                    var filepath = presetMgr.GetPresetFilepath(preset.Key);
-                    presetMgr.SavePreset(filepath, preset.Value);
-                }
-            } catch(Exception e) {
-                LogUtil.Log("旧版のプリセットファイルの移行に失敗しました", e);
-            }
         }
     }
 
