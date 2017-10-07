@@ -103,6 +103,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             foreach (var s in shaders) {
                 shaderMap[s.name] = s;
             };
+            shaderMap["Legacy Shaders/Transparent/Diffuse"] = shaderMap["Transparent/Diffuse"];
+            shaderMap["Legacy Shaders/Diffuse"] = shaderMap["Diffuse"];
             shader2Map = new Dictionary<string, string>(shaders.Length);
             foreach (var s in shaders) {
                 shader2Map[s.name] = s.name.Replace("/", "__");

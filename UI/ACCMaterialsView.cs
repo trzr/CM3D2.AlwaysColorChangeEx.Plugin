@@ -185,6 +185,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 } finally {
                     GUILayout.EndHorizontal();
                 }
+                if (edited.type == ShaderType.UNKNOWN) {
+                    GUILayout.Label("shader:" + edited.material.shader.name);
+                    return;
+                }
 
                 GUILayout.BeginHorizontal();
                 try {

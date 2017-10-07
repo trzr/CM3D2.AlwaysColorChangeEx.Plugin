@@ -190,7 +190,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             this.type = ShaderType.Resolve(m.shader.name);
             this.original = Load(m, type);
             this.edited = new List<ACCTexture>(original.Count);
-            foreach ( ACCTexture tex in original ) {
+            foreach ( var tex in original ) {
                 edited.Add(new ACCTexture(tex));
             }
 

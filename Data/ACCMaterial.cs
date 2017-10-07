@@ -51,7 +51,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             // TODO 配列の中身はディープコピーとする 
             this.editColors = src.editColors;
             this.editVals = src.editVals;
-            
         }
 
         
@@ -60,7 +59,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             this.renderer = r;
             name = m.name;
             type = ShaderType.Resolve(m.shader.name);
-            if (type == ShaderType.UNKNOWN) throw new Exception("ShaderType has not found:" + m.shader.name);
+            if (type == ShaderType.UNKNOWN) {
+                return;
+                //throw new Exception("ShaderType has not found:" + m.shader.name);
+            }
 
             renderQueue.Set( m.renderQueue );
 
@@ -142,7 +144,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             // TODO 変更前のマテリアルから設定値をロード
 
 
-            // 同一長の場合でも更新（Alphaの有無が異なるケースがある）            
+            // 同一長の場合でも更新（Alphaの有無が異なるケースがある）
             var colProps = sdrType.colProps;
             var createdColors = new EditColor[colProps.Length];
             for (int i=0; i<colProps.Length; i++) {

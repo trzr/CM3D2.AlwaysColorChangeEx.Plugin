@@ -25,32 +25,27 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
         private Func<string, Texture2D> CreateTex;
         /// <summary>
         /// 1.49より前の版向けにAPI参照可否でdelegatorを作成
-        /// 旧版向けの互換性のための処置
+        /// 旧版向け(互換性)のための処置
         /// </summary>
         private TexUtil() {
             Type typeObj = typeof(ImportCM);
             try {
                 var method = typeObj.GetMethod("LoadTexture", new [] { typeof(string) });
                 if (method != null) {
-
                     if (method.ReturnType == typeof(Byte[])) {
                         LoadTex = (Func<string, byte[]>)Delegate.CreateDelegate(typeof(Func<string, byte[]>), method);
+                        LogUtil.Debug("using old mode (tex access API)");
                     }
                 }
             }catch(Exception e) {
-                LogUtil.Debug(e);
+                LogUtil.Error("failed to initialize tex access API", e);
             }
             if (LoadTex == null) {
-                try {
-                    var method = typeObj.GetMethod("CreateTexture", new[] { typeof(string) });
-                    if (method != null) {
-
-                        if (method.ReturnType == typeof(Texture2D)) {
-                            CreateTex = (Func<string, Texture2D>)Delegate.CreateDelegate(typeof(Func<string, Texture2D>), method);
-                        }
+                var method = typeObj.GetMethod("CreateTexture", new[] { typeof(string) });
+                if (method != null) {
+                    if (method.ReturnType == typeof(Texture2D)) {
+                        CreateTex = (Func<string, Texture2D>)Delegate.CreateDelegate(typeof(Func<string, Texture2D>), method);
                     }
-                } catch (Exception e) {
-                    LogUtil.Debug(e);
                 }
             }
         }
