@@ -125,13 +125,24 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 return itemNames;
             }
         }
+        // 108x6
+        private const int IMG_WIDTH = 90;
+        private const int IMG_HEIGHT = 5;
         private static Texture2D load(string texfile) {
             Texture2D tex = null;
             if (outUtil.Exists(texfile)) {
-                tex = outUtil.LoadTexture(texfile);
-                TextureScale.Bilinear(tex, 100, 5); // サイズ変更
-                //TextureScale.Bilinear(tex, 84, 4);
-                //TextureScale.Bilinear(tex, 126, 7);
+                LogUtil.Debug("load tex:", texfile);
+                try {
+                    tex = outUtil.LoadTexture(texfile);
+                    // サイズ変更
+                    if (tex.width <= 1 || tex.height <= 1) {
+                        TextureScale.Point(tex, IMG_WIDTH, IMG_HEIGHT);
+                    } else {
+                        TextureScale.Bilinear(tex, IMG_WIDTH, IMG_HEIGHT);
+                    }
+                } catch (Exception e) {
+                    LogUtil.Debug(e);
+                }
             }
             return tex;
         }
