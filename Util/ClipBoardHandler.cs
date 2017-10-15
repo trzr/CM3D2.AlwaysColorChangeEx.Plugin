@@ -8,6 +8,8 @@ using UnityEngine;
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 {
     /// <summary>
+    /// クリップボードハンドラ
+    /// 現版では、マテリアル情報用
     /// </summary>
     public class ClipBoardHandler
     {
