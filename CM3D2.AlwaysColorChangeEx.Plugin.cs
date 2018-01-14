@@ -248,6 +248,20 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         }
     }
 
+    private void UpdateSelectMaid() {
+        InitMaidList();
+        if (maidList.Count == 1) {
+            var maid = maidList[0].maid;
+            var name = maidList[0].content.text;
+            holder.UpdateMaid(maid, name, ClearMaidData);
+
+            SetMenu(MenuType.Main);
+        } else {
+            SetMenu(MenuType.MaidSelect);
+            uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectMaid, Version, uiParams.winStyle);
+        }
+    }
+
     public void OnGUI()
     {
         if (!isActive) return;
@@ -258,8 +272,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         if (Event.current.type == EventType.Layout) {
             if (!holder.CurrentActivated()) {
                 // メイド未選択、あるいは選択中のメイドが無効化された場合
-                SetMenu(MenuType.MaidSelect);
-                uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectMaid, Version, uiParams.winStyle);
+                        UpdateSelectMaid();
 
             } else if (ACCTexturesView.fileBrowser != null) {
                 uiParams.fileBrowserRect = GUI.Window(WINID_DIALOG, uiParams.fileBrowserRect, DoFileBrowser, Version, uiParams.winStyle);
@@ -731,8 +744,9 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         int idx = 0;
         var ret = new List<ACCMaterialsView>(materials.Length);
         foreach (Material material in materials) { 
-            var view = new ACCMaterialsView(r, material, slotIdx, idx++);
-                view.tipsCall = SetTips;
+            var view = new ACCMaterialsView(r, material, slotIdx, idx++) {
+                tipsCall = SetTips
+            };
             ret.Add(view);
 
             // マテリアル数が少ない場合はデフォルトで表示
