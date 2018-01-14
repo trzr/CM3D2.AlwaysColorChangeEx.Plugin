@@ -117,6 +117,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public float? rimShift;
         public float? hiRate;
         public float? hiPow;
+        public float? cutoff;
         public float? floatVal1;
         public float? floatVal2;
         public float? floatVal3;
@@ -169,6 +170,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         break;
                     case PropKey._HiPow:
                         hiPow = fVal;
+                        break;
+                    case PropKey._Cutoff:
+                        cutoff = fVal;
                         break;
                     case PropKey._FloatValue1:
                         floatVal1 = fVal;
@@ -234,6 +238,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         break;
                     case PropKey._HiPow:
                         fVal = hiPow;
+                        break;
+                    case PropKey._Cutoff:
+                        fVal = cutoff;
                         break;
                     case PropKey._FloatValue1:
                         fVal = floatVal1;

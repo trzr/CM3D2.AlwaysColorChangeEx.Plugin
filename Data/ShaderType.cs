@@ -76,6 +76,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             var propEmpty = new ShaderPropFloat[0];
             var propL     = new ShaderPropFloat[]{ShaderPropType.Shininess, };
             var propTL    = new ShaderPropFloat[]{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, };
+            var propTLC   = new ShaderPropFloat[]{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.Cutoff, };
             var propTLO   = new ShaderPropFloat[]{ShaderPropType.Shininess, ShaderPropType.OutlineWidth, ShaderPropType.RimPower, ShaderPropType.RimShift, };
             var propTLH   = new ShaderPropFloat[]{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.HiRate, ShaderPropType.HiPow};
             var propTLHO  = new ShaderPropFloat[]{ShaderPropType.Shininess, ShaderPropType.OutlineWidth, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.HiRate, ShaderPropType.HiPow};
@@ -83,7 +84,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             ShaderType.count = 0;
             shaders = new ShaderType[] {
                 new ShaderType("CM3D2/Toony_Lighted", "トゥーン",                          texType1,  colTL,   propTL ),
-                new ShaderType("CM3D2/Toony_Lighted_Trans",　"トゥーン 透過",              texType1a, colTLa,  propTL, true ),
+                new ShaderType("CM3D2/Toony_Lighted_Trans",　"トゥーン 透過",              texType1a, colTLa,  propTLC, true ),
                 new ShaderType("CM3D2/Toony_Lighted_Trans_NoZ",　"トゥーン 透過 NoZ",      texType1a, colTLa,  propTL, true ),
                 new ShaderType("CM3D2/Toony_Lighted_Outline","トゥーン 輪郭線",            texType1,  colTLO,  propTLO ),
                 new ShaderType("CM3D2/Toony_Lighted_Outline_Trans","トゥーン 輪郭線 透過", texType1a, colTLOa, propTLO, true ),

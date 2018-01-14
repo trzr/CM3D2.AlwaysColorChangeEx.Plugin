@@ -176,7 +176,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 Parallax         = new ShaderPropFloat(PropKey._Parallax, "F4",
                                                        new float[] {0.005f, 0.08f, 0.001f, 0.1f}, PRESET_RATIO, 0.02f, 0.02f);
                 Cutoff           = new ShaderPropFloat(PropKey._Cutoff, "F3",
-                                                       new float[] {0f, 1f, 0f, 1f}, PRESET_RATIO, 0.5f, 0.5f);
+                                                       new float[] {0f, 1f, 0f, 1f}, PRESET_RATIO, 0f, 0f, 0.5f, 1f);
                 EmissionLM       = new ShaderPropBool(PropKey._EmissionLM);
                 UseMulticolTex   = new ShaderPropBool(PropKey._UseMulticolTex);
 
