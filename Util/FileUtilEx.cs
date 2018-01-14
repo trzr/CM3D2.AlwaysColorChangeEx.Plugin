@@ -399,7 +399,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                         trgtMat.texDic.TryGetValue(shaderProp.key, out trgtTex);
                         if (trgtTex == null || trgtTex.tex == null || trgtTex.fileChanged || trgtTex.colorChanged) {
                             // 変更がある場合にのみ書き換え (空のものはnull指定)
-                            trgtTex.worksuffix = trgtMat.worksuffix;
+                            if (trgtTex != null) trgtTex.worksuffix = trgtMat.worksuffix;
                             string srcfile = null;
                             TransferMateProp(reader, null, type, null, ref srcfile);
                             if (trgtTex != null) trgtTex.workfilename = srcfile;
