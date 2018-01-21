@@ -25,7 +25,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
      PluginFilter("CM3D2OHx64"),
      PluginFilter("CM3D2OHVRx64"),
      PluginName("CM3D2_ACCex"),
-     PluginVersion("0.2.9.10")]
+     PluginVersion("0.2.10.1")]
     class AlwaysColorChangeEx : UnityInjector.PluginBase
     {
         public static volatile string PluginName;
