@@ -159,7 +159,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
 
                 if (mpn.filename.EndsWith("_del.menu", StringComparison.OrdinalIgnoreCase)) {
                     if (castoff) {
-                        maid.SetProp(mpn.name, mpn.filename, 0, false);
+                        if (SetProp != null) SetProp(maid, mpn.name, mpn.filename, 0);
+                        else LogUtil.Error("failed to apply preset. mpn=", mpn.name);
                     }
                     continue;
                 // } else if (mpn.filename.EndsWith(".mod", StringComparison.OrdinalIgnoreCase)) {
@@ -167,7 +168,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 // menuファイルが存在しない場合はスキップ
                 if (!fileUtil.Exists(mpn.filename)) continue;
 
-                maid.SetProp(mpn.name, mpn.filename, 0, false);
+                if (SetProp != null) SetProp(maid, mpn.name, mpn.filename, 0);
+                else LogUtil.Error("failed to apply preset. mpn=", mpn.name);
             }
 
             if (applyBody) {
@@ -279,6 +281,38 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                     LogUtil.Debug(e);
                 }
             }
+        }
+        private static Action<Maid, MPN, string, int> SetProp;
+        static PresetManager()
+        {
+            Type typeObj = typeof(Maid);
+            // 1.56以降
+            var method = typeObj.GetMethod("SetProp", new[] { typeof(MPN), typeof(string), typeof(int), typeof(bool), typeof(bool) });
+            if (method != null) {
+                SetProp = (maid, mpn, str, id) => {
+                    method.Invoke(maid, new object[] { mpn, str, id, false, false });
+                };
+                return;
+            }
+            // 1.xx　～ 1.55.1
+            method = typeObj.GetMethod("SetProp", new[] { typeof(MPN), typeof(string), typeof(int), typeof(bool), });
+            if (method != null) {
+                SetProp = (maid, mpn, str, id) => {
+                    method.Invoke(maid, new object[] { mpn, str, id, false, });
+                };
+                return;
+            }
+
+            // 1.xx 以前
+            method = typeObj.GetMethod("SetProp", new[] { typeof(MPN), typeof(string), typeof(int), });
+            if (method != null) {
+                SetProp = (maid, mpn, str, id) => {
+                    method.Invoke(maid, new object[] { mpn, str, id, });
+                };
+                return;
+            }
+
+            LogUtil.Error("failed to load Maid#SetProp method. Preset-feature dose not work properly. please rebuild dll! ");
         }
     }
 }
