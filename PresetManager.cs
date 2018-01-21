@@ -26,9 +26,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
         private FileUtilEx fileUtil = FileUtilEx.Instance;
 
         public string GetPresetFilepath(string presetName) {
-
             return Path.Combine(settings.presetDirPath, presetName + FileConst.EXT_JSON);
         }
+
         public PresetData Load(string fileName) {
             // ファイル読み込み
             try {
@@ -36,7 +36,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                     var reader = new JsonFx.Json.JsonReader(fs);
                     return (PresetData)reader.Deserialize(typeof(PresetData));
                 }
-            } catch(Exception e) {
+            } catch (Exception e) {
                 LogUtil.Log("ACCプリセットの読み込みに失敗しました", e);
                 return null;
             }
@@ -178,8 +178,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                     var mp = maid.GetProp(mpn.name);
                     if (mp != null) {
                         mp.value = mpn.value;
-                        if (mp.min > mpn.min)  {mp.min = mpn.min;}
-                        if (mp.max < mpn.max)  {mp.max = mpn.max;}
+                        if (mp.min > mpn.min)  { mp.min = mpn.min; }
+                        if (mp.max < mpn.max)  { mp.max = mpn.max; }
                     } else {
                         LogUtil.Debug("failed to apply MaidProp. mpn:", mpn.name);
                     }
@@ -193,15 +193,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 var mp = maid.GetProp(mpn.name);
                 if (mp != null) {
                     mp.value = mpn.value;
-                    if (mp.min > mpn.min)  {mp.min = mpn.min;}
-                    if (mp.max < mpn.max)  {mp.max = mpn.max;}
+                    if (mp.min > mpn.min)  { mp.min = mpn.min; }
+                    if (mp.max < mpn.max)  { mp.max = mpn.max; }
                 } else {
                     LogUtil.Debug("failed to apply MaidProp. mpn:", mpn.name);
                 }
             }
         }
-        public void ApplyPresetMaterial(Maid maid, PresetData preset) 
-        {
+
+        public void ApplyPresetMaterial(Maid maid, PresetData preset) {
             if (maid == null) maid = holder.currentMaid;
             if (maid == null) return;
 
@@ -218,7 +218,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 if (!materials.Any()) continue; // 未装着スロットはスキップ
 
                 var slotName = ccslot.id.ToString();
-                int matNo=-1;
+                int matNo = -1;
                 foreach (CCMaterial cmat in ccslot.materials) {
                     if (++matNo < materials.Length) {
                         Material m = materials[matNo];
@@ -272,16 +272,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
         }
         // disable once MemberCanBeMadeStatic.Local
         public void ApplyPresetPartsColor(Maid maid, PresetData preset) {
-            foreach(var pc in preset.partsColors) {
+            foreach (var pc in preset.partsColors) {
                 MaidParts.PARTS_COLOR partsColor;
                 try {
                     partsColor = (MaidParts.PARTS_COLOR)Enum.Parse(typeof(MaidParts.PARTS_COLOR), pc.Key);
                     maid.Parts.SetPartsColor(partsColor, pc.Value.toStruct());
-                } catch(ArgumentException e) {
+                } catch (ArgumentException e) {
                     LogUtil.Debug(e);
                 }
             }
         }
+
         private static Action<Maid, MPN, string, int> SetProp;
         static PresetManager()
         {
@@ -294,7 +295,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
                 };
                 return;
             }
-            // 1.xx　～ 1.55.1
+            // 1.xx ～ 1.55.1
             method = typeObj.GetMethod("SetProp", new[] { typeof(MPN), typeof(string), typeof(int), typeof(bool), });
             if (method != null) {
                 SetProp = (maid, mpn, str, id) => {
