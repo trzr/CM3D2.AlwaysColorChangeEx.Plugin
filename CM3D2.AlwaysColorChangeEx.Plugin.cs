@@ -14,6 +14,7 @@ using UnityInjector.Attributes;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
+using CM3D2.AlwaysColorChangeEx.Plugin.Render;
 
 [assembly: AssemblyVersion("1.0.*")]
 namespace CM3D2.AlwaysColorChangeEx.Plugin {
@@ -59,6 +60,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         PresetSelect,
         Texture,
         MaidSelect,
+        BoneSlotSelect,
     }
     private const string TITLE_LABEL = "ACCex : ";
     private const int WINID_MAIN   = 20201;
@@ -128,10 +130,16 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     private List<ACCMaterialsView> materialViews;
     private List<ACCTexturesView> texViews;
     private ACCSaveMenuView saveView;
+    // BoneRender
+    private CustomBoneRenderer boneRenderer;
+    private int selectedSlotID = 0;
+    private bool boneVisible = false;
+    private string[] slotNames;
     #endregion
 
     public AlwaysColorChangeEx() {
         plugin = this;
+        slotNames = CreateSlotNames();
     }
 
     #region MonoBehaviour methods
@@ -164,6 +172,9 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
 
         // Initialize
         ShaderPropType.Initialize();
+        //GameObject go = new GameObject("BoneRenderer");
+        //boneRenderer = go.AddComponent<CustomBoneRenderer>();
+        boneRenderer = new CustomBoneRenderer();
     }
 
     public void OnDestroy() 
@@ -179,6 +190,7 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
     {
         fPassedTime = 0f;
         bUseStockMaid = false;
+        if (boneRenderer != null) boneRenderer.Clear();
  
         if ( !checker.IsTarget(level) ) {
             if (isActive) {
@@ -224,7 +236,8 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
 
         // 選択中のメイドが有効でなければ何もしない
         if (!holder.CurrentActivated()) return;
-        
+        if (boneRenderer != null) boneRenderer.Update();
+
         if (toApplyPresetMaid != null && !toApplyPresetMaid.IsBusy) {
             var targetMaid = toApplyPresetMaid;
             toApplyPresetMaid = null;
@@ -302,6 +315,9 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                         break;
                     case MenuType.Texture:
                         uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectTexture, Version, uiParams.winStyle);
+                        break;
+                    case MenuType.BoneSlotSelect:
+                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectBoneSlot, Version, uiParams.winStyle);
                         break;
                     case MenuType.MaidSelect:
                         uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectMaid, Version, uiParams.winStyle);
@@ -428,6 +444,11 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         ResourceHolder.Instance.Clear();
             //OnDestroy();
 
+        if (boneRenderer != null) {
+            boneRenderer.Clear();
+            //UnityEngine.Object.Destroy(boneRenderer);
+            boneRenderer = null;
+        }
         initialized = false;
     }
 
@@ -664,6 +685,14 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
                     if (GUILayout.Button("プリセット適用", uiParams.bStyle, uiParams.optSubConHalfWidth)) {
                         SetMenu(MenuType.PresetSelect);
                     }
+                }
+            } finally {
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.BeginHorizontal();
+            try {
+                if (GUILayout.Button("ボーン表示", uiParams.bStyle, uiParams.optSubConHalfWidth)) {
+                    SetMenu(MenuType.BoneSlotSelect);
                 }
             } finally {
                 GUILayout.EndHorizontal();
@@ -1511,6 +1540,134 @@ class AlwaysColorChangeEx : UnityInjector.PluginBase
         }
 
         GUI.DragWindow(uiParams.titleBarRect);
+    }
+    private string[] CreateSlotNames()
+    {
+        var slotNames = Enum.GetNames(typeof(TBody.SlotID));
+        int max = (int)TBody.SlotID.moza;
+        var items = new string[max];
+        int idx = 0;
+        foreach (string slot in slotNames) {
+            if (idx >= max) break;
+            items[idx++] = slot;
+        }
+        LogUtil.Debug("slotNames", items);
+        return items;
+    }
+
+    private void DoSelectBoneSlot(int winID)
+    {
+        GUILayout.BeginVertical();
+        GUILayoutOption titleWidth = GUILayout.Width(uiParams.fontSize * 20f);
+        GUILayoutOption lStateWidth = GUILayout.Width(uiParams.fontSize * 4f);
+        GUILayoutOption titleHeight = GUILayout.Height(uiParams.titleBarRect.height);
+        try {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("ボーン表示用スロット 選択", uiParams.lStyleB, titleWidth, titleHeight);
+            //GUILayout.Space(uiParams.margin);
+            GUILayout.EndHorizontal();
+
+            if (holder.currentMaid == null) return;
+            var maid = holder.currentMaid;
+            if (holder.currentMaid.IsBusy) {
+                GUILayout.Space(100);
+                GUILayout.Label("変更中...", uiParams.lStyleB);
+                GUILayout.Space(uiParams.colorRect.height - 105);
+                return;
+            }
+            if (boneRenderer.IsEnabled()) {
+                // 選択メイドが変更された場合に一旦クリア
+                if (boneRenderer.TargetId != maid.GetInstanceID()) {
+                    boneRenderer.Clear();
+                    boneVisible = false;
+                }
+            } else {
+                boneVisible = false;
+            }
+
+            if ((int)TBody.SlotID.end - 1 > holder.currentMaid.body0.goSlot.Count) return;
+
+            float width = uiParams.colorRect.width - 30;
+            float height = uiParams.winRect.height - uiParams.itemHeight * 2.6f - uiParams.titleBarRect.height;
+            var toggleWidth = GUILayout.Width(width * 0.4f);
+            var otherWidth = GUILayout.Width(width * 0.6f);
+            GUILayout.BeginHorizontal();
+            try {
+                TBodySkin slot = null;
+                bool enabled = selectedSlotID != -1;
+                if (enabled) {
+                    slot = holder.currentMaid.body0.goSlot[selectedSlotID];
+                    enabled = (slot.obj != null && slot.morph != null);
+                }
+                GUI.enabled = enabled;
+                Color? bkBgColor = null;
+                Color? bkCntColor = null;
+                string buttonText;
+                if (boneVisible) {
+                    bkBgColor = GUI.backgroundColor;
+                    bkCntColor = GUI.contentColor;
+                    GUI.backgroundColor = Color.green;
+                    GUI.contentColor    = Color.white;
+                    buttonText = "ボーン表示";
+                } else {
+                    buttonText = "ボーン非表示";
+                }
+                if (GUILayout.Button(buttonText, uiParams.bStyle, uiParams.optBtnHeight, toggleWidth)) {
+                    boneVisible = !boneVisible;
+                    boneRenderer.SetVisible(boneVisible);
+                    if (boneVisible && !boneRenderer.IsEnabled() && slot != null) {
+                        boneRenderer.Setup(slot.obj.transform);
+                        boneRenderer.TargetId = maid.GetInstanceID();
+                    }
+                }
+                if (bkBgColor.HasValue) {
+                    GUI.backgroundColor = bkBgColor.Value;
+                    GUI.contentColor = bkCntColor.Value;
+                }
+            } finally {
+                GUI.enabled = true;
+                GUILayout.EndHorizontal();
+            }
+            scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition,
+                                                           GUILayout.Width(uiParams.colorRect.width),
+                                                           GUILayout.Height(height));
+            try {
+
+                for (int i = 0; i < slotNames.Length; i++) {
+                    GUILayout.BeginHorizontal();
+                    try {
+                        var slotItem = maid.body0.goSlot[i];
+                        bool slotEnabled = (slotItem.obj != null && slotItem.morph != null);
+                        GUI.enabled = slotEnabled;
+                        bool selected = (i == selectedSlotID);
+                        bool ret = GUILayout.Toggle(selected, slotNames[i], uiParams.tStyleS, toggleWidth);
+                        if (ret && !selected) {
+                            selectedSlotID = i;
+                            boneRenderer.Setup(slotItem.obj.transform);
+                            boneRenderer.TargetId = maid.GetInstanceID();
+                        }
+                        GUI.enabled = true;
+
+                        if (slotEnabled) {
+                            var modelName = slotItem.m_strModelFileName;
+                            if (modelName == null) modelName = "";
+                            GUILayout.Label(modelName, uiParams.lStyleS, otherWidth);
+                        }
+                    } finally {
+                        GUILayout.EndHorizontal();
+                    }
+                }
+
+            } finally {
+                GUI.EndScrollView();
+            }
+        } finally {
+            GUILayout.EndVertical();
+            if (GUILayout.Button("閉じる", uiParams.bStyle, uiParams.optSubConWidth, uiParams.optBtnHeight)) {
+                SetMenu(MenuType.Main);
+            }
+            GUI.DragWindow(uiParams.titleBarRect);
+        }
     }
 }
 
