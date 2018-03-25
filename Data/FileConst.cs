@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// <summary>
     /// ファイル、ファイル名に関する定数を扱うクラス.
     /// </summary>
-    public static class FileConst
-    {
+    public static class FileConst {
         #region Constants
         public const string HEAD_MENU  = "CM3D2_MENU";
         public const string HEAD_MOD   = "CM3D2_MOD";
@@ -36,23 +34,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             return filename.IndexOfAny(INVALID_FILENAMECHARS) > -1;
         }
 
-        public readonly static Dictionary<string, string> SuffixDic = new Dictionary<string, string>() {
+        public static readonly Dictionary<string, string> SuffixDic = new Dictionary<string, string>() {
             {"パンツずらし",     "_zurashi"},
             {"めくれスカート",    "_mekure"},
             {"めくれスカート後ろ", "_mekure_back"},
             {"半脱ぎ",        "_mekure_nugi"},
         };
-        public static int SuffixUnknownCount = 0;
+        public static int SuffixUnknownCount;
 
         public static string GetResSuffix(string key) {
             string suffix;
-            if (!FileConst.SuffixDic.TryGetValue(key, out suffix)) {
-                suffix = settings.resSuffix + (++FileConst.SuffixUnknownCount);
-                FileConst.SuffixDic[key] = suffix;
-            }
+            if (SuffixDic.TryGetValue(key, out suffix)) return suffix;
+            suffix = settings.resSuffix + (++SuffixUnknownCount);
+            SuffixDic[key] = suffix;
             return suffix;
         }
-        public readonly static Dictionary<string, string> TexSuffix = 
+
+        public static readonly Dictionary<string, string> TexSuffix = 
             new Dictionary<string, string>() {
             {"_MainTex",       ""},
             {"_ToonRamp",       "_toon"},
@@ -60,14 +58,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             {"_ShadowRateToon", "_rate"},
             {"_HiTex", "_s"},
         };
+
         public static string GetTexSuffix(string propName) {
             string suffix;
             return TexSuffix.TryGetValue(propName, out suffix) ? suffix : "";
         }
+
         public static string GetModelSuffix(string propName) {
             string suffix;
             return modelSuffix.TryGetValue(propName, out suffix) ? suffix : "";
         }
+
         private static readonly Dictionary<string, string> modelSuffix = new Dictionary<string, string> {
             {TBody.SlotID.body.ToString(),      "_body"},
             {TBody.SlotID.head.ToString(),      "_head"},

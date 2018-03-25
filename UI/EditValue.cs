@@ -1,12 +1,9 @@
-﻿using System;
-
-namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
-{
+﻿
+namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
     /// <summary>
     /// Description of EditValue.
     /// </summary>
-    public class EditValue
-    {
+    public class EditValue {
         public bool isSync;
         public float val;
 
@@ -14,15 +11,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         internal EditRange range;
         
         internal EditValue(float val1, EditRange attr) {
-            this.range = attr;
+            range = attr;
             Set( val1 );
         }
         public EditValue(float val1, string format, float min, float max) {
-            this.range = new EditRange(format, min, max);
+            range = new EditRange(format, min, max);
             Set( val1 );
         }
         public void Set(float val1) {
-            this.val = val1;
+            val = val1;
             editVal = val.ToString(range.format);
             isSync = true;
         }
@@ -48,7 +45,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
     }
     public class EditRange {
         static Settings settings = Settings.Instance;
-        public static readonly EditRange renderQueue = new EditRange("F0", 0, 5000f);
+        public static readonly EditRange renderQueue  = new EditRange("F0", 0, 5000f);
         public static readonly EditRange shininess    = new EditRange(settings.shininessFmt, settings.shininessEditMin, settings.shininessEditMax);
         public static readonly EditRange outlineWidth = new EditRange(settings.outlineWidthFmt, settings.outlineWidthEditMin, settings.outlineWidthEditMax);
         public static readonly EditRange rimPower  = new EditRange(settings.rimPowerFmt, settings.rimPowerEditMin, settings.rimPowerEditMax);
@@ -65,9 +62,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         public string format;
 
         internal EditRange(string fmt, float min, float max) {
-            this.format = fmt;
-            this.editMin = min;
-            this.editMax = max;
+            format = fmt;
+            editMin = min;
+            editMax = max;
         }
     }
 }

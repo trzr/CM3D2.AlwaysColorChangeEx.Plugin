@@ -2,13 +2,11 @@
 using System.Text;
 using CM3D2.AlwaysColorChangeEx.Plugin;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
     /// <summary>
     /// ログ出力ユーティリティ
     /// </summary>
-    public static class LogUtil
-    {
+    public static class LogUtil {
 
         public static bool IsDebug() {
 #if DEBUG
@@ -19,26 +17,26 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
         public static void DebugF(string format, params object[] message) {
 #if DEBUG
-            var sb = String.Format(format, message);
+            var sb = string.Format(format, message);
             Debug(sb);
 #endif
         }
 
         public static void Debug(params object[] message) {
 #if DEBUG
-            var sb = createMessage(message, "[DEBUG]");
+            var sb = CreateMessage(message, "[DEBUG]");
             UnityEngine.Debug.Log(sb);
 #endif
         }
 
-        public static String LogF(string format, params object[] message) {
-            var sb = String.Format(format, message);
+        public static string LogF(string format, params object[] message) {
+            var sb = string.Format(format, message);
             UnityEngine.Debug.Log(sb);
             return sb;
         }
 
         public static StringBuilder Log(params object[] message) {
-            var sb = createMessage(message);
+            var sb = CreateMessage(message);
             UnityEngine.Debug.Log(sb);
             return sb;
         }
@@ -50,19 +48,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
 
         public static StringBuilder Error(params object[] message) {
-            var sb = createMessage(message);
+            var sb = CreateMessage(message);
             UnityEngine.Debug.LogError(sb);
             return sb;
         }
 
-        private static StringBuilder createMessage(object[] message, string prefix=null) {
+        private static StringBuilder CreateMessage(object[] message, string prefix=null) {
             var sb = new StringBuilder();
             if (prefix != null) sb.Append(prefix);
             sb.Append(AlwaysColorChangeEx.PluginName).Append(':');
-            for (int i = 0; i < message.Length; i++) {
-                //if (i > 0) sb.Append(',');
-                if (message[i] is Exception) sb.Append(' ');
-                sb.Append(message[i]);
+            foreach (var t in message) {
+                if (t is Exception) sb.Append(' ');
+                sb.Append(t);
             }
             return sb;
         }

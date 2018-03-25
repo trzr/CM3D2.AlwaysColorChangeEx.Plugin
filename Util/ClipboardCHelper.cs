@@ -1,12 +1,9 @@
 ﻿
-using System;
 using System.Reflection;
 using UnityEngine;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
-{
-    public static class ClipboardCHelper
-    {
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
+    public static class ClipboardCHelper {
         private static PropertyInfo copyBufferProperty;
         static ClipboardCHelper() {
             Init();
@@ -25,16 +22,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         }
 
         private static void Init() {
-            if (copyBufferProperty == null) {
-                Type typeObj = typeof(GUIUtility);
-                copyBufferProperty = typeObj.GetProperty("systemCopyBuffer", BindingFlags.Static | BindingFlags.NonPublic);
-                //if (copyBufferProperty == null) {
-                //    copyBufferProperty = typeObj.GetProperty("systemCopyBuffer", BindingFlags.Static | BindingFlags.NonPublic);
-                //    if (copyBufferProperty == null) {
-                //        throw new Exception("failed to access GUIUtility.systemCopyBuffer");
-                //    }
-                //}
-            }
+            if (copyBufferProperty != null) return;
+            var typeObj = typeof(GUIUtility);
+            copyBufferProperty = typeObj.GetProperty("systemCopyBuffer", BindingFlags.Static | BindingFlags.NonPublic);
+            //if (copyBufferProperty == null) {
+            //    copyBufferProperty = typeObj.GetProperty("systemCopyBuffer", BindingFlags.Static | BindingFlags.NonPublic);
+            //    if (copyBufferProperty == null) {
+            //        throw new Exception("failed to access GUIUtility.systemCopyBuffer");
+            //    }
+            //}
         }
     }
 }

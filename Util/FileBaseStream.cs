@@ -5,15 +5,13 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
     /// <summary>
     /// </summary>
-    public class FileBaseStream : Stream
-    {
+    public class FileBaseStream : Stream {
         AFileBase filebase;
         public FileBaseStream(AFileBase file) {
-            this.filebase = file;
+            filebase = file;
         }
 
         public override bool CanRead {
@@ -50,11 +48,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         public override long Seek(long offset, SeekOrigin origin) {
             // LogUtil.Debug("seek, offset=", offset, ", origin=", origin);
 
-            if (origin == SeekOrigin.Current) {
+            switch (origin) {
+            case SeekOrigin.Current:
                 return filebase.Seek((int)offset, false);
-            } else if (origin == SeekOrigin.Begin) {
+            case SeekOrigin.Begin:
                 return filebase.Seek((int)offset, true);
-            } else {
+            default:
                 throw new NotSupportedException("unsuported");
             }
         }
@@ -67,7 +66,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
                 length = filebase.Read(ref buffer, count);
 
             } else {
-                int maxLength = buffer.Length - offset;
+                var maxLength = buffer.Length - offset;
                 if (maxLength < count) count = maxLength;
                 var buff = new byte[count];
                 
@@ -85,7 +84,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 
         public override int ReadByte() {
             var array = new byte[1];
-            return this.Read(array, 0, 1) == 0 ? -1 : (int)array[0];
+            return Read(array, 0, 1) == 0 ? -1 : (int)array[0];
             // LogUtil.Debug("readByte=", ret);
         }
 

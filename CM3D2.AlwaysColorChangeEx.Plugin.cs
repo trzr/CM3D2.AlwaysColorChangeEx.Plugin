@@ -26,8 +26,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
      PluginFilter("CM3D2OHVRx64"),
      PluginName("CM3D2_ACCex"),
      PluginVersion("0.2.10.1")]
-    class AlwaysColorChangeEx : UnityInjector.PluginBase
-    {
+    class AlwaysColorChangeEx : PluginBase {
+
         public static volatile string PluginName;
         public static volatile string Version;
         static AlwaysColorChangeEx() {
@@ -99,13 +99,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         PresetData currentPreset;
         private string presetName = string.Empty;
         private bool bPresetCastoff = true;
-        private bool bPresetApplyNode = false;
-        private bool bPresetApplyMask = false;
+        private bool bPresetApplyNode;
+        private bool bPresetApplyMask;
         private bool bPresetApplyBody = true;
         private bool bPresetApplyWear = true;
         private bool bPresetApplyBodyProp   = true;
         private bool bPresetApplyPartsColor = true;
-        private Maid toApplyPresetMaid = null;
+        private Maid toApplyPresetMaid;
 
         private bool isSavable;
         private bool isActive;
@@ -142,8 +142,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
         // BoneRender
         private CustomBoneRenderer boneRenderer;
-        private int selectedSlotID = 0;
-        private bool boneVisible = false;
+        private int selectedSlotID;
+        private bool boneVisible;
         private string[] slotNames;
         #endregion
 
@@ -154,8 +154,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
         #region MonoBehaviour methods
         public void Awake() {
-            UnityEngine.Object.DontDestroyOnLoad(this);
-            
+            DontDestroyOnLoad(this);
+        
             // リダイレクトで存在しないパスが渡されてしまうケースがあるため、
             // Sybarisチェックを先に行う (リダイレクトによるパスではディレクトリ作成・削除が動作しない）
             var dllpath = Path.Combine(DataPath, @"..\..\opengl32.dll");
@@ -170,12 +170,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 // settings.presetDirPath = Path.Combine(dllDir, @"Config\ACCPresets");
             }
 
-            base.ReloadConfig();
-            settings.Load((key) => base.Preferences["Config"][key].Value);
+            ReloadConfig();
+            settings.Load(key => Preferences["Config"][key].Value);
             LogUtil.Log("PresetDir:", settings.presetDirPath);
 
             checker.Init();
-            
+
             LoadPresetList();
             uiParams.Update();
 
@@ -190,16 +190,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             SetCameraControl(true);
             Dispose();
             presetNames.Clear();
+
             //detector.Clear();
             LogUtil.Debug("Destroyed");
-
         }
 
         public void OnLevelWasLoaded(int level) {
             fPassedTime = 0f;
             bUseStockMaid = false;
             if (boneRenderer != null) boneRenderer.Clear();
-     
+
             if ( !checker.IsTarget(level) ) {
                 if (isActive) {
                     SetCameraControl(true);
@@ -231,7 +231,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
             if (InputModifierKey() && Input.GetKeyDown(settings.toggleKey)) {
                 SetMenu( (menuType == MenuType.None)? MenuType.Main : MenuType.None );
-                mouseDowned    = false;
+                mouseDowned = false;
             }
             UpdateCameraControl();
 
@@ -252,7 +252,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 // マウスが離されたタイミングでのみテクスチャ反映
                 if (texSliderUpped || Input.GetMouseButtonUp(0)) {
                     if (ACCTexturesView.IsChangeTarget()) {
-                        ACCTexturesView.UpdateTex(holder.currentMaid, targetMaterials);
+                        ACCTexturesView.UpdateTex(holder.CurrentMaid, targetMaterials);
                     }
                     texSliderUpped = false;
                 }
@@ -282,11 +282,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             if (settings.SSWithoutUI && !IsEnabledUICamera()) return; // UI無し撮影
 
             try {
-            if (Event.current.type == EventType.Layout) {
+                if (Event.current.type != EventType.Layout) return;
                 if (!holder.CurrentActivated()) {
                     // メイド未選択、あるいは選択中のメイドが無効化された場合
-                            UpdateSelectMaid();
-
+                    UpdateSelectMaid();
+    
                 } else if (ACCTexturesView.fileBrowser != null) {
                     uiParams.fileBrowserRect = GUI.Window(WINID_DIALOG, uiParams.fileBrowserRect, DoFileBrowser, Version, uiParams.winStyle);
 
@@ -295,35 +295,35 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
                 } else {
                     switch (menuType) {
-                        case MenuType.Main:
-                            uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoMainMenu, Version, uiParams.winStyle);
-                            break;
-                        case MenuType.Color:
-                            uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoColorMenu, Version, uiParams.winStyle);
-                            break;
-                        case MenuType.MaskSelect:
-                            uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoMaskSelectMenu, Version, uiParams.winStyle);
-                            break;
-                        case MenuType.NodeSelect:
-                            uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoNodeSelectMenu, Version, uiParams.winStyle);
-                            break;
-                        case MenuType.Save:
-                            uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSaveMenu, Version, uiParams.winStyle);
-                            break;
-                        case MenuType.PresetSelect:
-                            uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectPreset, Version, uiParams.winStyle);
-                            break;
-                        case MenuType.Texture:
-                            uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectTexture, Version, uiParams.winStyle);
-                            break;
-                        case MenuType.BoneSlotSelect:
-                            uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectBoneSlot, Version, uiParams.winStyle);
-                            break;
-                        case MenuType.MaidSelect:
-                            uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectMaid, Version, uiParams.winStyle);
-                            break;
-                        default:
-                            break;
+                    case MenuType.Main:
+                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoMainMenu, Version, uiParams.winStyle);
+                        break;
+                    case MenuType.Color:
+                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoColorMenu, Version, uiParams.winStyle);
+                        break;
+                    case MenuType.MaskSelect:
+                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoMaskSelectMenu, Version, uiParams.winStyle);
+                        break;
+                    case MenuType.NodeSelect:
+                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoNodeSelectMenu, Version, uiParams.winStyle);
+                        break;
+                    case MenuType.Save:
+                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSaveMenu, Version, uiParams.winStyle);
+                        break;
+                    case MenuType.PresetSelect:
+                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectPreset, Version, uiParams.winStyle);
+                        break;
+                    case MenuType.Texture:
+                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectTexture, Version, uiParams.winStyle);
+                        break;
+                    case MenuType.BoneSlotSelect:
+                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectBoneSlot, Version, uiParams.winStyle);
+                        break;
+                    case MenuType.MaidSelect:
+                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectMaid, Version, uiParams.winStyle);
+                        break;
+                    default:
+                        break;
                     }
                     OnTips();
                 }
@@ -337,8 +337,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     mouseDowned = false;
                 }
                 mouseDowned |= cursorContains && Input.GetMouseButtonDown(0);
-
-                }
             } finally {
             }
         }
@@ -349,9 +347,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 GUI.Window(WINID_TIPS, tipRect, DoTips, tips, uiParams.tipsStyle);
             }
         }
-            
+
         public void SetTips(string message) {
-            int lineNum = 1;
+        
+            var lineNum = 1;
             foreach (var chr in message) {
                 if (chr == '\n') lineNum++;
             }
@@ -379,7 +378,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         private bool InputModifierKey() {
-            EventModifiers em = Event.current.modifiers;
+            var em = Event.current.modifiers;
             if (settings.toggleModifiers == EventModifiers.None) {
                 // 修飾キーが押されていない事を確認(Shift/Alt/Ctrl)
                 return (em & modifierKey) == EventModifiers.None;
@@ -389,11 +388,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         private void SetCameraControl(bool enable) {
-            if (cmrCtrlChanged == enable) {
-                GameMain.Instance.MainCamera.SetControl(enable);
-                UICamera.InputEnable = enable;
-                cmrCtrlChanged = !enable;
-            }
+            if (cmrCtrlChanged != enable) return;
+            GameMain.Instance.MainCamera.SetControl(enable);
+            UICamera.InputEnable = enable;
+            cmrCtrlChanged = !enable;
         }
 
         /// <summary>
@@ -439,7 +437,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             // テクスチャキャッシュを開放する
             ACCTexturesView.Clear();
             ResourceHolder.Instance.Clear();
-                //OnDestroy();
+            //OnDestroy();
 
             if (boneRenderer != null) {
                 boneRenderer.Clear();
@@ -485,11 +483,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         private void SetMenu(MenuType type) {
-            if (menuType != type) {
-                menuType = type;
+            if (menuType == type) return;
+            menuType = type;
 
-                uiParams.Update();
-            }
+            uiParams.Update();
         }
         #endregion
 
@@ -498,16 +495,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
         private GUIContent GetOrAddMaidInfo(Maid m, int idx=-1) {
             GUIContent content;
-            int id = m.gameObject.GetInstanceID();
-            if (!contentDic.TryGetValue(id, out content)) {
-                var status = m.Param.status;
-                LogUtil.Debug("maid:", m.name);
-                
-                var maidName = (!m.boMAN)? status.last_name + " " + status.first_name : "男"+ (idx+1);
-                Texture2D icon = m.GetThumIcon();
-                content = new GUIContent(maidName, icon);
-                contentDic[id] = content;
-            }
+            var id = m.gameObject.GetInstanceID();
+            if (contentDic.TryGetValue(id, out content)) return content;
+            var status = m.Param.status;
+            LogUtil.Debug("maid:", m.name);
+            
+            var maidName = (!m.boMAN)? status.last_name + " " + status.first_name : "男"+ (idx+1);
+            var icon = m.GetThumIcon();
+            content = new GUIContent(maidName, icon);
+            contentDic[id] = content;
             return content;
         }
 
@@ -524,14 +520,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             }
         }
 
-        List<SelectMaidData> maidList = new List<SelectMaidData>();
-        List<SelectMaidData> manList = new List<SelectMaidData>();
+        readonly List<SelectMaidData> maidList = new List<SelectMaidData>();
+        readonly List<SelectMaidData> manList = new List<SelectMaidData>();
 
         private void InitMaidList() {
             maidList.Clear();
             manList.Clear();
-            CharacterMgr chrMgr = GameMain.Instance.CharacterMgr;
-            
+            var chrMgr = GameMain.Instance.CharacterMgr;
+        
             if (bUseStockMaid) {
                 AddMaidList(maidList, chrMgr.GetStockMaid, chrMgr.GetStockMaidCount());
             } else {
@@ -567,17 +563,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         private void DoSelectMaid(int winID) {
-            if (selectedMaid == null) selectedMaid = holder.currentMaid;
+            if (selectedMaid == null) selectedMaid = holder.CurrentMaid;
 
             GUILayout.BeginVertical();
             GUILayout.Label("メイド選択", uiParams.lStyleB);
             scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition, uiParams.optSubConWidth, uiParams.optSubConHeight);
-            CharacterMgr chrMgr = GameMain.Instance.CharacterMgr;
-            bool hasSelected = false;
+            var chrMgr = GameMain.Instance.CharacterMgr;
+            var hasSelected = false;
             try {
                 foreach (var maidData in maidList) {
                     GUI.enabled = IsEnabled(maidData.maid);
-                    bool selected = (selectedMaid == maidData.maid);
+                    var selected = (selectedMaid == maidData.maid);
                     if (GUI.enabled && selected) hasSelected = true;
 
                     GUILayout.BeginHorizontal();
@@ -644,7 +640,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private void DoMainMenu(int winID) {
             GUILayout.BeginVertical();
             try {
-                Maid maid = holder.currentMaid;
+                Maid maid = holder.CurrentMaid;
                 GUILayout.Label(TITLE_LABEL + holder.MaidName, uiParams.lStyle);
 
                 if (GUILayout.Button("メイド/男 選択", uiParams.bStyle)) {
@@ -702,7 +698,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                                                                GUILayout.Width(uiParams.mainRect.width),
                                                                GUILayout.Height(uiParams.mainRect.height));
                 try {
-                    var currentBody = holder.currentMaid.body0;
+                    var currentBody = holder.CurrentMaid.body0;
                     if (holder.isOfficial) {
                         foreach (SlotInfo slot in ACConstants.SlotNames.Values) {
                             if (!slot.enable) continue;
@@ -714,7 +710,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                             GUILayout.Space(uiParams.marginL);
                             
                             if (GUILayout.Button(!switchedName?slot.DisplayName: slot.Name, uiParams.bStyleL, GUILayout.ExpandWidth(true))) {
-                                holder.currentSlot = slot;
+                                holder.CurrentSlot = slot;
                                 SetMenu(MenuType.Color);
                             }
                             if (settings.displaySlotName) {
@@ -740,7 +736,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                                 GUILayout.Space(uiParams.marginL);
                                 
                                 if (GUILayout.Button(tbodySlot.Category, uiParams.bStyleL, GUILayout.ExpandWidth(true))) {
-                                    holder.currentSlot = ACConstants.SlotNames[(TBody.SlotID)idx];
+                                    holder.CurrentSlot = ACConstants.SlotNames[(TBody.SlotID)idx];
                                     SetMenu(MenuType.Color);
                                 }
                                 GUILayout.Space(uiParams.marginL);
@@ -766,7 +762,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             var materials = r.materials;
             int idx = 0;
             var ret = new List<ACCMaterialsView>(materials.Length);
-            foreach (Material material in materials) { 
+            foreach (Material material in materials) {
                 var view = new ACCMaterialsView(r, material, slotIdx, idx++) {
                     tipsCall = SetTips
                 };
@@ -780,9 +776,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
         private GUIContent title;
         private void DoColorMenu(int winID) {
-            TBodySkin slot = holder.GetCurrentSlot();
+            var slot = holder.GetCurrentSlot();
             if (title == null) {
-                title = new GUIContent("マテリアル情報変更: " + (holder.isOfficial ? holder.currentSlot.DisplayName : slot.Category));
+                title = new GUIContent("マテリアル情報変更: " + (holder.isOfficial ? holder.CurrentSlot.DisplayName : slot.Category));
             }
 
             GUILayout.Label(title, uiParams.lStyleB);
@@ -791,7 +787,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                                                            GUILayout.Width(uiParams.colorRect.width),
                                                            GUILayout.Height(uiParams.colorRect.height));
             try {
-                if (holder.currentMaid.IsBusy) {
+                if (holder.CurrentMaid.IsBusy) {
                     GUILayout.Space(100);
                     GUILayout.Label("変更中...", uiParams.lStyleB);
                     return;
@@ -837,7 +833,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
                     if (isSavable) {
                         // 保存未対応スロットを判定(身体は不可)
-                        isSavable &= (holder.currentSlot.Id != TBody.SlotID.body);
+                        isSavable &= (holder.CurrentSlot.Id != TBody.SlotID.body);
                     }
                 }
 
@@ -879,13 +875,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private void ExportMenu() {
             global::TBodySkin slot = holder.GetCurrentSlot();
             if (slot.obj == null) {
-                var msg = "指定スロットが見つかりません。slot=" + holder.currentSlot.Name;
+                var msg = "指定スロットが見つかりません。slot=" + holder.CurrentSlot.Name;
                 NUty.WinMessageBox(NUty.GetWindowHandle(), msg, "エラー", NUty.MSGBOX.MB_OK);
                 return;
             }
 
             // propは対応するMPNを指定
-            MaidProp prop = holder.currentMaid.GetProp(holder.currentSlot.mpn);
+            MaidProp prop = holder.CurrentMaid.GetProp(holder.CurrentSlot.mpn);
             if (prop != null) {
                 if (saveView == null) saveView = new ACCSaveMenuView(uiParams);
 
@@ -899,7 +895,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     foreach (var targetSlot in targetSlots.Keys) {
 
                         List<ACCMaterial> edited;
-                        if (targetSlot == holder.currentSlot.Id) {
+                        if (targetSlot == holder.CurrentSlot.Id) {
                             // カレントスロットの場合は、作成済のマテリアル情報を渡す
                             edited   = new List<ACCMaterial>(materialViews.Count);
                             foreach ( var matView in materialViews ) {
@@ -978,15 +974,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         private bool InitMaskSlots() {
-            if (holder.currentMaid == null) return false;
+            if (holder.CurrentMaid == null) return false;
 
     //        List<int> maskSlots = holder.maid.listMaskSlot;
             foreach (SlotInfo si  in ACConstants.SlotNames.Values) {
                 if (!si.enable || !si.maskable) continue;
                 int slotNo = (int)si.Id;
-                if (slotNo >= holder.currentMaid.body0.goSlot.Count) continue;
+                if (slotNo >= holder.CurrentMaid.body0.goSlot.Count) continue;
 
-                TBodySkin slot = holder.currentMaid.body0.GetSlot(slotNo);
+                TBodySkin slot = holder.CurrentMaid.body0.GetSlot(slotNo);
                 MaskInfo mi;
                 if (!dMaskSlots.TryGetValue(si.Id, out mi)) {
                     mi = new MaskInfo(si, slot);
@@ -1012,7 +1008,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 switchedName = GUILayout.Toggle(switchedName, "表示切替", uiParams.tStyleS, uiParams.optSLabelWidth);
                 GUILayout.EndHorizontal();
 
-                if (holder.currentMaid == null) return ;
+                if (holder.CurrentMaid == null) return ;
 
                 // 身体からノード一覧と表示状態を取得
                 var outRect = uiParams.subRect;
@@ -1053,7 +1049,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                         MaskInfo maskInfo = pair.Value;
                         string state;
                         // 下着、ヌードモードなどによる非表示
-                        if (!holder.currentMaid.body0.GetMask(maskInfo.slotInfo.Id)) {
+                        if (!holder.CurrentMaid.body0.GetMask(maskInfo.slotInfo.Id)) {
                             state = "[非表示]";
                             labelStyle.normal.textColor = Color.magenta;
                         } else {
@@ -1127,12 +1123,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
         private bool InitDelNodes(TBodySkin body) {
             if (body == null) {
-                if (holder.currentMaid == null) return false;
+                if (holder.CurrentMaid == null) return false;
 
                 const int slotNo = (int)TBody.SlotID.body;
                 // 身体からノード一覧と表示状態を取得
-                if (slotNo >= holder.currentMaid.body0.goSlot.Count) return false;
-                body = holder.currentMaid.body0.GetSlot(slotNo);
+                if (slotNo >= holder.CurrentMaid.body0.goSlot.Count) return false;
+                body = holder.CurrentMaid.body0.GetSlot(slotNo);
             }
             Dictionary<string, bool> dic = body.m_dicDelNodeBody;
             foreach (string key in ACConstants.NodeNames.Keys) {
@@ -1156,7 +1152,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             foreach (string key in keys) {
                 delNodeDic[key] = true;
             }
-            foreach(TBodySkin slot in holder.currentMaid.body0.goSlot) {
+            foreach(TBodySkin slot in holder.CurrentMaid.body0.goSlot) {
                 if (slot.obj == null || !slot.boVisible) continue;
 
                 Dictionary<string, bool> slotNodes = slot.m_dicDelNodeBody;
@@ -1176,7 +1172,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                         }
                     }
                 }
-                }
+            }
             return delNodeDic;
         }
 
@@ -1192,12 +1188,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 switchedName = GUILayout.Toggle(switchedName, "表示切替", uiParams.tStyleS, uiParams.optSLabelWidth);
                 GUILayout.EndHorizontal();
 
-                if (holder.currentMaid == null) return ;
+                if (holder.CurrentMaid == null) return ;
 
                 const int slotNo = (int)TBody.SlotID.body;
                 // 身体からノード一覧と表示状態を取得
-                if (slotNo >= holder.currentMaid.body0.goSlot.Count) return;
-                body = holder.currentMaid.body0.GetSlot(slotNo);
+                if (slotNo >= holder.CurrentMaid.body0.goSlot.Count) return;
+                body = holder.CurrentMaid.body0.GetSlot(slotNo);
                 var outRect = uiParams.subRect;
                 if (!dDelNodes.Any()) {
                     InitDelNodes(body);
@@ -1285,7 +1281,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             GUILayout.BeginHorizontal();
             try {
                 if (GUILayout.Button("適用", uiParams.bStyle, uiParams.optSubConHalfWidth, uiParams.optBtnHeight)) {
-                holder.SetDelNodes(dDelNodes, true);
+                    holder.SetDelNodes(dDelNodes, true);
                     //dDelNodeDisps = new Dictionary<string, bool>(body.m_dicDelNodeBody);
                     plugin.StartCoroutine(DelayFrame(3, SyncNodes));
                 }
@@ -1452,7 +1448,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private void ApplyPreset(PresetData preset) {
             if (preset == null) return;
 
-            var maid = holder.currentMaid;;
+            var maid = holder.CurrentMaid;;
             // 衣装チェンジ
             if (preset.mpns.Any()) {
                 presetMgr.ApplyPresetMPN(maid, preset, bPresetApplyBody, bPresetApplyWear, bPresetCastoff);
@@ -1474,7 +1470,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private void ApplyPresetProp(Maid targetMaid, PresetData preset) {
             try {
                 // 対象メイドが変更された場合はスキップ
-                if (holder.currentMaid != targetMaid) return;
+                if (holder.CurrentMaid != targetMaid) return;
 
                 if (bPresetApplyWear) {
                     presetMgr.ApplyPresetMaterial(targetMaid, preset);
@@ -1558,9 +1554,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 //GUILayout.Space(uiParams.margin);
                 GUILayout.EndHorizontal();
 
-                if (holder.currentMaid == null) return;
-                var maid = holder.currentMaid;
-                if (holder.currentMaid.IsBusy) {
+                if (holder.CurrentMaid == null) return;
+                var maid = holder.CurrentMaid;
+                if (holder.CurrentMaid.IsBusy) {
                     GUILayout.Space(100);
                     GUILayout.Label("変更中...", uiParams.lStyleB);
                     GUILayout.Space(uiParams.colorRect.height - 105);
@@ -1576,7 +1572,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     boneVisible = false;
                 }
 
-                if ((int)TBody.SlotID.end - 1 > holder.currentMaid.body0.goSlot.Count) return;
+                if ((int)TBody.SlotID.end - 1 > holder.CurrentMaid.body0.goSlot.Count) return;
 
                 float width = uiParams.colorRect.width - 30;
                 float height = uiParams.winRect.height - uiParams.itemHeight * 2.6f - uiParams.titleBarRect.height;
@@ -1587,7 +1583,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     TBodySkin slot = null;
                     bool enabled = selectedSlotID != -1;
                     if (enabled) {
-                        slot = holder.currentMaid.body0.goSlot[selectedSlotID];
+                        slot = holder.CurrentMaid.body0.goSlot[selectedSlotID];
                         enabled = (slot.obj != null && slot.morph != null);
                     }
                     GUI.enabled = enabled;
@@ -1623,25 +1619,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                                                                GUILayout.Width(uiParams.colorRect.width),
                                                                GUILayout.Height(height));
                 try {
-
-                    for (int i = 0; i < slotNames.Length; i++) {
+                    for (var i = 0; i < slotNames.Length; i++) {
                         GUILayout.BeginHorizontal();
                         try {
                             var slotItem = maid.body0.goSlot[i];
-                            bool slotEnabled = (slotItem.obj != null && slotItem.morph != null);
+                            var slotEnabled = (slotItem.obj != null && slotItem.morph != null);
                             GUI.enabled = slotEnabled;
-                            bool selected = (i == selectedSlotID);
-                            bool ret = GUILayout.Toggle(selected, slotNames[i], uiParams.tStyleS, toggleWidth);
+                            var selected = (i == selectedSlotID);
+                            var ret = GUILayout.Toggle(selected, slotNames[i], uiParams.tStyleS, toggleWidth);
                             if (ret && !selected) {
                                 selectedSlotID = i;
-                                boneRenderer.Setup(slotItem.obj.transform);
+                                if (slotItem.obj != null) boneRenderer.Setup(slotItem.obj.transform);
                                 boneRenderer.TargetId = maid.GetInstanceID();
                             }
                             GUI.enabled = true;
 
                             if (slotEnabled) {
-                                var modelName = slotItem.m_strModelFileName;
-                                if (modelName == null) modelName = "";
+                                var modelName = slotItem.m_strModelFileName ?? "";
                                 GUILayout.Label(modelName, uiParams.lStyleS, otherWidth);
                             }
                         } finally {

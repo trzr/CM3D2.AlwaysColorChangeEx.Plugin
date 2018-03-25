@@ -6,15 +6,12 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// <summary>
     /// プリセット用データクラス
     /// </summary>
-    public class PresetData
-    {
+    public class PresetData {
         public string name;
         public List<CCSlot> slots = new List<CCSlot>();
         public List<CCMPN> mpns = new List<CCMPN>();
@@ -28,8 +25,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
     /// スロット情報を扱うデータクラス.
     /// スロットのマスク設定や属するマテリアル情報を含む
     /// </summary>
-    public class CCSlot
-    {
+    public class CCSlot {
         public TBody.SlotID id;
         public SlotState mask;
         public List<CCMaterial> materials;
@@ -39,20 +35,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             this.id = id;
         }
         public CCSlot(string name) {
-            this.id = (TBody.SlotID)Enum.Parse(typeof(TBody.SlotID), name);
+            id = (TBody.SlotID)Enum.Parse(typeof(TBody.SlotID), name);
         }
         public void Add(CCMaterial m) {
             if (materials == null) materials = new List<CCMaterial>();
             materials.Add(m);
         }
     }
-    public class CCMPN
-    {
+
+    public class CCMPN {
         public MPN name;
         public string filename;
         public CCMPN() { }
         public CCMPN(string mpnName, string filename) {
-            this.name = (MPN)Enum.Parse(typeof(MPN), mpnName);
+            name = (MPN)Enum.Parse(typeof(MPN), mpnName);
             this.filename = filename;
         }
         public CCMPN(MPN name, string filename) {
@@ -60,26 +56,27 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             this.filename = filename;
         }
     }
-    public class CCMPNValue
-    {
+
+    public class CCMPNValue {
         public MPN name;
         public int value;
         public int min;
         public int max;
         public CCMPNValue() { }
         public CCMPNValue(string mpnName, int v, int min, int max) {
-            this.name = (MPN)Enum.Parse(typeof(MPN), mpnName);
-            this.value = v;
+            name = (MPN)Enum.Parse(typeof(MPN), mpnName);
+            value = v;
             this.min = min;
             this.max = max;
         }
         public CCMPNValue(MPN name, int v, int min, int max) {
             this.name = name;
-            this.value = v;
+            value = v;
             this.min = min;
             this.max = max;
         }
     }
+
     public class CCColor {
         public float r;
         public float g;
@@ -92,18 +89,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             this.b = b;
             this.a = a;
         }
+
         public CCColor(Color color) {
-            this.r = color.r;
-            this.g = color.g;
-            this.b = color.b;
-            this.a = color.a;
+            r = color.r;
+            g = color.g;
+            b = color.b;
+            a = color.a;
         }
+
         public Color ToColor() {
             return new Color(r, g, b, a);
         }
     }
-    public class CCMaterial
-    {
+
+    public class CCMaterial {
         public string name;
         public string shader;
         // TODO
@@ -188,7 +187,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         }        
 
         public bool Apply(Material m) {
-            Shader sh = Shader.Find(shader);
+            var sh = Shader.Find(shader);
             if (sh == null) return false;
 
             m.shader = sh;
@@ -262,11 +261,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             texList.Add(ti);
         }
     }
+
     public class TextureInfo {
         public string propName;
         public string texFile;
         public TexFilter filter;
     }
+
     public class TexFilter {
         public float Hue;
         public float Saturation;
@@ -300,6 +301,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             return fp;
         }
     }
+
     public class CCPartsColor {
         public bool bUse;
         public int mainHue;
@@ -325,18 +327,19 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             shadowBrightness = pc.m_nShadowBrightness;
             shadowContrast = pc.m_nShadowContrast;
         }
-        public MaidParts.PartsColor toStruct() {
-            var pc = new MaidParts.PartsColor();
-            pc.m_bUse = bUse;
-            pc.m_nMainHue = mainHue;
-            pc.m_nMainChroma = mainChroma;
-            pc.m_nMainBrightness = mainBrightness ;
-            pc.m_nMainContrast = mainContrast;
-            pc.m_nShadowRate = shadowRate;
-            pc.m_nShadowHue = shadowHue;
-            pc.m_nShadowChroma = shadowChroma;
-            pc.m_nShadowBrightness = shadowBrightness;
-            pc.m_nShadowContrast = shadowContrast;
+        public MaidParts.PartsColor ToStruct() {
+            var pc = new MaidParts.PartsColor {
+                m_bUse = bUse,
+                m_nMainHue = mainHue,
+                m_nMainChroma = mainChroma,
+                m_nMainBrightness = mainBrightness,
+                m_nMainContrast = mainContrast,
+                m_nShadowRate = shadowRate,
+                m_nShadowHue = shadowHue,
+                m_nShadowChroma = shadowChroma,
+                m_nShadowBrightness = shadowBrightness,
+                m_nShadowContrast = shadowContrast
+            };
             return pc;
         }
     }

@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Windows.Forms.VisualStyles;
 using UnityEngine;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
     internal class ACCMaterialsView {
         private const float EPSILON = 0.000001f;
         private static Settings settings = Settings.Instance;
@@ -15,25 +15,24 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         private static GUIContent[] shaderNames;
         private static GUIContent[] ShaderNames {
             get {
-                if (shaderNames == null) {
+                if (shaderNames != null) return shaderNames;
 //                    CustomShaderHolder.InitShader();
-                    int length = ShaderType.shaders.Length;
-                    shaderNames = new GUIContent[length];
-                    foreach (ShaderType shaderType in ShaderType.shaders) {
-                        shaderNames[shaderType.idx] = new GUIContent(shaderType.name, shaderType.dispName);
-                    }
+                var length = ShaderType.shaders.Length;
+                shaderNames = new GUIContent[length];
+                foreach (var shaderType in ShaderType.shaders) {
+                    shaderNames[shaderType.idx] = new GUIContent(shaderType.name, shaderType.dispName);
                 }
                 return shaderNames;
             }
         }
 
         public static void Init(UIParams uiparams) {
-            if (uiParams == null) {
-                uiParams = uiparams;
-                uiParams.Add(updateUI);
-            }
+            if (uiParams != null) return;
+
+            uiParams = uiparams;
+            uiParams.Add(updateUI);
         }
-            
+
         public static void Clear() {
             //changeShaders.Clear();
 
@@ -45,38 +44,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         private static GUIContent copyIcon;
         private static GUIContent[] pasteIcon;
         private static GUIContent PlusIcon {
-            get {
-                if (plusIcon == null) {
-                    plusIcon = new GUIContent(resHolder.PlusImage);
-                }
-                return plusIcon;
-            }
+            get { return plusIcon ?? (plusIcon = new GUIContent(resHolder.PlusImage)); }
         }
         private static GUIContent MinusIcon {
-            get {
-                if (minusIcon == null) {
-                    minusIcon = new GUIContent(resHolder.MinusImage);
-                }
-                return minusIcon;
-            }
+            get { return minusIcon ?? (minusIcon = new GUIContent(resHolder.MinusImage)); }
         }
         private static GUIContent CopyIcon {
-            get {
-                if (copyIcon == null) {
-                    copyIcon = new GUIContent("コピー", resHolder.CopyImage, "マテリアル情報をクリップボードへコピーする");
-                }
-                return copyIcon;
-            }
+            get { return copyIcon ?? (copyIcon = new GUIContent("コピー", resHolder.CopyImage, "マテリアル情報をクリップボードへコピーする")); }
         }
         private static GUIContent[] PasteIcon {
             get {
-                if (pasteIcon == null) {
-                    pasteIcon = new GUIContent[] {
-                        new GUIContent("全貼付", resHolder.PasteImage, "クリップボードからマテリアル情報を貼付ける"),
-                        new GUIContent("指定貼付", resHolder.PasteImage, "クリップボードからマテリアル情報を貼付ける"),
-                    };
-                }
-                return pasteIcon;
+                return pasteIcon ?? (pasteIcon = new[] {
+                    new GUIContent("全貼付", resHolder.PasteImage, "クリップボードからマテリアル情報を貼付ける"),
+                    new GUIContent("指定貼付", resHolder.PasteImage, "クリップボードからマテリアル情報を貼付ける"),
+                });
             }
         }
         private static UIParams uiParams;
@@ -99,14 +80,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         private static GUILayoutOption bWidthOpt;
         private static float baseWidth;
         private static GUILayoutOption bWidthWOpt;
-        private static Texture2D copy(Texture2D src) {
+        private static Texture2D Copy(Texture2D src) {
             var dst = new Texture2D(src.width, src.height);
             Color32[] pixels = src.GetPixels32();
             for (int i = 0; i< pixels.Length; i++) {
-                pixels[i].r = (byte)((int)pixels[i].r/2);
-                pixels[i].g = (byte)((int)pixels[i].g/2);
-                pixels[i].b = (byte)((int)pixels[i].b/2);
-                pixels[i].a = (byte)((int)pixels[i].a/2);
+                pixels[i].r = (byte)(pixels[i].r/2);
+                pixels[i].g = (byte)(pixels[i].g/2);
+                pixels[i].b = (byte)(pixels[i].b/2);
+                pixels[i].a = (byte)(pixels[i].a/2);
             }
             dst.SetPixels32(pixels);
             dst.Apply();
@@ -144,7 +125,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
 
             bStyleSS.fontSize = uiparams.fontSizeSS;
         };
-        private static bool includeTex = false;
+
+        private static bool includeTex;
         private static bool includeShader = true;
         private static bool includeOthers = true;
         private static RQResolver rqResolver = RQResolver.Instance;
@@ -159,7 +141,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             //original = new ACCMaterial(m, r);
             //edited = new ACCMaterial(original);
             this.slotIdx = slotIdx;
-            this.matIdx = idx;
+            matIdx = idx;
             edited = new ACCMaterial(m, r);
         }
         public Action<string> tipsCall;
@@ -218,12 +200,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     GUI.enabled &= (includeTex |includeShader| includeOthers);
                     if (GUILayout.Button(icons[1], optUnitHeight,optButonWidth)) {
                         try {
-                            int FLAG = 0;
-                            if (includeTex)    FLAG |= MateHandler.MATE_TEX;
-                            if (includeShader) FLAG |= MateHandler.MATE_SHADER;
-                            if (includeOthers) FLAG |= MateHandler.MATE_COLOR | MateHandler.MATE_FLOAT;
+                            var flag = 0;
+                            if (includeTex)    flag |= MateHandler.MATE_TEX;
+                            if (includeShader) flag |= MateHandler.MATE_SHADER;
+                            if (includeOthers) flag |= MateHandler.MATE_COLOR | MateHandler.MATE_FLOAT;
                             LogUtil.DebugF("flag: tex={0}, shader={1}, others={2}", includeTex, includeShader, includeOthers);
-                            MateHandler.Instance.Write(edited, clipHandler.mateText, FLAG);
+                            MateHandler.Instance.Write(edited, clipHandler.mateText, flag);
                         } catch(Exception e) {
                             LogUtil.Error("failed to import mateText", e);
                         }
@@ -236,8 +218,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     GUILayout.EndHorizontal();
                 }
 
-                Material material = edited.material;
-                int idx = edited.type.idx;
+                var material = edited.material;
+                var idx = edited.type.idx;
 
                 if (shaderCombo == null) {
                     GUIContent selected = (idx >= 0 && idx < ShaderNames.Length) ? ShaderNames[idx] : GUIContent.none;
@@ -247,7 +229,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                 }
                 shaderCombo.Show(GUILayout.ExpandWidth(true));//uiParams.optInsideWidth);
 
-                int selectedIdx = shaderCombo.SelectedItemIndex;
+                var selectedIdx = shaderCombo.SelectedItemIndex;
                 if (idx != selectedIdx && selectedIdx != -1) {
                     LogUtil.Debug("shader changed", idx, "=>", selectedIdx );
                     // シェーダ変更
@@ -267,11 +249,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                                  }, 
                                  ShaderPropType.RenderQueue.opts,
                                  ShaderPropType.RenderQueue.presetVals,
-                                 rqResolver.resolve(slotIdx));
+                                 rqResolver.Resolve(slotIdx));
 
 
-                ShaderType sdType = edited.type;
-                for (int i=0; i< sdType.colProps.Length; i++) {
+                var sdType = edited.type;
+                for (var i=0; i< sdType.colProps.Length; i++) {
                     var colProp = sdType.colProps[i];
                     var editColor = edited.editColors[i];
                     if (reload) {
@@ -284,14 +266,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                         }
                     }
                         
-                    Color beforeColor = editColor.val.Value;
+                    var beforeColor = editColor.val;
                     setColorSlider(colProp.name, ref editColor, colProp.colorType);
-                    if (editColor.val.Value != beforeColor) {
+                    if (editColor.val != beforeColor) {
                         material.SetColor(colProp.propId, editColor.val.Value);
                     }
                 }
 
-                for (int i=0; i< sdType.fProps.Length; i++) {
+                for (var i=0; i< sdType.fProps.Length; i++) {
                     var prop = sdType.fProps[i];
                     switch (prop.valType) {
                         case ValType.Float:
@@ -329,29 +311,29 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             GUILayout.Label(label, uiParams.lStyle, optItemHeight);
             GUILayout.Space(uiParams.marginL);
 
-            bool changed = false;
+            var changed = false;
             Action<float> preset = (val) =>  {
-                string blabel = val.ToString();
+                var blabel = val.ToString(CultureInfo.InvariantCulture);
                 GUILayoutOption opt;
                 if (blabel.Length <= 1) opt = bWidthOpt;
                 else if (blabel.Length <= 3) opt = bWidthWOpt;
                 else opt = GUILayout.Width(baseWidth*0.5f*(blabel.Length+1));
-                if (GUILayout.Button(blabel, bStyleSS, opt)) {
-                    edit.Set( val );
-                    changed = true;
-                }
+                if (!GUILayout.Button(blabel, bStyleSS, opt)) return;
+
+                edit.Set( val );
+                changed = true;
             };
 
-            if (vals1 != null) foreach (float val in vals1) { preset(val); }
-            if (vals2 != null) foreach (float val in vals2) { preset(val); }
+            if (vals1 != null) foreach (var val in vals1) { preset(val); }
+            if (vals2 != null) foreach (var val in vals2) { preset(val); }
             
             if (presetOprs != null) {
                 foreach (var pset in presetOprs) {
                     var widthOpt = (pset.label.Length == 1) ? bWidthOpt : bWidthWOpt;
-                    if (GUILayout.Button(pset.label, bStyleSS, widthOpt)) {
-                        edit.SetWithCheck(pset.func(edit.val));
-                        changed = true;
-                    }
+                    if (!GUILayout.Button(pset.label, bStyleSS, widthOpt)) continue;
+
+                    edit.SetWithCheck(pset.func(edit.val));
+                    changed = true;
                 }
             }
             GUILayout.EndHorizontal();
@@ -367,15 +349,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             GUILayout.Label(label, uiParams.lStyle, optItemHeight);
 
 
-            Color c = edit.val.Value;
-            bool changed = false;
+            var c = edit.val.Value;
+            var changed = false;
             float[] vals = {0, 0.5f, 1f, 1.5f, 2f};
             foreach (var val in vals) {
-                string blabel = val.ToString();
-                if (GUILayout.Button(blabel, bStyleSS,  (blabel.Length> 1)? bWidthWOpt : bWidthOpt)) {
-                    c.r = c.g = c.b = val;
-                    changed = true;
-                }
+                var blabel = val.ToString(CultureInfo.InvariantCulture);
+                if (!GUILayout.Button(blabel, bStyleSS, (blabel.Length > 1) ? bWidthWOpt : bWidthOpt)) continue;
+                c.r = c.g = c.b = val;
+                changed = true;
             }
             if (GUILayout.Button("-", bStyleSS, bWidthOpt)) {
                 if (c.r < delta) c.r = 0;
@@ -398,7 +379,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             }
             GUILayout.EndHorizontal();
  
-            int idx = 0;
+            var idx = 0;
             if (colType == ColorType.rgb || colType == ColorType.rgba) {
                 changed |= drawValueSlider("R", ref edit, idx++, ref c.r);
                 changed |= drawValueSlider("G", ref edit, idx++, ref c.g);
@@ -413,8 +394,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         }
 
         private bool drawValueSlider(string label, EditValue edit, float sliderMin, float sliderMax) {
-            bool changed = false;
-            bool fontChanged = false;
+            var changed = false;
+            var fontChanged = false;
             GUILayout.BeginHorizontal(optItemHeight);
             try {
                 drawLabel(ref label);
@@ -430,7 +411,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     changed |= edit.isSync; // テキスト値書き換え、かつ値が同期⇒変更とみなす
                 }
 
-                float sliderVal = edit.val;
+                var sliderVal = edit.val;
                 if (drawSlider(ref sliderVal, sliderMin, sliderMax)) {
                     edit.Set(sliderVal);
                     changed = true;
@@ -453,8 +434,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
         }
 
         private bool drawValueSlider(string label, ref EditColor edit, int idx, ref float sliderVal) {
-            bool changed = false;
-            bool fontChanged = false;
+            var changed = false;
+            var fontChanged = false;
             GUILayout.BeginHorizontal(optItemHeight);
             try {
                 drawLabel(ref label);
@@ -464,7 +445,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
                     fontChanged = true;
                 }
 
-                EditRange range = edit.GetRange(idx);
+                var range = edit.GetRange(idx);
                 var val2 = GUILayout.TextField(edit.editVals[idx], uiParams.textStyleSC, optInputWidth);
                 if (edit.editVals[idx] != val2) { // 直接書き換えられたケース
                     edit.Set(idx, val2, range);
@@ -485,11 +466,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             }
             return changed;
         }
+
         private void drawLabel(ref string label) {
             if(label != null) {
                 //float lWidth = 13*label.Length;
-                float lWidth = uiParams.fontSizeS*label.Length;
-                float space = labelWidth - sliderInputWidth - lWidth;  //- uiParams.labelSpace ;
+                var lWidth = uiParams.fontSizeS*label.Length;
+                var space = labelWidth - sliderInputWidth - lWidth;  //- uiParams.labelSpace ;
                 if (space > 0) GUILayout.Space(space);
                 GUILayout.Label(label, uiParams.lStyleS, GUILayout.Width(lWidth));
             } else {
@@ -497,11 +479,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI
             }
         }
         private bool drawSlider(ref float sliderVal, float min, float max) {
-            bool changed = false;
+            var changed = false;
             GUILayout.BeginVertical();
             try {
                 GUILayout.Space(sliderMargin);
-                GUILayoutOption opt = GUILayout.ExpandWidth(true);//GUILayout.Width(uiParams.colorRect.width * 0.65f);
+                var opt = GUILayout.ExpandWidth(true);//GUILayout.Width(uiParams.colorRect.width * 0.65f);
                 var slidVal = GUILayout.HorizontalSlider(sliderVal, min, max, opt);
                 if (!NumberUtil.Equals(slidVal, sliderVal, EPSILON)) { // スライダー変更時のみ
                     if (sliderVal > max || sliderVal < min) {

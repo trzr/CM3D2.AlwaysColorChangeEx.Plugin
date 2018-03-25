@@ -5,21 +5,19 @@ using System.Reflection;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using UnityEngine;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
     /// <summary>
     /// クリップボードハンドラ
     /// 現版では、マテリアル情報用
     /// </summary>
-    public class ClipBoardHandler
-    {
+    public class ClipBoardHandler {
         // クリップボードを監視する際のサイズ範囲
         private const int MIN_LENGTH = 20;
         private const int MAX_LENGTH = 3333;
 
-        private static ClipBoardHandler instance = new ClipBoardHandler();
+        private static readonly ClipBoardHandler INSTANCE = new ClipBoardHandler();
         public static ClipBoardHandler Instance {
-            get { return instance;  }
+            get { return INSTANCE;  }
         }
         
         public string mateText;
@@ -47,7 +45,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
         public Action<string> SetClipboard;
         // クリップボードを再読み込みし、データであるか判定する
         public void Reload() {
-            string clip = GetClipboard();
+            var clip = GetClipboard();
             
             if (clip.Length < MIN_LENGTH || clip.Length > MAX_LENGTH) {
                 mateText = null;

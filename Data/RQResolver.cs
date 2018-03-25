@@ -2,23 +2,20 @@
 using System;
 using System.Collections.Generic;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// <summary>
     /// Description of RQResolver.
     /// </summary>
-    public class RQResolver
-    {
-        private readonly static RQResolver instance = new RQResolver();
+    public class RQResolver {
+        private static readonly RQResolver INSTANCE = new RQResolver();
         public static RQResolver Instance {
-            get { return instance; }
+            get { return INSTANCE; }
         }
 
-        private readonly float[][] slotRQ;
+        private readonly float[][] _slotRq;
         private static readonly float[] EMPTY_RQ = new float[0];
-        public RQResolver()
-        {
-            slotRQ = new float[][] {
+        public RQResolver() {
+            _slotRq = new[] {
                 EMPTY_RQ, // body
                 EMPTY_RQ, // head
                 EMPTY_RQ, // eye
@@ -79,8 +76,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 EMPTY_RQ, // moza,
             };
         }
-        public float[] resolve(int slotId) {
-            return slotRQ.Length >= slotId ? slotRQ[slotId] : EMPTY_RQ;
+        public float[] Resolve(int slotId) {
+            return _slotRq.Length >= slotId ? _slotRq[slotId] : EMPTY_RQ;
         }
     }
 }

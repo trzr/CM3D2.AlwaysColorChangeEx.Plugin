@@ -5,13 +5,11 @@ using System.Text;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using UnityEngine;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin
-{
-    public sealed class Settings
-    {
-        private readonly static Settings instance = new Settings();
+namespace CM3D2.AlwaysColorChangeEx.Plugin {
+    public sealed class Settings {
+        private static readonly Settings INSTANCE = new Settings();
         public static Settings Instance {
-            get { return instance; }
+            get { return INSTANCE; }
         }
 
         public KeyCode  toggleKey = KeyCode.F12;
@@ -68,31 +66,31 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
         public string floatVal3Fmt    = "F3";
 
         public float[] shininessRange() {
-            return new float[] {shininessMin, shininessMax,};
+            return new[] {shininessMin, shininessMax,};
         }
         public float[] outlineWidthRange() {
-            return new float[] {outlineWidthMin, outlineWidthMax, };
+            return new[] {outlineWidthMin, outlineWidthMax, };
         }
         public float[] rimPowerRange() {
-            return new float[] {rimPowerMin, rimPowerMax, };
+            return new[] {rimPowerMin, rimPowerMax, };
         }
         public float[] rimShiftRange() {
-            return new float[] {rimShiftMin, rimShiftMax, };
+            return new[] {rimShiftMin, rimShiftMax, };
         }
         public float[] hiRateRange() {
-            return new float[] {hiRateMin, hiRateMax, };
+            return new[] {hiRateMin, hiRateMax, };
         }
         public float[] hiPowRange() {
-            return new float[] {hiPowMin, hiPowMax, };
+            return new[] {hiPowMin, hiPowMax, };
         }
         public float[] floatVal1Range() {
-            return new float[] {floatVal1Min, floatVal1Max, };
+            return new[] {floatVal1Min, floatVal1Max, };
         }
         public float[] floatVal2Range() {
-            return new float[] {floatVal2Min, floatVal2Max, };
+            return new[] {floatVal2Min, floatVal2Max, };
         }
         public float[] floatVal3Range() {
-            return new float[] {floatVal3Min, floatVal3Max, };
+            return new[] {floatVal3Min, floatVal3Max, };
         }
         
         public string fmtColor = "F3";
@@ -138,8 +136,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
         public List<int> disableOHScenes;
 
         // 設定の読み込み
-        public void Load(Func<string, string> getValue)
-        {
+        public void Load(Func<string, string> getValue) {
             Get(getValue("PresetPath"),    ref presetPath);
             Get(getValue("PresetDirPath"), ref presetDirPath);
             GetKeyCode(getValue("ToggleWindow"), ref toggleKey);
@@ -209,7 +206,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             Get(getValue("ToonTexAddon"),    ref texlist);
             if (texlist.Length > 0) {
                 // カンマで分割後trm
-                toonTexAddon = texlist.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
+                toonTexAddon = texlist.Split(new[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
                 if (LogUtil.IsDebug()) {
                     var buff = new StringBuilder();
                     foreach (var tex in toonTexAddon) {
@@ -222,7 +219,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             Get(getValue("ToonTex"),    ref texlist);
             if (texlist.Length > 0) {
                 // カンマで分割後trm
-                toonTexes = texlist.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
+                toonTexes = texlist.Split(new[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
                 if (LogUtil.IsDebug()) {
                     var buff = new StringBuilder();
                     foreach (var tex in toonTexes) {
@@ -234,7 +231,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
 
             Get(getValue("ToonComboAutoApply"), ref toonComboAutoApply);
             Get(getValue("DisplaySlotName"),    ref displaySlotName);
-            Get(getValue("EnableMask"),         ref enableMask);
+            Get(getValue("EnableMask"),         ref enableMask);   
             Get(getValue("EnableMoza"),         ref enableMoza);
             Get(getValue("SSWithoutUI"),        ref SSWithoutUI);
 
@@ -249,11 +246,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
             if (listStr.Length > 0) ParseList(listStr, ref disableScenes);
             listStr = string.Empty;
             Get(getValue("DisableOHScenes"),  ref listStr);
-            if (listStr.Length > 0) ParseList(listStr, ref disableOHScenes);    
+            if (listStr.Length > 0) ParseList(listStr, ref disableOHScenes);
         }
 
         static void ParseList(string valString, ref List<int> ret) {
-            var list0 = valString.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries)
+            var list0 = valString.Split(new[]{','}, StringSplitOptions.RemoveEmptyEntries)
                 .Select(p => {
                             int val;
                             return int.TryParse(p, out val) ? val : -1;
@@ -267,11 +264,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
 
         static bool Get(string boolString, ref bool output) {
             bool v;
-            if (bool.TryParse(boolString, out v)) {
-                output = v;
-                return true;
-            }
-            return false;
+            if (!bool.TryParse(boolString, out v)) return false;
+            output = v;
+            return true;
         }
     
         static void Get(string floatString, ref float output) {
@@ -295,20 +290,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin
         }
 
         static bool Get(string stringVal, ref string output) {
-            if(stringVal != null) {
-                output = stringVal;
-                return true;
-            }
-            return false;
+            if (stringVal == null) return false;
+            output = stringVal;
+            return true;
         }
 
         static void GetKeyCode(string keyString, ref KeyCode output) {
-            if(!String.IsNullOrEmpty (keyString)) {
-                try {
+            if (string.IsNullOrEmpty(keyString)) return;
+            try {
                 var key = (KeyCode)Enum.Parse(typeof(KeyCode), keyString);
-                    output = key;
-                } catch(ArgumentException) { }
-            }
+                output = key;
+            } catch(ArgumentException) { }
         }
     }
 }

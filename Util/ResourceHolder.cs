@@ -3,17 +3,15 @@ using System.IO;
 using System.Reflection;
 using UnityEngine;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
     /// <summary>
     /// リソースのロードユーティリティ
     /// </summary>
-    public sealed class ResourceHolder
-    {
-        private static readonly ResourceHolder instance = new ResourceHolder();
+    public sealed class ResourceHolder {
+        private static readonly ResourceHolder INSTANCE = new ResourceHolder();
         public static ResourceHolder Instance {
             get {
-                return instance;
+                return INSTANCE;
             }
         }
         private static FileUtilEx outUtil = FileUtilEx.Instance;

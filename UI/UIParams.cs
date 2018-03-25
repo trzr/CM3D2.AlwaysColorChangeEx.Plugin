@@ -7,9 +7,9 @@ using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
     public class UIParams {
-        private static UIParams instance = new UIParams();
+        private static readonly UIParams INSTANCE = new UIParams();
         public static UIParams Instance {
-            get { return instance; }
+            get { return INSTANCE; }
         }
         #region Constants
         private const int marginPx = 2;
@@ -105,7 +105,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             lStyle.fontStyle = FontStyle.Normal;
             lStyle.normal.textColor = textColor;
             lStyle.alignment = txtAlignment;
-            //lStyle.wordWrap          = false;
+            //lStyle.wordWrap = false;
 
             lStyleS.fontStyle = FontStyle.Normal;
             lStyleS.normal.textColor = textColor;
@@ -157,7 +157,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         }
 
         public void Update() {
-            bool screenSizeChanged = false;
+            var screenSizeChanged = false;
 
             if (Screen.height != height) {
                 height = Screen.height;
@@ -167,8 +167,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 width = Screen.width;
                 screenSizeChanged = true;
             }
-            if (!screenSizeChanged)
-                return;
+            if (!screenSizeChanged) return;
 
             ratio = (1.0f + (width / 1280.0f - 1.0f) * 0.6f);
 
@@ -221,7 +220,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
             mainRect.Set(margin, unitHeight * 5 + margin, winRect.width - margin * 2, winRect.height - unitHeight * 6.5f);
             textureRect.Set(margin, unitHeight, winRect.width - margin * 2, winRect.height - unitHeight * 2.5f);
-            float baseWidth = textureRect.width - 20;
+            var baseWidth = subConWidth - 20;
             optBtnWidth = GUILayout.Width(baseWidth * 0.09f);
             optDBtnWidth = GUILayout.Width(fontSizeS * 5f * 0.6f);
             optContentWidth = GUILayout.MaxWidth(baseWidth * 0.69f);
@@ -236,25 +235,30 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 func(this);
             }
         }
+
         public void InitWinRect() {
             winRect.Set(width - FixPx(290), FixPx(48), FixPx(280), height - FixPx(150));
             titleBarRect.Set(0, 0, winRect.width, 24f);
-
         }
+
         public void InitFBRect() {
             fileBrowserRect.Set(width - FixPx(620), FixPx(100), FixPx(600), FixPx(600));
         }
+
         public void InitModalRect() {
             modalRect.Set(width / 2 - FixPx(300), height / 2 - FixPx(300), FixPx(600), FixPx(600));
         }
+
         public int FixPx(int px) {
             return (int)(ratio * px);
         }
+
         readonly List<Action<UIParams>> updaters = new List<Action<UIParams>>();
         public void Add(Action<UIParams> action) {
             action(this);
             updaters.Add(action);
         }
+
         public bool Remove(Action<UIParams> action) {
             return updaters.Remove(action);
         }

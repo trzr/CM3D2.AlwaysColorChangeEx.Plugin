@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// <summary>
     /// ドロップダウンから選択するシェーダタイプを定義するクラス
     /// </summary>
-    public class ShaderType
-    {
+    public class ShaderType {
         /// <summary>標準シェーダタイプ</summary>
         public static ShaderType[] shaders;
         private static Dictionary<string, string> shader2Map;
@@ -17,22 +15,24 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             if (shaderMap == null) Init();
 
             ShaderType st;
-            if (!shaderMap.TryGetValue(name, out st)) {
-                LogUtil.Log("未対応シェーダのため、シェーダタイプが特定できません。", name);
-                st = ShaderType.UNKNOWN;
-            }
+            // ReSharper disable once PossibleNullReferenceException
+            if (shaderMap.TryGetValue(name, out st)) return st;
+            LogUtil.Log("未対応シェーダのため、シェーダタイプが特定できません。", name);
+            st = UNKNOWN;
             return st;
         }
+
         public static ShaderType Resolve(int shaderIdx) {
             if (shaderMap == null) Init();
 
             if (shaderIdx < shaders.Length && shaderIdx >= 0) {
                 return shaders[shaderIdx];
-            } else {
-                LogUtil.Log("指定シェーダのインデックスが範囲外のため、シェーダタイプが特定できません。", shaderIdx);
-                return ShaderType.UNKNOWN;
             }
+
+            LogUtil.Log("指定シェーダのインデックスが範囲外のため、シェーダタイプが特定できません。", shaderIdx);
+            return UNKNOWN;
         }
+
         /// <summary>
         /// シェーダ1から対応するシェーダ2を取得する
         /// </summary>
@@ -56,36 +56,36 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public static readonly ShaderType UNKNOWN = new ShaderType();
         static void Init() {
             var texTypeEmpty = new ShaderPropTex[0];
-            var texTypeR  = new ShaderPropTex[]{ShaderPropType.RenderTex,};
-            var texType0  = new ShaderPropTex[]{ShaderPropType.MainTex,};
-            var texType0a = new ShaderPropTex[]{ShaderPropType.MainTex_a,};
-            var texType1  = new ShaderPropTex[]{ShaderPropType.MainTex, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon, };//ShaderPropType.MultiColTex, };
-            var texType1a = new ShaderPropTex[]{ShaderPropType.MainTex_a, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon,};// ShaderPropType.MultiColTex, };
-            var texTypeH  = new ShaderPropTex[]{ShaderPropType.MainTex, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon, ShaderPropType.HiTex,};// ShaderPropType.MultiColTex, };
+            var texTypeR  = new []{ShaderPropType.RenderTex,};
+            var texType0  = new []{ShaderPropType.MainTex,};
+            var texType0a = new []{ShaderPropType.MainTex_a,};
+            var texType1  = new []{ShaderPropType.MainTex, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon, };//ShaderPropType.MultiColTex, };
+            var texType1a = new []{ShaderPropType.MainTex_a, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon,};// ShaderPropType.MultiColTex, };
+            var texTypeH  = new []{ShaderPropType.MainTex, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon, ShaderPropType.HiTex,};// ShaderPropType.MultiColTex, };
             
             var colEmpty  = new ShaderPropColor[0];
-            var colC      = new ShaderPropColor[]{ShaderPropType.Color, };
-            var colCa     = new ShaderPropColor[]{ShaderPropType.ColorA, };
-            var colL      = new ShaderPropColor[]{ShaderPropType.Color, ShaderPropType.ShadowColor, };
-            var colLa     = new ShaderPropColor[]{ShaderPropType.ColorA,ShaderPropType.ShadowColor, };
-            var colTL     = new ShaderPropColor[]{ShaderPropType.Color, ShaderPropType.ShadowColor, ShaderPropType.RimColor, };
-            var colTLa    = new ShaderPropColor[]{ShaderPropType.ColorA, ShaderPropType.ShadowColor, ShaderPropType.RimColor, };
-            var colTLO    = new ShaderPropColor[]{ShaderPropType.Color, ShaderPropType.ShadowColor, ShaderPropType.RimColor, ShaderPropType.OutlineColor,  };
-            var colTLOa   = new ShaderPropColor[]{ShaderPropType.ColorA, ShaderPropType.ShadowColor, ShaderPropType.RimColor, ShaderPropType.OutlineColor,  };
+            var colC      = new []{ShaderPropType.Color, };
+            var colCa     = new []{ShaderPropType.ColorA, };
+            var colL      = new []{ShaderPropType.Color, ShaderPropType.ShadowColor, };
+            var colLa     = new []{ShaderPropType.ColorA,ShaderPropType.ShadowColor, };
+            var colTL     = new []{ShaderPropType.Color, ShaderPropType.ShadowColor, ShaderPropType.RimColor, };
+            var colTLa    = new []{ShaderPropType.ColorA, ShaderPropType.ShadowColor, ShaderPropType.RimColor, };
+            var colTLO    = new []{ShaderPropType.Color, ShaderPropType.ShadowColor, ShaderPropType.RimColor, ShaderPropType.OutlineColor,  };
+            var colTLOa   = new []{ShaderPropType.ColorA, ShaderPropType.ShadowColor, ShaderPropType.RimColor, ShaderPropType.OutlineColor,  };
             
             var propEmpty = new ShaderPropFloat[0];
-            var propL     = new ShaderPropFloat[]{ShaderPropType.Shininess, };
-            var propTL    = new ShaderPropFloat[]{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, };
-            var propTLC   = new ShaderPropFloat[]{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.Cutoff, };
-            var propTLO   = new ShaderPropFloat[]{ShaderPropType.Shininess, ShaderPropType.OutlineWidth, ShaderPropType.RimPower, ShaderPropType.RimShift, };
-            var propTLH   = new ShaderPropFloat[]{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.HiRate, ShaderPropType.HiPow};
-            var propTLHO  = new ShaderPropFloat[]{ShaderPropType.Shininess, ShaderPropType.OutlineWidth, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.HiRate, ShaderPropType.HiPow};
+            var propL     = new []{ShaderPropType.Shininess, };
+            var propTL    = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, };
+            var propTLC   = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.Cutoff, };
+            var propTLO   = new []{ShaderPropType.Shininess, ShaderPropType.OutlineWidth, ShaderPropType.RimPower, ShaderPropType.RimShift, };
+            var propTLH   = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.HiRate, ShaderPropType.HiPow};
+            var propTLHO  = new []{ShaderPropType.Shininess, ShaderPropType.OutlineWidth, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.HiRate, ShaderPropType.HiPow};
             
-            ShaderType.count = 0;
-            shaders = new ShaderType[] {
+            count = 0;
+            shaders = new[] {
                 new ShaderType("CM3D2/Toony_Lighted", "トゥーン",                          texType1,  colTL,   propTL ),
                 new ShaderType("CM3D2/Toony_Lighted_Trans",　"トゥーン 透過",              texType1a, colTLa,  propTLC, true ),
-                new ShaderType("CM3D2/Toony_Lighted_Trans_NoZ",　"トゥーン 透過 NoZ",      texType1a, colTLa,  propTL, true ),
+                new ShaderType("CM3D2/Toony_Lighted_Trans_NoZ",　"トゥーン 透過 NoZ",      texType1a, colTLa,  propTL,  true ),
                 new ShaderType("CM3D2/Toony_Lighted_Outline","トゥーン 輪郭線",            texType1,  colTLO,  propTLO ),
                 new ShaderType("CM3D2/Toony_Lighted_Outline_Trans","トゥーン 輪郭線 透過", texType1a, colTLOa, propTLO, true ),
                 new ShaderType("CM3D2/Toony_Lighted_Hair","トゥーン 髪",                   texTypeH,  colTL,   propTLH ),
@@ -96,8 +96,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 new ShaderType("Unlit/Transparent","発光 透過",         texType0a, colEmpty, propEmpty, true ), 
                 new ShaderType("Diffuse","リアル",                      texType0,  colC,     propEmpty ),
                 new ShaderType("Transparent/Diffuse","リアル 透過",     texType0a, colCa,     propEmpty, true ),
-                new ShaderType("CM3D2/Mosaic","モザイク",               texTypeR, colEmpty, new ShaderPropFloat[]{ShaderPropType.FloatValue1}),
-                new ShaderType("CM3D2/Man","ご主人様",                  texTypeEmpty, colC, new ShaderPropFloat[]{ShaderPropType.FloatValue2, ShaderPropType.FloatValue3}),
+                new ShaderType("CM3D2/Mosaic","モザイク",               texTypeR, colEmpty, new[]{ShaderPropType.FloatValue1}),
+                new ShaderType("CM3D2/Man","ご主人様",                  texTypeEmpty, colC, new[]{ShaderPropType.FloatValue2, ShaderPropType.FloatValue3}),
                 new ShaderType("CM3D2_Debug/Debug_CM3D2_Normal2Color","法線", texTypeEmpty, colC, propEmpty), // Emission
             };
             shaderMap = new Dictionary<string, ShaderType>(shaders.Length);
@@ -110,9 +110,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             foreach (var s in shaders) {
                 shader2Map[s.name] = s.name.Replace("/", "__");
             };
+
         }
+
         private ShaderType() {
-            this.idx = -1;
+            idx = -1;
             name = string.Empty;
             dispName = string.Empty;
             texProps = new ShaderPropTex[0];
@@ -126,22 +128,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             this.dispName = dispName;
             this.texProps = texProps;
             this.colProps = colProps;
-            this.fProps    = props;
+            fProps    = props;
             this.isTrans  = isTrans;
             
             if (colProps != null) {
                 foreach (var colProp in colProps) {
-                    if (colProp == ShaderPropType.ShadowColor) {
-                        hasShadow = true;
-                        break;
-                    }
+                    if (colProp != ShaderPropType.ShadowColor) continue;
+                    hasShadow = true;
+                    break;
                 }
             }
-            this.idx = count++;
+            idx = count++;
         }
+
         public int KeyCount() {
             return texProps.Length + colProps.Length + fProps.Length;
         }
+
         public ShaderProp GetShaderProp(string propName) {
             try {
                 var propKey = (PropKey)Enum.Parse(typeof(PropKey), propName);
@@ -231,5 +234,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public ShaderPropFloat[] fProps;
         public bool hasShadow;
 
+        // Keywords (Shader用キーワード)
+        // public Set<string> keys;
     }
 }

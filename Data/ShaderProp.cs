@@ -1,33 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
-using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 using UnityEngine;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// <summary>
     /// 各シェーダ(マテリアル）のプロパティ情報を扱うクラス
     /// </summary>
-    public abstract class ShaderProp
-    {
+    public abstract class ShaderProp {
         protected ShaderProp(string name, PropKey key, int id, ValType valType) {
             this.name = name;
             this.key = key;
-            this.keyName = key.ToString();
-            this.propId = id;
+            keyName = key.ToString();
+            propId = id;
             Init(valType);
         }
+
         protected ShaderProp(PropKey key, ValType valType) {
             this.key = key;
-            this.keyName = key.ToString();
-            this.name = keyName.Substring(1);
-            this.propId = Shader.PropertyToID(keyName);
+            keyName = key.ToString();
+            name = keyName.Substring(1);
+            propId = Shader.PropertyToID(keyName);
             Init(valType);
         }
 
         private void Init(ValType valType1) {
-            this.valType = valType1;
+            valType = valType1;
             switch(valType1) {
                 case ValType.Bool:
                 case ValType.Float:
@@ -49,6 +47,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public PropType type;
         public ValType valType;
     }
+
     public class PresetOperation {
         public string label;
         public Func<float, float> func;
@@ -57,8 +56,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             this.func = func;
         }
     }
-    public class ShaderPropFloat :ShaderProp
-    {
+
+    public class ShaderPropFloat :ShaderProp {
 
         public ShaderPropFloat(string name, PropKey key, int id) : base(name, key, id, ValType.Float) { }
         public ShaderPropFloat(PropKey key) : base(key, ValType.Float) { }
@@ -66,15 +65,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         protected ShaderPropFloat(string name, PropKey key, int id, ValType valType) : base(name, key, id, valType) { }
         public ShaderPropFloat(PropKey key, ValType valType) : base(key, valType) { }
 
-        public ShaderPropFloat(PropKey key, string format, float[] range,
+        public ShaderPropFloat(PropKey key, string format, IList<float> range,
                                   PresetOperation[] opts, float defaultVal, params float[] presetVals) 
             : this(key, new EditRange(format, range[2], range[3]), range, opts, defaultVal, presetVals) {
         }
-        public ShaderPropFloat(PropKey key, EditRange range, float[] sliderRange,
+        public ShaderPropFloat(PropKey key, EditRange range, IList<float> sliderRange,
                                   PresetOperation[] opts, float defaultVal, params float[] presetVals) : base(key, ValType.Float) {
             this.range = range;
-            this.sliderMin = sliderRange[0];
-            this.sliderMax = sliderRange[1];
+            sliderMin = sliderRange[0];
+            sliderMax = sliderRange[1];
             this.opts = opts;
             this.presetVals = presetVals;
             this.defaultVal = defaultVal;
@@ -93,8 +92,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             m.SetFloat(propId, val);
         }
     }
-    public class ShaderPropBool :ShaderPropFloat
-    {
+
+    public class ShaderPropBool :ShaderPropFloat {
         public ShaderPropBool(string name, PropKey key, int id) : base(name, key, id, ValType.Bool) {
             range = EditRange.boolVal;
         }
@@ -105,13 +104,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             m.SetFloat(propId, val? 1f : 0f);
         }
     }
-    public class ShaderPropColor :ShaderProp
-    {
+
+    public class ShaderPropColor :ShaderProp {
         public ShaderPropColor(string name, PropKey key, int id, ColorType colType) : base(name, key, id, ValType.Color) {
-            this.colorType = colType;
+            colorType = colType;
         }
         public ShaderPropColor(PropKey key, ColorType colType) : base(key, ValType.Color) {
-            this.colorType = colType;
+            colorType = colType;
         }
         public ColorType colorType;
         public void SetValue(Material m, Color col) {
@@ -119,13 +118,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         }
         public Color defaultVal;
     }
-    public class ShaderPropTex : ShaderProp
-    {
+
+    public class ShaderPropTex : ShaderProp {
         public ShaderPropTex(string name, PropKey key, int id, TexType type) : base(name, key, id, ValType.Tex) {
-            this.texType = type;
+            texType = type;
         }
         public ShaderPropTex(PropKey key, TexType type) : base(key, ValType.Tex) {
-            this.texType = type;
+            texType = type;
         }
         public TexType texType;
 
@@ -133,74 +132,75 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 //            m.SetFloat(key, val? 1f : 0f);
         }
     }
+
     public static class ShaderPropType {
-        static PresetOperation sliderL = new PresetOperation("<", (val) => val*0.9f);
-        static PresetOperation sliderR = new PresetOperation(">", (val) => val*1.1f);
-        static PresetOperation invert  = new PresetOperation("x-1", (val) => val*-1f);
-        static PresetOperation plus1   = new PresetOperation("+", (val) => val+1);
-        static PresetOperation plus10   = new PresetOperation("++", (val) => val+10);
-        static PresetOperation minus1  = new PresetOperation("-", (val) => val-1);
-        static PresetOperation minus10  = new PresetOperation("--", (val) => val-10);
+        static PresetOperation sliderL = new PresetOperation("<", val => val*0.9f);
+        static PresetOperation sliderR = new PresetOperation(">", val => val*1.1f);
+        static PresetOperation invert  = new PresetOperation("x-1", val => val*-1f);
+        static PresetOperation plus1   = new PresetOperation("+", val => val+1);
+        static PresetOperation plus10   = new PresetOperation("++", val => val+10);
+        static PresetOperation minus1  = new PresetOperation("-", val => val-1);
+        static PresetOperation minus10  = new PresetOperation("--", val => val-10);
 
         private static readonly PresetOperation[] PRESET_RATIO = {sliderL, sliderR};
         private static readonly PresetOperation[] PRESET_INV = { invert };
         private static readonly PresetOperation[] PRESET_PM = { minus10, minus1, plus1, plus10};
 
         private static readonly Settings settings = Settings.Instance;
-        private static Dictionary<string, ShaderProp> customProps = new Dictionary<string, ShaderProp>();
-        private static bool initialized;
+        private static Dictionary<string, ShaderProp> _customProps = new Dictionary<string, ShaderProp>();
+        private static bool _initialized;
         public static void Initialize() {
-            if (!initialized) {
-                // 設定値を利用するため、LazyInitとする
-                RenderQueue      = new ShaderPropFloat(PropKey._SetManualRenderQueue, EditRange.renderQueue,
-                                                       new float[]{0, 5000f,}, PRESET_PM, 3000, 2000, 3000);
+            if (_initialized) return;
 
-                Shininess        = new ShaderPropFloat(PropKey._Shininess, EditRange.shininess,
-                                                       settings.shininessRange(), PRESET_RATIO, 0, 0, 0.1f, 0.5f, 1, 5);
-                OutlineWidth     = new ShaderPropFloat(PropKey._OutlineWidth, EditRange.outlineWidth,
-                                                       settings.outlineWidthRange(), null, 0.0001f, 0.0001f, 0.001f, 0.002f);
-                RimPower         = new ShaderPropFloat(PropKey._RimPower, EditRange.rimPower,
-                                                       settings.rimPowerRange(), PRESET_INV, 0f, 0f, 25f, 50f, 100f);
-                RimShift         = new ShaderPropFloat(PropKey._RimShift, EditRange.rimShift,
-                                                       settings.rimShiftRange(), PRESET_RATIO, 0f, 0f, 0.25f, 0.5f, 1f);
-                HiRate           = new ShaderPropFloat(PropKey._HiRate, EditRange.hiRate, 
-                                                       settings.hiRateRange(), PRESET_RATIO, 0f, 0f, 0.5f, 1.0f);
-                HiPow            = new ShaderPropFloat(PropKey._HiPow, EditRange.hiPow,
-                                                       settings.hiPowRange(), PRESET_RATIO,  0.001f, 0.001f, 1f, 50f);
-                FloatValue1      = new ShaderPropFloat(PropKey._FloatValue1, EditRange.floatVal1,
-                                                       settings.hiPowRange(), null,  10f, 0f, 100f, 200f);
-                FloatValue2      = new ShaderPropFloat(PropKey._FloatValue2, EditRange.floatVal2,
-                                                       settings.hiPowRange(), PRESET_INV,  1f, -15, 0f, 1f, 15f);
-                FloatValue3      = new ShaderPropFloat(PropKey._FloatValue3, EditRange.floatVal3,
-                                                       settings.hiPowRange(), PRESET_RATIO,  1f, 0f, 0.5f, 1f);
-                Parallax         = new ShaderPropFloat(PropKey._Parallax, "F4",
-                                                       new float[] {0.005f, 0.08f, 0.001f, 0.1f}, PRESET_RATIO, 0.02f, 0.02f);
-                Cutoff           = new ShaderPropFloat(PropKey._Cutoff, "F3",
-                                                       new float[] {0f, 1f, 0f, 1f}, PRESET_RATIO, 0f, 0f, 0.5f, 1f);
-                EmissionLM       = new ShaderPropBool(PropKey._EmissionLM);
-                UseMulticolTex   = new ShaderPropBool(PropKey._UseMulticolTex);
+            // 設定値を利用するため、LazyInitとする
+            RenderQueue      = new ShaderPropFloat(PropKey._SetManualRenderQueue, EditRange.renderQueue,
+                new[]{0, 5000f,}, PRESET_PM, 3000, 2000, 3000);
 
-                Strength         = new ShaderPropFloat(PropKey._Strength, "F2",
-                                                       new float[] {0f, 1f, 0f, 1f}, PRESET_RATIO, 0.2f, 0.2f);
-                StencilComp      = new ShaderPropFloat(PropKey._StencilComp, "F0",
-                                                       new float[] {0f, 255f, 0f, 255f}, PRESET_RATIO, 8f, 8f);
-                Stencil          = new ShaderPropFloat(PropKey._Stencil, "F0",
-                                                       new float[] {0f, 255f, 0f, 255f}, PRESET_RATIO, 0f, 0f);
-                StencilOp        = new ShaderPropFloat(PropKey._StencilOp, "F0",
-                                                       new float[] {0f, 255f, 0f, 255f}, PRESET_RATIO, 0f, 0f);
-                StencilWriteMask = new ShaderPropFloat(PropKey._StencilWriteMask, "F0",
-                                                       new float[] {0f, 255f, 0f, 255f}, PRESET_RATIO, 255f, 255f);
-                StencilReadMask  = new ShaderPropFloat(PropKey._StencilReadMask, "F0",
-                                                       new float[] {0f, 255f, 0f, 255f}, PRESET_RATIO, 255f, 255f);
-                ColorMask        = new ShaderPropFloat(PropKey._ColorMask, "F0",
-                                                       new float[] {0f, 255f, 0f, 255f}, PRESET_RATIO, 255f, 255f);
-                EnvAlpha         = new ShaderPropFloat(PropKey._EnvAlpha, "F1",
-                                                       new float[] {0f, 1f, 0f, 1f}, PRESET_RATIO, 0f, 0f);
-                EnvAdd           = new ShaderPropFloat(PropKey._EnvAdd, "F1",
-                                                       new float[] {1f, 2f, 1f, 2f}, PRESET_RATIO, 1f, 1f);
+            Shininess        = new ShaderPropFloat(PropKey._Shininess, EditRange.shininess,
+                settings.shininessRange(), PRESET_RATIO, 0, 0, 0.1f, 0.5f, 1, 5);
+            OutlineWidth     = new ShaderPropFloat(PropKey._OutlineWidth, EditRange.outlineWidth,
+                settings.outlineWidthRange(), null, 0.0001f, 0.0001f, 0.001f, 0.002f);
+            RimPower         = new ShaderPropFloat(PropKey._RimPower, EditRange.rimPower,
+                settings.rimPowerRange(), PRESET_INV, 0f, 0f, 25f, 50f, 100f);
+            RimShift         = new ShaderPropFloat(PropKey._RimShift, EditRange.rimShift,
+                settings.rimShiftRange(), PRESET_RATIO, 0f, 0f, 0.25f, 0.5f, 1f);
+            HiRate           = new ShaderPropFloat(PropKey._HiRate, EditRange.hiRate, 
+                settings.hiRateRange(), PRESET_RATIO, 0f, 0f, 0.5f, 1.0f);
+            HiPow            = new ShaderPropFloat(PropKey._HiPow, EditRange.hiPow,
+                settings.hiPowRange(), PRESET_RATIO,  0.001f, 0.001f, 1f, 50f);
+            FloatValue1      = new ShaderPropFloat(PropKey._FloatValue1, EditRange.floatVal1,
+                settings.hiPowRange(), null,  10f, 0f, 100f, 200f);
+            FloatValue2      = new ShaderPropFloat(PropKey._FloatValue2, EditRange.floatVal2,
+                settings.hiPowRange(), PRESET_INV,  1f, -15, 0f, 1f, 15f);
+            FloatValue3      = new ShaderPropFloat(PropKey._FloatValue3, EditRange.floatVal3,
+                settings.hiPowRange(), PRESET_RATIO,  1f, 0f, 0.5f, 1f);
+            Parallax         = new ShaderPropFloat(PropKey._Parallax, "F4",
+                new[]{0.005f, 0.08f, 0.001f, 0.1f}, PRESET_RATIO, 0.02f, 0.02f);
+            Cutoff           = new ShaderPropFloat(PropKey._Cutoff, "F3",
+                new[]{0f, 1f, 0f, 1f}, PRESET_RATIO, 0f, 0f, 0.5f, 1f);
+            EmissionLM       = new ShaderPropBool(PropKey._EmissionLM);
+            UseMulticolTex   = new ShaderPropBool(PropKey._UseMulticolTex);
 
-                initialized = true;
-            }
+            Strength         = new ShaderPropFloat(PropKey._Strength, "F2",
+                new[]{0f, 1f, 0f, 1f}, PRESET_RATIO, 0.2f, 0.2f);
+            StencilComp      = new ShaderPropFloat(PropKey._StencilComp, "F0",
+                new[]{0f, 255f, 0f, 255f}, PRESET_RATIO, 8f, 8f);
+            Stencil          = new ShaderPropFloat(PropKey._Stencil, "F0",
+                new[]{0f, 255f, 0f, 255f}, PRESET_RATIO, 0f, 0f);
+            StencilOp        = new ShaderPropFloat(PropKey._StencilOp, "F0",
+                new[]{0f, 255f, 0f, 255f}, PRESET_RATIO, 0f, 0f);
+            StencilWriteMask = new ShaderPropFloat(PropKey._StencilWriteMask, "F0",
+                new[]{0f, 255f, 0f, 255f}, PRESET_RATIO, 255f, 255f);
+            StencilReadMask  = new ShaderPropFloat(PropKey._StencilReadMask, "F0",
+                new[]{0f, 255f, 0f, 255f}, PRESET_RATIO, 255f, 255f);
+            ColorMask        = new ShaderPropFloat(PropKey._ColorMask, "F0",
+                new[]{0f, 255f, 0f, 255f}, PRESET_RATIO, 255f, 255f);
+            EnvAlpha         = new ShaderPropFloat(PropKey._EnvAlpha, "F1",
+                new[]{0f, 1f, 0f, 1f}, PRESET_RATIO, 0f, 0f);
+            EnvAdd           = new ShaderPropFloat(PropKey._EnvAdd, "F1",
+                new[]{1f, 2f, 1f, 2f}, PRESET_RATIO, 1f, 1f);
+
+            _initialized = true;
         }
 
         internal static ShaderPropFloat RenderQueue;
@@ -227,34 +227,34 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         internal static ShaderPropFloat EnvAlpha;
         internal static ShaderPropFloat EnvAdd;
 
-        internal readonly static ShaderPropColor Color        = new ShaderPropColor(PropKey._Color, ColorType.rgb);
-        internal readonly static ShaderPropColor ColorA       = new ShaderPropColor(PropKey._Color, ColorType.rgba);
-        internal readonly static ShaderPropColor ShadowColor  = new ShaderPropColor(PropKey._ShadowColor, ColorType.rgb);
-        internal readonly static ShaderPropColor RimColor     = new ShaderPropColor(PropKey._RimColor, ColorType.rgb);
-        internal readonly static ShaderPropColor OutlineColor = new ShaderPropColor(PropKey._OutlineColor, ColorType.rgb);
-        internal readonly static ShaderPropColor SpecColor    = new ShaderPropColor(PropKey._SpecColor, ColorType.rgba);
-        internal readonly static ShaderPropColor ReflectColor = new ShaderPropColor(PropKey._ReflectColor, ColorType.rgba);
-        internal readonly static ShaderPropColor Emission     = new ShaderPropColor(PropKey._Emission, ColorType.rgba);
+        internal static readonly ShaderPropColor Color        = new ShaderPropColor(PropKey._Color, ColorType.rgb);
+        internal static readonly ShaderPropColor ColorA       = new ShaderPropColor(PropKey._Color, ColorType.rgba);
+        internal static readonly ShaderPropColor ShadowColor  = new ShaderPropColor(PropKey._ShadowColor, ColorType.rgb);
+        internal static readonly ShaderPropColor RimColor     = new ShaderPropColor(PropKey._RimColor, ColorType.rgb);
+        internal static readonly ShaderPropColor OutlineColor = new ShaderPropColor(PropKey._OutlineColor, ColorType.rgb);
+        internal static readonly ShaderPropColor SpecColor    = new ShaderPropColor(PropKey._SpecColor, ColorType.rgba);
+        internal static readonly ShaderPropColor ReflectColor = new ShaderPropColor(PropKey._ReflectColor, ColorType.rgba);
+        internal static readonly ShaderPropColor Emission     = new ShaderPropColor(PropKey._Emission, ColorType.rgba);
 
-        internal readonly static ShaderPropTex MainTex        = new ShaderPropTex(PropKey._MainTex, TexType.rgb);
-        internal readonly static ShaderPropTex MainTex_a      = new ShaderPropTex(PropKey._MainTex, TexType.rgba);
-        internal readonly static ShaderPropTex ToonRamp       = new ShaderPropTex(PropKey._ToonRamp, TexType.rgb);
-        internal readonly static ShaderPropTex ShadowTex      = new ShaderPropTex(PropKey._ShadowTex, TexType.rgb);
-        internal readonly static ShaderPropTex ShadowRateToon = new ShaderPropTex(PropKey._ShadowRateToon, TexType.rgb);
-        internal readonly static ShaderPropTex HiTex          = new ShaderPropTex(PropKey._HiTex, TexType.rgb);
-        internal readonly static ShaderPropTex RenderTex      = new ShaderPropTex(PropKey._RenderTex, TexType.nulltex);
-        internal readonly static ShaderPropTex BumpMap        = new ShaderPropTex(PropKey._BumpMap, TexType.bump);
-        internal readonly static ShaderPropTex SpecularTex    = new ShaderPropTex(PropKey._SpecularTex, TexType.nulltex);
-        internal readonly static ShaderPropTex DecalTex       = new ShaderPropTex(PropKey._DecalTex, TexType.rgba);
-        internal readonly static ShaderPropTex Detail         = new ShaderPropTex(PropKey._Detail, TexType.rgb);
-        internal readonly static ShaderPropTex DetailTex      = new ShaderPropTex(PropKey._DetailTex, TexType.rgb);
-        internal readonly static ShaderPropTex AnisoTex       = new ShaderPropTex(PropKey._AnisoTex, TexType.nulltex);
-        internal readonly static ShaderPropTex ParallaxMap    = new ShaderPropTex(PropKey._ParallaxMap, TexType.a);
-        internal readonly static ShaderPropTex Illum          = new ShaderPropTex(PropKey._Illum, TexType.a);
-        internal readonly static ShaderPropTex Cube           = new ShaderPropTex(PropKey._Cube, TexType.cube);
-        internal readonly static ShaderPropTex ReflectionTex  = new ShaderPropTex(PropKey._ReflectionTex, TexType.rgb);
-        internal readonly static ShaderPropTex MultiColTex    = new ShaderPropTex(PropKey._MultiColTex, TexType.rgba);
-        internal readonly static ShaderPropTex EnvMap         = new ShaderPropTex(PropKey._EnvMap, TexType.cube);        
+        internal static readonly ShaderPropTex MainTex        = new ShaderPropTex(PropKey._MainTex, TexType.rgb);
+        internal static readonly ShaderPropTex MainTex_a      = new ShaderPropTex(PropKey._MainTex, TexType.rgba);
+        internal static readonly ShaderPropTex ToonRamp       = new ShaderPropTex(PropKey._ToonRamp, TexType.rgb);
+        internal static readonly ShaderPropTex ShadowTex      = new ShaderPropTex(PropKey._ShadowTex, TexType.rgb);
+        internal static readonly ShaderPropTex ShadowRateToon = new ShaderPropTex(PropKey._ShadowRateToon, TexType.rgb);
+        internal static readonly ShaderPropTex HiTex          = new ShaderPropTex(PropKey._HiTex, TexType.rgb);
+        internal static readonly ShaderPropTex RenderTex      = new ShaderPropTex(PropKey._RenderTex, TexType.nulltex);
+        internal static readonly ShaderPropTex BumpMap        = new ShaderPropTex(PropKey._BumpMap, TexType.bump);
+        internal static readonly ShaderPropTex SpecularTex    = new ShaderPropTex(PropKey._SpecularTex, TexType.nulltex);
+        internal static readonly ShaderPropTex DecalTex       = new ShaderPropTex(PropKey._DecalTex, TexType.rgba);
+        internal static readonly ShaderPropTex Detail         = new ShaderPropTex(PropKey._Detail, TexType.rgb);
+        internal static readonly ShaderPropTex DetailTex      = new ShaderPropTex(PropKey._DetailTex, TexType.rgb);
+        internal static readonly ShaderPropTex AnisoTex       = new ShaderPropTex(PropKey._AnisoTex, TexType.nulltex);
+        internal static readonly ShaderPropTex ParallaxMap    = new ShaderPropTex(PropKey._ParallaxMap, TexType.a);
+        internal static readonly ShaderPropTex Illum          = new ShaderPropTex(PropKey._Illum, TexType.a);
+        internal static readonly ShaderPropTex Cube           = new ShaderPropTex(PropKey._Cube, TexType.cube);
+        internal static readonly ShaderPropTex ReflectionTex  = new ShaderPropTex(PropKey._ReflectionTex, TexType.rgb);
+        internal static readonly ShaderPropTex MultiColTex    = new ShaderPropTex(PropKey._MultiColTex, TexType.rgba);
+        internal static readonly ShaderPropTex EnvMap         = new ShaderPropTex(PropKey._EnvMap, TexType.cube);        
     }
     
     public enum PropType {

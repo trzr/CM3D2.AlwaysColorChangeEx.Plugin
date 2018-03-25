@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// <summary>
     /// ACCで扱う定数クラス.
     /// SlotIDからMPNの対応やノード名一覧等
     /// </summary>
-    public static class ACConstants
-    {
+    public static class ACConstants {
         private static Settings settings = Settings.Instance;
         public static readonly Dictionary<TBody.SlotID, SlotInfo> SlotNames = new Dictionary<TBody.SlotID, SlotInfo>(Enum.GetNames(typeof(TBody.SlotID)).Length) {
             {TBody.SlotID.body,        new SlotInfo(TBody.SlotID.body,      MPN.body,      "身体", true, settings.enableMask) },
@@ -194,12 +192,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         private int no;
         public int No {
             get {
-                if (no == -1) {
-                    try {
-                        this.no = (int)TBody.hashSlotName[Name];
-                    } catch(Exception e) {
-                        LogUtil.Log("Initialize Error Slot name is illegal", Name, e);
-                    }
+                if (no != -1) return no;
+
+                try {
+                    no = (int)TBody.hashSlotName[Name];
+                } catch(Exception e) {
+                    LogUtil.Log("Initialize Error Slot name is illegal", Name, e);
                 }
                 return no;
             }
@@ -209,13 +207,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public SlotInfo(TBody.SlotID id, MPN mpn, string displayName, bool enable)
             :this(id, mpn, displayName, enable, true) {
         }
+
         public SlotInfo(TBody.SlotID id, MPN mpn, string displayName, bool enable, bool maskable) {
-            this.Id = id;
-            this.Name = Id.ToString();
+            Id = id;
+            Name = Id.ToString();
             this.mpn = mpn;
-            this.DisplayName = displayName;
-            this.LongName = displayName + " [" + Name + "]";
-            this.no = -1;
+            DisplayName = displayName;
+            LongName = displayName + " [" + Name + "]";
+            no = -1;
             this.enable = enable;
             this.maskable = maskable;
         }
@@ -228,17 +227,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public int depth              { get; private set; }
         public TBody.SlotID[]  slots  { get; private set; }
         public NodeItem(string dispName, int depth, params TBody.SlotID[] slots) {
-            this.DisplayName = dispName;
+            DisplayName = dispName;
             this.depth = depth;
             if (slots == null) {
                 slots = EMPTY;
             } else {
                 this.slots = slots;
-        }
+            }
         }
         public NodeItem(string name, string dispName, int depth, params TBody.SlotID[] slots) {
-            this.Name = name;
-            this.DisplayName = dispName;
+            Name = name;
+            DisplayName = dispName;
             this.depth = depth;
             if (slots == null) {
                 slots = EMPTY;

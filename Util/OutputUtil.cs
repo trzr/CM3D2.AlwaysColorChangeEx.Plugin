@@ -4,47 +4,39 @@ using System.Text;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
     /// <summary>
     /// 定義ファイル関連のユーティリティクラス.
     /// </summary>
-    public sealed class OutputUtil
-    {
-        private readonly static OutputUtil instance = new OutputUtil();
-        
+    public sealed class OutputUtil {
+        private static readonly OutputUtil INSTANCE = new OutputUtil();
         public static OutputUtil Instance {
-            get { return instance; }
+            get { return INSTANCE; }
         }
         
         private OutputUtil() { }
         private const int BUFFER_SIZE = 8196;
 
         public string GetModDirectory() {
-            string fullPath = Path.GetFullPath(".\\");
-            string path = Path.Combine(fullPath, "Mod");
+            var fullPath = Path.GetFullPath(".\\");
+            var path = Path.Combine(fullPath, "Mod");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
             return path;
-        }
-
-        public string GetACCDirectory() {
-            return GetACCDirectory(null);
         }
 
         public string GetExportDirectory() {
             return GetACCDirectory("Export");
         }
 
-        public string GetACCDirectory(string subName) {
-            string modDir = GetModDirectory();
-            string path = Path.Combine(modDir, "ACC");
+        public string GetACCDirectory(string subName = null) {
+            var modDir = GetModDirectory();
+            var path = Path.Combine(modDir, "ACC");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
-            if ( !String.IsNullOrEmpty(subName) ) {
-                path = Path.Combine(path, subName);
-                if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-            }
+            if (string.IsNullOrEmpty(subName)) return path;
+            path = Path.Combine(path, subName);
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
             return path;
         }
@@ -72,8 +64,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
             using (var  fs = new FileStream(infilepath, FileMode.Open)) {
 
                 var buff = new byte[BUFFER_SIZE];
-                int length = 0;
-                while ((length = fs.Read(buff, 0, BUFFER_SIZE))>= 0) {
+                var length = 0;
+                while ((length = fs.Read(buff, 0, BUFFER_SIZE)) >= 0) {
                     writer.Write(buff, 0, length);
                 }
             }
@@ -103,27 +95,26 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
 
             using (var dataStream = new MemoryStream())
                 using (var dataWriter = new BinaryWriter(dataStream)) {
-                int num2 = (int)reader.ReadInt32();
+                var num2 = (int)reader.ReadInt32();
                 while (reader.PeekChar() != -1) {
-                    int size = (int) reader.ReadByte();
+                    var size = (int) reader.ReadByte();
                     if (size == 0) {
                         dataWriter.Write((byte)0);
                         break;
                     }
 
-                    string key = reader.ReadString();
+                    var key = reader.ReadString();
                     var param = new string[size-1];
-                    for (int i = 0; i < size-1; i++) {
+                    for (var i = 0; i < size-1; i++) {
                         param[i] = reader.ReadString();
                     }
                     param = replace(key, param);
 
-                    if (param != null) {
-                        dataWriter.Write((byte) (param.Length+1));
-                        dataWriter.Write(key);
-                        foreach (string wparam in param) {
-                            dataWriter.Write(wparam);
-                        }
+                    if (param == null) continue;
+                    dataWriter.Write((byte) (param.Length+1));
+                    dataWriter.Write(key);
+                    foreach (var wparam in param) {
+                        dataWriter.Write(wparam);
                     }
                 }
                 writer.Write((int)dataStream.Length);

@@ -5,16 +5,16 @@
  * 
  * 出力するか否か、出力時のファイル名等の制御が複雑なため、クラス構造要整理
  */
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using UnityEngine;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
+using UnityEngine;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// <summary>メニューを扱うデータクラス</summary>
     public class ACCMenu {
         public int version     { get; set; }
@@ -78,13 +78,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         /// <param name="edited">編集されたマテリアル情報</param>
         public void InitMaterials(string slotName, List<ACCMaterial> edited) {
 
-            bool needUpdate = false;
-            for (int matNo=0; matNo< edited.Count; matNo++) {
-                TargetMaterial tm = GetMaterial(slotName, matNo);
+            var needUpdate = false;
+            for (var matNo=0; matNo< edited.Count; matNo++) {
+                var tm = GetMaterial(slotName, matNo);
                 if (tm == null) {
                     // menuのマテリアル変更で指定されていないmaterial
-                    tm = new TargetMaterial(slotName, matNo, string.Empty);
-                    tm.onlyModel = true;
+                    tm = new TargetMaterial(slotName, matNo, string.Empty) {onlyModel = true};
                     AddSlotMaterial(tm);
 
                     // modelファイルからマテリアル情報をロード 毎回ロードするのは非効率
@@ -96,6 +95,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         // item.filename
                     }
                 } 
+
                 tm.Init(edited[matNo]);
                 needUpdate |= tm.shaderChanged;
                 if (tm.onlyModel) {
@@ -112,12 +112,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 }
             }
         }
+
         public string EditFileName() {
             return editfile + FileConst.EXT_MENU;
         }
+
         public string EditIconFileName() {
             return editicon + FileConst.EXT_TEXTURE;
         }
+
         public TargetMaterial GetMaterial(string slot, int matNo) {
             SlotMaterials slotMat;
             return slotMaterials.TryGetValue(slot, out slotMat) ? slotMat.Get(matNo) : null;
@@ -139,7 +142,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             try {
                 bool onBuffer;
                 using (var reader = new BinaryReader(FileUtilEx.Instance.GetStream(menu.srcfilename, out onBuffer), Encoding.UTF8)) {
-                    string header = reader.ReadString();
+                    var header = reader.ReadString();
 
                     if (onBuffer || reader.BaseStream.Position > 0) {
                         if (header == FileConst.HEAD_MENU) {
@@ -152,7 +155,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 }
                 // arc内のファイルがロードできない場合の回避策: Sybaris 0410向け対策. 一括読み込み
                 using (var reader = new BinaryReader(new MemoryStream(FileUtilEx.Instance.LoadInternal(menu.srcfilename), false), Encoding.UTF8)) {
-                    string header = reader.ReadString(); // hader
+                    var header = reader.ReadString(); // hader
                     if (header == FileConst.HEAD_MATE) {
                         WriteMenuFile(reader, header, filepath, menu);
                     }
@@ -163,11 +166,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             } catch (ACCException) {
                 throw;
             } catch (Exception e) {
-                string msg = "menuファイルの作成に失敗しました。 file="+ filepath;
+                var msg = "menuファイルの作成に失敗しました。 file="+ filepath;
                 LogUtil.Error(msg, e);
                 throw new ACCException(msg, e);
             }
         }
+
         private static void WriteMenuFile(BinaryReader reader, string header, string filepath, ACCMenu menu) {
             using (var dataStream = new MemoryStream())
             using (var dataWriter = new BinaryWriter(dataStream))
@@ -178,7 +182,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 
                 // txtpath
                 reader.ReadString();
-                string txtpath = menu.txtpath;
+                var txtpath = menu.txtpath;
                 if (!txtpath.EndsWith(FileConst.EXT_TXT, StringComparison.OrdinalIgnoreCase)) {
                     txtpath += FileConst.EXT_TXT;
                 }
@@ -189,23 +193,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 reader.ReadString();
                 writer.Write(menu.name);
                 writer.Write(menu.category);
-                string desc = menu.desc.Replace("\n", FileConst.RET);
+                var desc = menu.desc.Replace("\n", FileConst.RET);
                 writer.Write(desc);
 
                 // readBytes
-                int num = (int)reader.ReadInt32();
+                var num = reader.ReadInt32();
 
-                bool priorityWritten = false;
+                var priorityWritten = false;
                 while (true) {
-                    int size = (int) reader.ReadByte();
+                    var size = (int) reader.ReadByte();
                     if (size == 0) {
                         dataWriter.Write((byte)0);
                         break;
                     }
 
-                    string key = reader.ReadString();
+                    var key = reader.ReadString();
                     var param = new string[size-1];
-                    for (int i = 0; i < size-1; i++) {
+                    for (var i = 0; i < size-1; i++) {
                         param[i] = reader.ReadString();
                     }
                     // パラメータ数が変更される場合があれば…
@@ -233,8 +237,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                             LogUtil.Debug("modelfile replaces ", modelfile, "=>",  param[0]);
                             break;
                         case "マテリアル変更":
-                            string slot = param[0];
-                            int matNo = int.Parse(param[1]);
+                            var slot = param[0];
+                            var matNo = int.Parse(param[1]);
                             var tm = menu.GetMaterial(slot, matNo);
                             param[2] = tm.EditFileName();
                             break;
@@ -303,10 +307,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     // if (writeParams == null) writeParams = param;
                     dataWriter.Write((byte) (param.Length+1));
                     dataWriter.Write(key);
-                    foreach (string wparam in param) {
+                    foreach (var wparam in param) {
                         dataWriter.Write(wparam);
                     }
                 }
+
                 if (!priorityWritten) {
                     dataWriter.Write((byte) 2);
                     dataWriter.Write("priority");
@@ -327,7 +332,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             try {
                 bool onBuffer;
                 using (var reader = new BinaryReader(FileUtilEx.Instance.GetStream(menu.srcfilename, out onBuffer), Encoding.UTF8)) {
-                    string header = reader.ReadString();
+                    var header = reader.ReadString();
                     if (onBuffer || reader.BaseStream.Position > 0) {
                         if (header == FileConst.HEAD_MENU) {
                             Load(reader, menu.srcfilename, menu);
@@ -341,7 +346,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                
                 // arc内のファイルがロードできない場合の回避策: Sybaris 0410向け対策. 一括読み込み
                 using (var reader = new BinaryReader(new MemoryStream(FileUtilEx.Instance.LoadInternal(menu.srcfilename), false), Encoding.UTF8)) {
-                    string header = reader.ReadString(); // hader
+                    var header = reader.ReadString(); // hader
                     if (header == FileConst.HEAD_MENU) {
                         Load(reader, menu.srcfilename, menu);
                         LogUtil.Debug("menu loaded");
@@ -356,12 +361,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 return null;
             }
         }
+
         private static StringBuilder headerError(string header, string filename) {
             if (header == FileConst.HEAD_MOD) {
                 return LogUtil.Error("MODファイルは未対応。", filename);
-            } else {
-                return LogUtil.Error("MENUファイルのヘッダーファイルが正しくありません。", header, ", ", filename);
             }
+
+            return LogUtil.Error("MENUファイルのヘッダーファイルが正しくありません。", header, ", ", filename);
         }
         private static void Load(BinaryReader reader, string filename, ACCMenu menu) {
             menu.version = reader.ReadInt32();
@@ -371,14 +377,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             var headerCategory = reader.ReadString();
             var headerSetumei  = reader.ReadString().Replace(FileConst.RET, "\n");
     
-            int num2 = (int)reader.ReadInt32();
+            var num2 = reader.ReadInt32();
             while (true) {
-                int size = (int) reader.ReadByte();
+                var size = (int) reader.ReadByte();
                 if (size == 0) break;
     
-                string key = reader.ReadString();
+                var key = reader.ReadString();
                 var param = new string[size-1];
-                for (int i = 0; i < size-1; i++) {
+                for (var i = 0; i < size-1; i++) {
                     param[i] = reader.ReadString();
                 }
                 switch (key) {
@@ -441,15 +447,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         break;
     
                     case "delitem":
-                        string slot0 = menu.category;
+                        var slot0 = menu.category;
                         if (param.Length >= 1) slot0 = param[0];
                         menu.delItems.Add(slot0);
                         break;
     
                     case "マテリアル変更":
-                        string slot = param[0];
-                        int matNo = int.Parse(param[1]);
-                        string file = param[2];
+                        var slot = param[0];
+                        var matNo = int.Parse(param[1]);
+                        var file = param[2];
                         menu.AddSlotMaterial(new TargetMaterial(slot, matNo, file));
     
                         break;
@@ -500,8 +506,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             }
         }
     }
+
     public class SlotMaterials {
-        public List<TargetMaterial> materials = new List<TargetMaterial>();
+        public readonly List<TargetMaterial> materials = new List<TargetMaterial>();
         
         /// <summary>マテリアル番号に対応するマテリアル情報を取得する</summary>
         /// <param name="matNo">マテリアル番号</param>
@@ -512,11 +519,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
         public void SetMaterial(TargetMaterial tm) {
             // matNoをリストのインデックスとして挿入
-            int lack = tm.matNo - materials.Count;
+            var lack = tm.matNo - materials.Count;
             if (lack == 0) {
                 materials.Add(tm);
             } else if (lack > 0) {
-                for(int i=0; i<lack; i++) {
+                for(var i=0; i<lack; i++) {
                     materials.Add(null);
                 }
                 materials.Add(tm);
@@ -552,18 +559,19 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public ACCMaterialEx srcMat    { get; set;}
 
         public TargetMaterial(string slot, int matNo, string filename) {
-            this.slotName = slot;
+            slotName = slot;
             this.matNo = matNo;
             this.filename = filename;
-            this.editfile = Path.GetFileNameWithoutExtension(filename);
+            editfile = Path.GetFileNameWithoutExtension(filename);
         }
+
         public string EditFileName() {
             if (worksuffix == null) return editfile + FileConst.EXT_MATERIAL;
             return editfile + worksuffix + FileConst.EXT_MATERIAL;
         }
 
         public void Init(ACCMaterial edited) {
-            this.editedMat = edited;
+            editedMat = edited;
 
             // ファイルからマテリアル情報をロード
             if (onlyModel) {
@@ -582,35 +590,35 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             if (edited.type.isTrans) {
                 // renderqueueがデフォルト値であれば変更不要
                 if (Math.Abs(edited.renderQueue.val - 2000) < 0.01f) {
-                    this.needPmat = false;
+                    needPmat = false;
                 } else {
-                    this.needPmat = true;
+                    needPmat = true;
 
-                    string matName = (srcMat != null)? srcMat.name2 : edited.name;
-                    float srcRq = MaterialUtil.GetRenderQueue(matName);
+                    var matName = (srcMat != null)? srcMat.name2 : edited.name;
+                    var srcRq = MaterialUtil.GetRenderQueue(matName);
                     // 既存のマテリアル名に対応するpmatが存在しない => 変更必要
-                    if (srcRq < 0) this.needPmatChange = true;
+                    if (srcRq < 0) needPmatChange = true;
                     LogUtil.DebugF("render queue: src={0}, edited={1}", srcRq, edited.renderQueue);
     
-                    this.needPmatChange |= !NumberUtil.Equals(edited.renderQueue.val, srcRq, 0.01f);
-                    this.pmatExport = needPmatChange;
+                    needPmatChange |= !NumberUtil.Equals(edited.renderQueue.val, srcRq, 0.01f);
+                    pmatExport = needPmatChange;
                 }
             }
 
             if (!shaderChanged) {
                 // TODO modelロードでsrcMatを作成した場合は条件削除可能
-                if (srcMat != null) hasParamChanged = editedMat.hasChanged(srcMat);
+                if (srcMat != null) hasParamChanged = editedMat.HasChanged(srcMat);
             }
 
-            this.editname = editedMat.material.name;
-            var maid = MaidHolder.Instance.currentMaid;
+            editname = editedMat.material.name;
+            var maid = MaidHolder.Instance.CurrentMaid;
 
             // テクスチャの変更フラグチェック
             foreach (var texProp in editedMat.type.texProps) {
             //foreach (string propName in editedMat.type1.texPropNames) {
                 LogUtil.Debug("propName:", texProp.key);
                 
-                Texture tex = editedMat.material.GetTexture(texProp.propId);
+                var tex = editedMat.material.GetTexture(texProp.propId);
                 var filter = ACCTexturesView.GetFilter(maid, slotName, editedMat.material, texProp.propId);
                 var colorChanged = (filter != null) && !filter.hasNotChanged();
                 var fileChanged = false;
@@ -620,8 +628,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         fileChanged = (baseTex.editname != tex.name);
                     }
                 }
-                var trgtTex = new TargetTexture(colorChanged, fileChanged, tex);
-                trgtTex.filter = filter;
+
+                var trgtTex = new TargetTexture(colorChanged, fileChanged, tex) {filter = filter};
                 texDic[texProp.key] = trgtTex;
                 hasTexColorChanged  |= colorChanged;
                 hasTexFileChanged   |= fileChanged;
@@ -632,13 +640,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public float RenderQueue() {
             return editedMat.renderQueue.val;
         }
+
         public string ShaderName() {
             return editedMat.type.name;
         }
+
         public string ShaderNameOrDefault(string defaultVal) {
             return (editedMat != null) ? editedMat.type.name : defaultVal;
         }
     }
+
     public class TargetTexture {
         public bool colorChanged {get; private set; }
         public bool fileChanged  {get; private set; }
@@ -653,40 +664,44 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public string workfilename;  // 出力時に状況に応じて変わる、変更前のファイル名
         
         public TargetTexture(bool color, bool file, Texture tex) {
-            this.colorChanged = color;
-            this.fileChanged = file;
+            colorChanged = color;
+            fileChanged = file;
             this.tex = tex;
-            if (tex != null) {
-                this.editname = Path.GetFileNameWithoutExtension(tex.name);
+            if (tex == null) return;
 
-                // 色変更をせず、登録済texファイルの変更はスキップ (notexとかも出力不要と判断される)
-                needOutput |= colorChanged;
-                if (!needOutput && fileChanged)  {
-                    var texfile = tex.name;
-                    if (!texfile.Contains(".")) texfile += FileConst.EXT_TEXTURE;
-                    needOutput |= !FileUtilEx.Instance.Exists(texfile);
-                }
-            }
+            editname = Path.GetFileNameWithoutExtension(tex.name);
+
+            // 色変更をせず、登録済texファイルの変更はスキップ (notexとかも出力不要と判断される)
+            needOutput |= colorChanged;
+            if (needOutput || !fileChanged) return;
+
+            var texfile = tex.name;
+            if (!texfile.Contains(".")) texfile += FileConst.EXT_TEXTURE;
+            needOutput |= !FileUtilEx.Instance.Exists(texfile);
         }
+
         public string EditFileNameNoExt() {
             if (worksuffix == null) return editname;
             return editname + worksuffix;
         }
+
         public string EditFileName() {
             if (editname.EndsWith(FileConst.EXT_TEXTURE, StringComparison.OrdinalIgnoreCase)) {
                 // 拡張子があらかじめ設定されている場合
                 if (worksuffix == null) return editname;
                 return editname.Substring(0, editname.Length - 4)+ worksuffix + FileConst.EXT_TEXTURE;
-            } else {
-                if (worksuffix == null) return editname + FileConst.EXT_TEXTURE;
-                return editname + worksuffix + FileConst.EXT_TEXTURE;
             }
+
+            if (worksuffix == null) return editname + FileConst.EXT_TEXTURE;
+            return editname + worksuffix + FileConst.EXT_TEXTURE;
         }
+
         public string EditTxtPath() {
             if (worksuffix == null) return Settings.Instance.txtPrefixTex + editname + FileConst.EXT_TXT;
             return Settings.Instance.txtPrefixTex + editname + worksuffix + FileConst.EXT_TXT;
         }
     }
+
     // リソース参照の情報
     public class ColorSet {
         public ACCMenu menu;
@@ -694,6 +709,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public string suffix    { get; private set;}
         public string filename  { get; private set;}
     }
+
     // リソース参照の情報
     public class ResourceRef {
         public ACCMenu menu;
@@ -707,30 +723,33 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
 
         public ResourceRef(string key, string filename) {
             this.key      = key;
-            this.suffix   = FileConst.GetResSuffix(key);
+            suffix   = FileConst.GetResSuffix(key);
             this.filename = filename;
-            this.editname = Path.GetFileNameWithoutExtension(filename);
+            editname = Path.GetFileNameWithoutExtension(filename);
         }
+
         public string EditFileName() {
             return editname + FileConst.EXT_MENU;
         }
+
         public string EditTxtPath() {
             return Settings.Instance.txtPrefixMenu + editname + FileConst.EXT_TXT;
         }
+
         public List<ReplacedInfo> replaceFiles;
 
         public Func<string, string[], string[]> ReplaceMenuFunc() {
             replaceFiles = new List<ReplacedInfo>();
             // menuファイル中のmodelとmateを更新する
             // それ以外はそのまま出力
-            return (string key, string[] param) => {
+            return (key, param) => {
                 switch (key) {
                     case "additem":
                         if (param.Length >= 2) {
-                            string slot0 = param[1];
+                            var slot0 = param[1];
                             try {
                                 var slot = (TBody.SlotID)Enum.Parse(typeof(TBody.SlotID), slot0, false);
-                                Item item = menu.itemSlots[slot];
+                                var item = menu.itemSlots[slot];
         
                                 // 対応するスロットのアイテムが更新される場合にのみ出力
                                 if (item.needUpdate) {
@@ -755,10 +774,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         break;
         
                     case "マテリアル変更":
-                        string slotName  = param[0];
-                        int matNo        = int.Parse(param[1]);
-                        string filename1 = param[2];
-                        TargetMaterial tm = menu.GetMaterial(slotName, matNo);
+                        var slotName  = param[0];
+                        var matNo        = int.Parse(param[1]);
+                        var filename1 = param[2];
+                        var tm = menu.GetMaterial(slotName, matNo);
                         // 上位menuと同名ファイルであれば、出力済のファイル名を指定 (上位側が変更されていなければそのまま）
                         tm.worksuffix = null;
                         if (tm.filename == filename1) {
@@ -791,9 +810,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public string editname;
         public bool   editnameExist;
         public Item(string[] info) {
-            this.filename = info[0];
-            this.editname = Path.GetFileNameWithoutExtension(filename);
-            if (info.Length > 1) this.slot = info[1];
+            filename = info[0];
+            editname = Path.GetFileNameWithoutExtension(filename);
+            if (info.Length > 1) slot = info[1];
             this.info = info;
         }
         public string EditFileName() {
@@ -817,16 +836,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public Item item;
 
         public ReplacedInfo(string src, string replaced, ResourceRef res, Item item) {
-            this.source = src;
+            source = src;
             this.replaced = replaced;
             this.res = res;
             this.item = item;
         }
         public ReplacedInfo(string src, string replaced, ResourceRef res, TargetMaterial tm) {
-            this.source = src;
+            source = src;
             this.replaced = replaced;
             this.res = res;
-            this.material = tm;
+            material = tm;
         }
     }
 }

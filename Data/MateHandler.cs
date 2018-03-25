@@ -6,15 +6,14 @@ using CM3D2.AlwaysColorChangeEx.Plugin;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using UnityEngine;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// <summary>
     /// マテファイルとテキスト変換を行うハンドラクラス
     /// </summary>
     public class MateHandler {
-        private static readonly MateHandler instance = new MateHandler();        
+        private static readonly MateHandler INSTANCE = new MateHandler();        
         public static MateHandler Instance {
-            get { return instance;  }
+            get { return INSTANCE;  }
         }
         public const int MATE_SHADER = 0x1;
         public const int MATE_COLOR  = 0x2;
@@ -33,12 +32,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             }
             using (var stream = new BufferedStream(new FileStream(path, FileMode.Open, FileAccess.Read), bufferSize)) {
                 using (var reader = new BinaryReader(stream, Encoding.UTF8)) {
-                    string header = reader.ReadString(); // hader
-                    if (header != "CM3D2_MATERIAL") {
-                        var msg = "正しいmateファイルではありません。ヘッダが不正です。"+ header+ ", file="+ path;
-                        throw new Exception(msg);
-                    }
-                    return Read(reader).ToString();
+                    var header = reader.ReadString(); // hader
+                    if (header == "CM3D2_MATERIAL") return Read(reader).ToString();
+
+                    var msg = "正しいmateファイルではありません。ヘッダが不正です。"+ header+ ", file="+ path;
+                    throw new Exception(msg);
                 }
             }
         }
@@ -56,7 +54,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 //writer.Write(type);
                 if (type == "end") break;
 
-                string propName = reader.ReadString();
+                var propName = reader.ReadString();
                 buff.Append(type).Append("\r\n");
                 buff.Append('\t').Append(propName).Append("\r\n");
                 switch (type) {
@@ -107,45 +105,52 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                 }
             }
         }
-        public void Write(String mateText, BinaryWriter writer) {
+
+        private string ReadLine(TextReader reader) {
+            var line = reader.ReadLine();
+            if (line == null) throw new Exception("マテリアルを表すファイルの書式が正しくありません");
+            return line;
+        }
+
+        public void Write(string mateText, BinaryWriter writer) {
             writer.Write("CM3D2_MATERIAL");
             var sr = new StringReader(mateText);
 
             
             int version;
-            if (!int.TryParse(sr.ReadLine().Trim(), out version)) {
+            var line = sr.ReadLine();
+            if (line == null || !int.TryParse(line.Trim(), out version)) {
                 throw new Exception("バージョンが取得できません");
             }
-            writer.Write(version);
-            
-            writer.Write(sr.ReadLine()); // name1
-            writer.Write(sr.ReadLine()); // name2
 
-            writer.Write(sr.ReadLine()); // shader1
-            writer.Write(sr.ReadLine()); // shader2
+            writer.Write(version);
+            writer.Write(ReadLine(sr).Trim()); // name1
+            writer.Write(ReadLine(sr).Trim()); // name2
+
+            writer.Write(ReadLine(sr).Trim()); // shader1
+            writer.Write(ReadLine(sr).Trim()); // shader2
             
-            string line;
             while ((line = sr.ReadLine()) != null) {
                 line = line.Trim();
                 if (line.Length == 0) continue;
                 
                 writer.Write(line);
-                string propName = sr.ReadLine().Trim();
+                var propName = ReadLine(sr).Trim();
                 writer.Write(propName);
                 switch (line) {
                 case "tex":
-                    string sub = sr.ReadLine().Trim();
+                    var sub = ReadLine(sr).Trim();
                     writer.Write(sub);
                     switch (sub) {
                         case "tex2d":
-                            writer.Write(sr.ReadLine().Trim());
-                            writer.Write(sr.ReadLine().Trim());
-                            string[] vals = sr.ReadLine().Split(' ');
+                            writer.Write(ReadLine(sr).Trim());
+                            writer.Write(ReadLine(sr).Trim());
+                            var vals = ReadLine(sr).Split(' ');
                             if (vals.Length != 4) {
                                 throw new Exception("オフセット、スケール値が正しく（４値）指定されていません。propName=" + propName);                                
                             }
                             
-                            for (int i=0; i<4; i++) {
+                            for (var i=0; i<4; i++) {
                                 float f;
                                 if ( float.TryParse(vals[i], out f) ) {
                                     writer.Write(f);
@@ -157,18 +162,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                         case "null":
                             break;
                         case "texRT":
-                            writer.Write(sr.ReadLine().Trim());
-                            writer.Write(sr.ReadLine().Trim());
+                            writer.Write(ReadLine(sr).Trim());
+                            writer.Write(ReadLine(sr).Trim());
                             break;
                     }
                     break;
                 case "col":
                 case "vec":
-                    string[] colVals = sr.ReadLine().Split(' ');
+                    var colVals = ReadLine(sr).Split(' ');
                     if (colVals.Length != 4) {
                         throw new Exception("Color値の指定が正しく（４値）指定されていません。propName=" + propName);                                
                     }
-                    for (int i=0; i<4; i++) {
+                    for (var i=0; i<4; i++) {
                         float f;
                         if ( float.TryParse(colVals[i], out f) ) {
                             writer.Write(f);
@@ -178,7 +183,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                     }                    
                     break;
                 case "f":
-                    string fStr = sr.ReadLine().Trim();
+                    var fStr = ReadLine(sr).Trim();
                     float fVal;
                     if ( float.TryParse(fStr, out fVal) ) {
                         writer.Write(fVal);
@@ -190,6 +195,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
             }
             writer.Write("end");
         }
+
         public string ToText(ACCMaterial target) {
             var mate = target.material;
             var buff = new StringBuilder();
@@ -250,7 +256,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         public static bool IsParsable(string text) {
             using (var sr = new StringReader(text)) {
                 var line = sr.ReadLine();
-                if (line.Length == 0) return false;
+                if (string.IsNullOrEmpty(line)) return false;
     
                 int version;
                 if (!int.TryParse(line, out version)) return false;
@@ -359,10 +365,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
                                         continue;
                                     }
                                     // テクスチャの適用
-                                    var tex2d = outUtil.LoadTexture(texName);
-                                    mate.SetTexture(texKey.propId, tex2d);
-                                    mate.SetTextureOffset(propName1, new UnityEngine.Vector2(fvals[0], fvals[1]));
-                                    mate.SetTextureScale(propName1, new UnityEngine.Vector2(fvals[2], fvals[3]));
+                                    var tex2D = outUtil.LoadTexture(texName);
+                                    mate.SetTexture(texKey.propId, tex2D);
+                                    mate.SetTextureOffset(propName1, new Vector2(fvals[0], fvals[1]));
+                                    mate.SetTextureScale(propName1, new Vector2(fvals[2], fvals[3]));
                                     LogUtil.DebugF("tex({0}) loaded to {1}", texName, propName1);
                                 }
                                 break;
@@ -421,13 +427,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data
         }
 
         private float[] parseVals(string text, string propName = null, int count=4) {
-            string[] vals = text.Split(' ');
+            var vals = text.Split(' ');
             if (vals.Length < count) {
                 LogUtil.LogF("float値が正しく（{0}個）指定されていません。スキップします。propName={1}", count, propName);
                 return null;
             }
             var fvals = new float[count];
-            for (int i=0; i<count; i++) {
+            for (var i=0; i<count; i++) {
                 float f;
                 if ( !float.TryParse(vals[i], out f) ) {
                     LogUtil.Log("指定文字列はfloatに変換できません。スキップします。propName={0}, text={1}", propName, vals[i]);

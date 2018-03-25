@@ -3,24 +3,23 @@
  */
 using System;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Util
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
     /// <summary>
     /// Description of NumberUtil.
     /// </summary>
-    public sealed class NumberUtil
-    {
-        private static readonly NumberUtil instance = new NumberUtil();
+    public sealed class NumberUtil {
+        private static readonly NumberUtil INSTANCE = new NumberUtil();
         
         public static NumberUtil Instance {
             get {
-                return instance;
+                return INSTANCE;
             }
         }
         
-        private NumberUtil() {
-        }
+        private NumberUtil() { }
+
         private const float EPSILON = 0.001f;
+
         public static bool Equals(float f1, float f2) {
             return Math.Abs(f1-f2) < EPSILON;
         }

@@ -17,16 +17,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
         private const string NAME_PREFIX = "___LINE_";
         private const string NAME_SCL = "_SCL_";
 
-        private Dictionary<string, LineRenderer> lineDict = new Dictionary<string, LineRenderer>();
-        private List<GameObject> cache = new List<GameObject>();
+        private readonly Dictionary<string, LineRenderer> _lineDict = new Dictionary<string, LineRenderer>();
+        private readonly List<GameObject> _cache = new List<GameObject>();
 
-        private Material lineMaterial;
-        private float lineWidth = 0.006f;
-        private Color color = Color.white;
+        private Material _lineMaterial;
+        private readonly float _lineWidth = 0.006f;
+        private readonly Color _color = Color.white;
 
-        private Transform rootBone;
-        private bool isVisible = false;
-        private bool skipVisble = false;
+        private Transform _rootBone;
+        private bool _isVisible;
+        private bool _skipVisble;
         #endregion
 
         /// 指定されたメイドのインスタンスID
@@ -37,68 +37,69 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
         }
 
         public bool IsEnabled() {
-            return rootBone != null;
+            return _rootBone != null;
         }
 
         public void SetVisible(bool visible) {
-            if (isVisible != visible) {
+            if (_isVisible != visible) {
                 SetVisibleAll(visible);
             }
-            isVisible = visible;
+            _isVisible = visible;
         }
 
         private void SetVisibleAll(bool visible) {
-            foreach (var obj in cache) {
+            foreach (var obj in _cache) {
                 obj.SetActive(visible);
             }
         }
 
         public void Setup(Transform bone) {
             Clear();
-            rootBone = bone;
+            _rootBone = bone;
 
             foreach (Transform child in bone) {
                 if (child.childCount == 0) continue;
                 SetupBone(child);
             }
 
-            foreach (var obj in cache) {
-                obj.SetActive(isVisible);
+            foreach (var obj in _cache) {
+                obj.SetActive(_isVisible);
             }
         }
 
         private void SetupBone(Transform bone) {
-            if (lineDict.ContainsKey(bone.name)) return;
+            if (_lineDict.ContainsKey(bone.name)) return;
 
             var lineRenderer = CreateComponent();
             lineRenderer.gameObject.name = NAME_PREFIX + bone.name;
-            lineDict.Add(bone.name, lineRenderer);
+            _lineDict.Add(bone.name, lineRenderer);
 
             foreach (Transform child in bone) {
                 SetupBone(child);
             }
         }
+
         private void UpdateVisible(bool visible) {
-            if (skipVisble == visible) {
-                skipVisble = !visible;
-                SetVisibleAll(visible);
-            }
+            if (_skipVisble != visible) return;
+
+            _skipVisble = !visible;
+            SetVisibleAll(visible);
         }
+
         public void Update() {
-            if (rootBone == null) {
-                if (isVisible) SetVisible(false);
+            if (_rootBone == null) {
+                if (_isVisible) SetVisible(false);
                 return;
             }
-            if (!rootBone.gameObject.activeSelf) {
+            if (!_rootBone.gameObject.activeSelf) {
                 // 一時非表示
                 UpdateVisible(false);
                 return;
-            } else {
-                // 一時非表示からの復帰
-                UpdateVisible(true);
-            }
+            } 
+            // 一時非表示からの復帰
+            UpdateVisible(true);
 
-            foreach (Transform child in rootBone) {
+            foreach (Transform child in _rootBone) {
                 if (child.childCount == 0) continue;
 
                 if (child.gameObject.activeSelf) {
@@ -107,17 +108,25 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
             }
         }
 
-        public void UpdatePosition(Transform bone, bool isRoot = false) {
-            if (bone.name.StartsWith(NAME_PREFIX)) return;
+        public void UpdatePosition(Transform bone, bool isRoot=false) {
+//            if (bone.name.StartsWith(NAME_PREFIX)) return;
             LineRenderer boneLine;
-            if (!lineDict.TryGetValue(bone.name, out boneLine)) return;
+            if (!_lineDict.TryGetValue(bone.name, out boneLine)) return;
 
             if (bone.childCount == 0) {
+#if UNITY_5_6_OR_NEWER
+                boneLine.positionCount = 0;
+#else
                 boneLine.SetVertexCount(0);
+#endif
                 boneLine.enabled = false;
                 return;
             }
+#if UNITY_5_6_OR_NEWER
+            boneLine.positionCount = 2;
+#else
             boneLine.SetVertexCount(2);
+#endif
             boneLine.SetPosition(0, bone.position);
 
             Vector3? pos = null;
@@ -125,27 +134,22 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
                 var child0 = bone.GetChild(0);
                 pos = child0.position;
                 if (pos == bone.position) {
-                    Vector3 vec = new Vector3(-0.1f, 0f, 0f);
+                    var vec = new Vector3(-0.1f, 0f, 0f);
                     var loc = bone.rotation * vec;
                     pos = bone.position + loc;
                 }
             } else {
                 if (bone.childCount == 2) {
-                    Transform child = null;
                     if (bone.GetChild(0).name.EndsWith(NAME_SCL)) {
-                        child = bone.GetChild(1);
+                        pos = bone.GetChild(1).position;
                     } else if (bone.GetChild(1).name.EndsWith(NAME_SCL)) {
-                        child = bone.GetChild(0);
-                    }
-                    if (child != null) {
-                        pos = child.position;
+                        pos = bone.GetChild(0).position;
                     }
                 }
                 if (!pos.HasValue) {
-                    float maxLength = 0;
+                    var maxLength = 0f;
                     if (!isRoot) {
-                        for (var i = 0; i < bone.childCount; i++) {
-                            var child = bone.GetChild(i);
+                        foreach (Transform child in bone) {
                             var delta = child.position - bone.position;
                             var length = delta.magnitude;
 
@@ -155,7 +159,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
                         maxLength = 0.1f;
                     }
 
-                    Vector3 vec = new Vector3(-maxLength, 0f, 0f);
+                    var vec = new Vector3(-maxLength, 0f, 0f);
                     var loc = bone.rotation * vec;
                     pos = bone.position + loc;
                 }
@@ -168,39 +172,45 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
         }
 
         public void Clear() {
-            lineDict.Clear();
+            _lineDict.Clear();
             ClearCache();
-            rootBone = null;
+            _rootBone = null;
             _targetId = -1;
         }
 
         private void ClearCache() {
-            foreach (var obj in cache) {
+            foreach (var obj in _cache) {
                 UnityEngine.Object.Destroy(obj);
             }
-            cache.Clear();
+            _cache.Clear();
         }
 
         private LineRenderer CreateComponent() {
-            if (lineMaterial == null) {
+
+            if (_lineMaterial == null) {
                 var shader = Shader.Find("Hidden/Internal-Colored");
-                lineMaterial = new Material(shader) {
+                _lineMaterial = new Material(shader) {
                     hideFlags = HideFlags.HideAndDontSave
                 };
-                lineMaterial.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.Disabled);
-                lineMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                lineMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                lineMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
-                lineMaterial.SetInt("_ZWrite", 0);
-                lineMaterial.renderQueue = 5000;
+                _lineMaterial.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.Disabled);
+                _lineMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                _lineMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                _lineMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+                _lineMaterial.SetInt("_ZWrite", 0);
+                _lineMaterial.renderQueue = 5000;
             }
-            lineMaterial.color = color;
+            _lineMaterial.color = _color;
             var obj = new GameObject();
-            cache.Add(obj);
+            _cache.Add(obj);
 
             var line = obj.AddComponent<LineRenderer>();
-            line.materials = new Material[] { lineMaterial, };
-            line.SetWidth(lineWidth, lineWidth * 0.15f);
+            line.materials = new[] { _lineMaterial, };
+#if UNITY_5_6_OR_NEWER
+            line.startWidth = _lineWidth;
+            line.endWidth   = _lineWidth * 0.2f;
+#else            
+            line.SetWidth(_lineWidth, _lineWidth*0.20f);
+#endif
             return line;
         }
     }
