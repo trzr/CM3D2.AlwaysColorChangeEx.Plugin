@@ -108,12 +108,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     preset.mpns.Add(new CCMPN(mpn, mp.strFileName));
                 }
             }
-            for (var i = MPN_TYPE_RANGE.FOLDER_BODY_START; i <= MPN_TYPE_RANGE.FOLDER_BODY_END; i++) {
-                var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
-                var mp = maid.GetProp(mpn);
-                if (mp == null || mp.nFileNameRID == 0) continue;
-                preset.mpns.Add(new CCMPN(mpn, mp.strFileName));
-            }
+
+            // FOLDER_BODYは自動で0にリセットされるためプリセットの保持する必要はない
+            // for (var i = MPN_TYPE_RANGE.FOLDER_BODY_START; i <= MPN_TYPE_RANGE.FOLDER_BODY_END; i++) {
+            //     var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
+            //     var mp = maid.GetProp(mpn);
+            //     if (mp == null || mp.nFileNameRID == 0) continue;
+            //     preset.mpns.Add(new CCMPN(mpn, mp.strFileName));
+            // }
             for (var i = MPN_TYPE_RANGE.WEAR_START; i <= MPN_TYPE_RANGE.WEAR_END; i++) {
                 var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
                 var mp = maid.GetProp(mpn);
@@ -188,24 +190,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
                 // LogUtil.Debug("apply prop: ", mpn.filename, ", old:", prop.strFileName);
                 if (SetProp != null) SetProp(maid, mpn.name, mpn.filename, 0);
-
             }
-
-            if (!applyBody) return;
-            {
-                // 設定プロパティ反映
-                foreach (var mpn in preset.mpnvals) {
-                    var mp = maid.GetProp(mpn.name);
-                    if (mp != null) {
-                        mp.value = mpn.value;
-                        if (mp.min > mpn.min) { mp.min = mpn.min; }
-                        if (mp.max < mpn.max) { mp.max = mpn.max; }
-                    } else {
-                        LogUtil.Debug("failed to apply MaidProp. mpn:", mpn.name);
-                    }
-                }
-            }
-            //maid.AllProcPropSeqStart();
         }
 
         public void ApplyPresetMPNProp(Maid maid, PresetData preset) {

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-
+using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityInjector;
@@ -267,7 +267,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             if (toApplyPresetMaid != null && !toApplyPresetMaid.IsBusy) {
                 var targetMaid = toApplyPresetMaid;
                 toApplyPresetMaid = null;
-                plugin.StartCoroutine( DelayFrame(applyDeleFrame, () => ApplyPresetProp(targetMaid, currentPreset)) );
+                plugin.StartCoroutine(DelayFrameRecall(applyDeleFrame, () => !ApplyPresetProp(targetMaid,currentPreset)) );
             }
             if (ACCTexturesView.fileBrowser != null) {
                 ACCTexturesView.fileBrowser.Update();
@@ -489,6 +489,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         // http://qiita.com/toRisouP/items/e402b15b36a8f9097ee9
+        IEnumerator DelayFrameRecall(int delayFrame, Func<bool> func) {
+            do {
+                for (var i = 0; i < delayFrame; i++) {
+                    yield return null;
+                }
+            } while (func());
+        }
+
         IEnumerator DelayFrame(int delayFrame, Action act) {
             for (var i = 0; i < delayFrame; i++) {
                 yield return null;
@@ -1196,7 +1204,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
         private void DoNodeSelectMenu(int winID) {
             GUILayout.BeginVertical();
-            TBodySkin body;
             var titleWidth = GUILayout.Width(uiParams.fontSize*10f);
             var lStateWidth = GUILayout.Width(uiParams.fontSize*4f);
             try {
@@ -1211,7 +1218,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 const int slotNo = (int)TBody.SlotID.body;
                 // 身体からノード一覧と表示状態を取得
                 if (slotNo >= holder.CurrentMaid.body0.goSlot.Count) return;
-                body = holder.CurrentMaid.body0.GetSlot(slotNo);
+                var body = holder.CurrentMaid.body0.GetSlot(slotNo);
                 if (!dDelNodes.Any()) {
                     InitDelNodes(body);
                     dDelNodeDisps = GetDelNodes();
@@ -1471,7 +1478,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             }
 
             // 一旦、衣装や身体情報を適用⇒反映待ちをして、Coroutineにて残りを適用
-            holder.FixFlag(maid);
+            maid.AllProcPropSeqStart();
             toApplyPresetMaid = maid;
 
             // ApplyPresetProp(preset);は後で実行する
@@ -1479,10 +1486,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         // ACCの変更情報を適用する
-        private void ApplyPresetProp(Maid targetMaid, PresetData preset) {
+        private bool ApplyPresetProp(Maid targetMaid, PresetData preset) {
             try {
+                // 準備ができていない場合に、再度呼び出してもらうためにfalseを返す (ありえないはず)
+                if (targetMaid.boAllProcPropBUSY) {
+                    LogUtil.Debug("recall apply preset");
+                    return false;
+                }
+
                 // 対象メイドが変更された場合はスキップ
-                if (holder.CurrentMaid != targetMaid) return;
+                if (holder.CurrentMaid != targetMaid) return true;
 
                 if (bPresetApplyWear) {
                     presetMgr.ApplyPresetMaterial(targetMaid, preset);
@@ -1507,6 +1520,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             } finally {
                 LogUtil.Debug("Preset applyed");
             }
+
+            return true;
         }
 
         private void LoadPresetList() {

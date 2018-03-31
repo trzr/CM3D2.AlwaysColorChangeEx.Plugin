@@ -364,11 +364,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             FixFlag(CurrentMaid);
         }
 
-        public void FixFlag(Maid maid)  {
+        public void FixFlag(Maid maid, bool propProp=false)  {
             maid.body0.FixMaskFlag();
             maid.body0.FixVisibleFlag();
-            // 以下のフラグを立てることで、次回Maid.Update()でAllProcPropSeq()が実行されることになる
-            maid.AllProcPropSeqStart();
+
+            if (propProp) {
+                // 以下のフラグを立てることで、次回以降Maid.Update()でAllProcPropSeq()が実行される
+                maid.AllProcPropSeqStart();
+            }
         }
     }
 }
