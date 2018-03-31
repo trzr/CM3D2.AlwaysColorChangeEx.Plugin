@@ -186,6 +186,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 #if UNITY_5_5_OR_NEWER
             SceneManager.sceneLoaded += SceneLoaded;
 #endif
+            // for (var i = 0; i < SceneManager.sceneCountInBuildSettings; ++i) {
+            //     var scene = SceneUtility.GetScenePathByBuildIndex(i);
+            //     LogUtil.Debug(i, ":", scene);
+            // }
         }
 
         public void Start() {
@@ -198,21 +202,25 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             presetNames.Clear();
 
             //detector.Clear();
+#if UNITY_5_5_OR_NEWER
+            SceneManager.sceneLoaded -= SceneLoaded;
+#endif
             LogUtil.Debug("Destroyed");
         }
+
 #if UNITY_5_5_OR_NEWER
         public void SceneLoaded(Scene scene, LoadSceneMode sceneMode) {
             LogUtil.Debug(scene.buildIndex, ": ", scene.name);
             
-            SceneLoaded(scene.buildIndex);
+            OnSceneLoaded(scene.buildIndex);
         }
 #else
         public void OnLevelWasLoaded(int level) {
             // Log.Debug("OnLevelWasLoaded ", level);
-            SceneLoaded(level);
+            OnSceneLoaded(level);
         }
 #endif
-        public void SceneLoaded(int level) {
+        public void OnSceneLoaded(int level) {
             fPassedTime = 0f;
             bUseStockMaid = false;
             if (boneRenderer != null) boneRenderer.Clear();
