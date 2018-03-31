@@ -170,6 +170,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 if (!_fileUtil.Exists(mpn.filename)) continue;
 
                 var prop = maid.GetProp(mpn.name);
+                if (mpn.filename.Equals(prop.strFileName, StringComparison.OrdinalIgnoreCase)) {
+                    LogUtil.Debug("apply preset skip. mpn:", mpn.name, ", file:", mpn.filename);
+                    continue;
+                }
+
+                if (mpn.name == MPN.body) {
+                    LogUtil.Log("ACCexプリセットのbodyメニューの適用は現在未対応です。スキップします。", mpn.filename);
+                    continue;
+                }
+
                 if (mpn.filename.EndsWith("_del.menu", StringComparison.OrdinalIgnoreCase)) {
                     if (castoff) {
                         // 対象のMPNが空でかつ、指定アイテムが削除アイテムと同一であればスキップ
