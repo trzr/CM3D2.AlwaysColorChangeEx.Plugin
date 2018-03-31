@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
@@ -30,9 +31,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             if (uiParams != null) uiParams.Remove(updateUI);
         }
         private static UIParams uiParams;
-        private static GUILayoutOption buttonWidth;
+        private static GUILayoutOption restWidth;
         private static GUILayoutOption buttonLWidth;
         private static GUILayoutOption contentWidth;
+        private static GUILayoutOption optItemHeight;
+        private static GUILayoutOption optLabelWidth;
+        private static GUILayoutOption optInputWidth;
+        private static float sliderMargin;
+        private static float labelWidth;
         private static float comboWidth;
         private static readonly GUIStyle inboxStyle = new GUIStyle("box");
         private static int fontSize;
@@ -53,13 +59,19 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
         private static readonly Action<UIParams> updateUI = (uiparams) => {
             var baseWidth = uiparams.textureRect.width - 20;
-            buttonWidth  = GUILayout.Width(baseWidth * 0.09f);
             buttonLWidth = GUILayout.Width(baseWidth * 0.2f);
             contentWidth = GUILayout.MaxWidth(baseWidth * 0.69f);
+            restWidth    = GUILayout.Width(baseWidth * 0.14f);
 
             comboWidth = uiparams.textureRect.width*0.65f;
             fontSize  = uiparams.fontSize;
             fontSizeS = uiparams.fontSizeS;
+
+            labelWidth = 50f;
+            optItemHeight = GUILayout.Height(uiparams.itemHeight);
+            optInputWidth = GUILayout.Width(60f);
+            optLabelWidth = GUILayout.Width(labelWidth);
+            sliderMargin  = uiparams.margin*4.5f;
         };
 
         public static bool IsChangeTarget() {
@@ -161,10 +173,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             }
 
             var ret = new List<ACCTexture>(type.texProps.Length);
-            foreach (var texProp in type.texProps) {
-                var tex = ACCTexture.Create(mate, texProp, type);
-                if (tex != null) ret.Add(tex);
-            }
+            ret.AddRange(
+                type.texProps.Select(texProp => ACCTexture.Create(mate, texProp, type))
+                             .Where(tex => tex != null) );
             return ret;
         }
 
@@ -237,6 +248,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                                 textureModifier.DuplicateFilter(holder.CurrentMaid, holder.CurrentSlot.Name, material, editTex.propName, "_ShadowTex");
                             }
                         }
+
+                        if (GUILayout.Button("opt", uiParams.bStyleSC, restWidth)) {
+                            editTex.expand = !editTex.expand;
+                        }
                     } finally {
                         GUILayout.EndHorizontal();
                     }
@@ -297,10 +312,98 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     } finally {
                         GUILayout.EndHorizontal();
                     }
+
+                    if (!editTex.expand) continue;
+
+                    GUILayout.BeginVertical();
+                    try {
+                        var offset = material.GetTextureOffset(editTex.prop.propId);
+                        var tex = editTex;
+                        if (DrawSliders("offset", ref offset, -1, 1, () => tex.original.texOffset)) {
+                            material.SetTextureOffset(editTex.prop.propId, offset);
+                        }
+
+                        var scale = material.GetTextureScale(editTex.prop.propId);
+                        if (DrawSliders("scale ", ref scale, 0.001f, 20f, () => tex.original.texScale, true)) {
+                            material.SetTextureScale(editTex.prop.propId, scale);
+                        }
+                    } finally {
+                        GUILayout.EndVertical();
+                    }
                 }
             } finally {
                 GUILayout.EndVertical();
             }
+        }
+
+        private bool DrawTextField(float val, ref float editedVal) {
+            var txt = val.ToString("F3");
+            var editedTxt = GUILayout.TextField(txt, uiParams.textStyleSC, optInputWidth);
+            if (txt == editedTxt) return false; // 直接書き換えられたケース
+            if (!float.TryParse(editedTxt, out editedVal)) return false;
+
+            return !NumberUtil.Equals(val, editedVal);
+        }
+
+        private bool DrawSliders(string label, ref Vector2 val, float min, float max, 
+            Func<Vector2> GetDefault, bool useLog=false) {
+            var changed = false;
+            var sliderMax = (useLog) ? Mathf.Log10(max) : max;
+            var sliderMin = (useLog) ? Mathf.Log10(min) : min;
+            GUILayout.BeginHorizontal();
+            try {
+                GUILayout.Label(label, uiParams.lStyleS, optLabelWidth);
+                var editedVal = val.x;
+                if (DrawTextField(val.x, ref editedVal)) {
+                    if (editedVal > max) editedVal = max;
+                    else if (editedVal < min) editedVal = min;
+                    val.x = editedVal;
+                    changed = true;
+                }
+
+                GUILayout.BeginVertical();
+                GUILayout.Space(sliderMargin);
+                var srcVal = useLog ? Mathf.Log10(val.x) : val.x;
+                var slidVal = GUILayout.HorizontalSlider(srcVal, sliderMin, sliderMax, GUILayout.ExpandWidth(true));
+                GUILayout.EndVertical();
+                if (!NumberUtil.Equals(srcVal, slidVal)) {
+                    val.x = useLog ? Mathf.Pow(10f, slidVal) : slidVal;
+                    changed = true;
+                }
+            } finally {
+                GUILayout.EndHorizontal();
+                
+            }
+
+            GUILayout.BeginHorizontal();
+            try {
+                var editedVal = val.y;
+                if (GUILayout.Button("reset", uiParams.bStyleSC, optLabelWidth)) {
+                    val = GetDefault();
+                    changed = true;
+                }
+                if (DrawTextField(val.y, ref editedVal)) {
+                    if (editedVal > max) editedVal = max;
+                    else if (editedVal < min) editedVal = min;
+                    val.y = editedVal;
+                    changed = true;
+                }
+
+                GUILayout.BeginVertical();
+                GUILayout.Space(sliderMargin);
+                var srcVal = useLog ? Mathf.Log10(val.y) : val.y;
+                var slidVal = GUILayout.HorizontalSlider(srcVal, sliderMin, sliderMax, GUILayout.ExpandWidth(true));
+                GUILayout.EndVertical();
+                if (!NumberUtil.Equals(srcVal, slidVal)) {
+                    val.y = useLog ? Mathf.Pow(10f, slidVal) : slidVal;
+                    changed = true;
+                }
+            } finally {
+                GUILayout.EndHorizontal();
+            }
+
+
+            return changed;
         }
 
         private void OpenFileBrowser(int matNo1, ACCTexture acctex) {

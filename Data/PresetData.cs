@@ -268,10 +268,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     public class TextureInfo {
         public string propName;
         public string texFile;
-        public float offsetX;
-        public float offsetY;
-        public float scaleX;
-        public float scaleY;
+        public float? offsetX;
+        public float? offsetY;
+        public float? scaleX;
+        public float? scaleY;
         public TexFilter filter;
     }
 

@@ -75,9 +75,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         private static UIParams uiParams;
         //private readonly GUIStyle lStyleC   = new GUIStyle("label");
         //private readonly GUIStyle hsldStyle = new GUIStyle("horizontalSlider");
-        private static GUIStyle bStyleLeft    = new GUIStyle("label");
-        private static GUIStyle bStyleRight   = new GUIStyle("label");
-        private static GUIStyle bStyleSS      = new GUIStyle("button");
+        private static readonly GUIStyle bStyleLeft    = new GUIStyle("label");
+        private static readonly GUIStyle bStyleRight   = new GUIStyle("label");
+        private static readonly GUIStyle bStyleSS      = new GUIStyle("button");
         private static GUILayoutOption optItemHeight;
         private static GUILayoutOption optUnitHeight;
         private static GUILayoutOption optInputWidth;
@@ -106,7 +106,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             dst.Apply();
             return dst;
         }
-        private static Action<UIParams> updateUI = (uiparams) => {
+        private static readonly Action<UIParams> updateUI = (uiparams) => {
             // 幅の28%
             labelWidth    = uiparams.colorRect.width*0.28f;
             sliderMargin  = uiparams.margin*4.5f; // GUILayout.Space(uiParams.FixPx(7));
@@ -165,7 +165,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         public Action<string> tipsCall;
         
         public void Show(bool reload) {
-            // TODO tooltipをステータスバーに表示
             GUILayout.BeginVertical();
             try {
                 GUILayout.BeginHorizontal();
@@ -215,12 +214,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     GUI.enabled &= (includeTex |includeShader| includeOthers);
                     if (GUILayout.Button(icons[1], optUnitHeight,optButonWidth)) {
                         try {
-                            var flag = 0;
-                            if (includeTex)    flag |= MateHandler.MATE_TEX;
-                            if (includeShader) flag |= MateHandler.MATE_SHADER;
-                            if (includeOthers) flag |= MateHandler.MATE_COLOR | MateHandler.MATE_FLOAT;
-                            LogUtil.DebugF("flag: tex={0}, shader={1}, others={2}", includeTex, includeShader, includeOthers);
-                            MateHandler.Instance.Write(edited, clipHandler.mateText, flag);
+                            var pasteFlag = 0;
+                            if (includeTex)    pasteFlag |= MateHandler.MATE_TEX;
+                            if (includeShader) pasteFlag |= MateHandler.MATE_SHADER;
+                            if (includeOthers) pasteFlag |= MateHandler.MATE_COLOR | MateHandler.MATE_FLOAT;
+                            LogUtil.DebugF("material pasting from cp... tex={0}, shader={1}, others={2}", includeTex, includeShader, includeOthers);
+                            MateHandler.Instance.Write(edited, clipHandler.mateText, pasteFlag);
                         } catch(Exception e) {
                             LogUtil.Error("failed to import mateText", e);
                         }
@@ -404,7 +403,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             }
             GUILayout.EndHorizontal();
 
-            if (changed || drawValueSlider(null, edit, sliderMin, sliderMax)) {
+            if (changed || DrawValueSlider(null, edit, sliderMin, sliderMax)) {
                 func(edit.val);
             }
         }
@@ -446,24 +445,24 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
  
             var idx = 0;
             if (colType == ColorType.rgb || colType == ColorType.rgba) {
-                changed |= drawValueSlider("R", ref edit, idx++, ref c.r);
-                changed |= drawValueSlider("G", ref edit, idx++, ref c.g);
-                changed |= drawValueSlider("B", ref edit, idx++, ref c.b);
+                changed |= DrawValueSlider("R", ref edit, idx++, ref c.r);
+                changed |= DrawValueSlider("G", ref edit, idx++, ref c.g);
+                changed |= DrawValueSlider("B", ref edit, idx++, ref c.b);
             }
             if (colType == ColorType.rgba || colType == ColorType.a) {
-                changed |= drawValueSlider("A", ref edit, idx, ref c.a);
+                changed |= DrawValueSlider("A", ref edit, idx, ref c.a);
             }
             if (changed) {
                 edit.Set(c);
             }
         }
 
-        private bool drawValueSlider(string label, EditValue edit, float sliderMin, float sliderMax) {
+        private bool DrawValueSlider(string label, EditValue edit, float sliderMin, float sliderMax) {
             var changed = false;
             var fontChanged = false;
             GUILayout.BeginHorizontal(optItemHeight);
             try {
-                drawLabel(ref label);
+                DrawLabel(ref label);
 
                 if (!edit.isSync) {
                     SetTextColor(uiParams.textStyleSC, ref txtColorRed);
@@ -477,7 +476,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 }
 
                 var sliderVal = edit.val;
-                if (drawSlider(ref sliderVal, sliderMin, sliderMax)) {
+                if (DrawSlider(ref sliderVal, sliderMin, sliderMax)) {
                     edit.Set(sliderVal);
                     changed = true;
                 }
@@ -491,6 +490,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             }
             return changed;
         }
+
         private void SetTextColor(GUIStyle style, ref Color c) {
             style.normal.textColor = c;
             style.focused.textColor = c;
@@ -498,12 +498,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             style.hover.textColor = c;
         }
 
-        private bool drawValueSlider(string label, ref EditColor edit, int idx, ref float sliderVal) {
+        private bool DrawValueSlider(string label, ref EditColor edit, int idx, ref float sliderVal) {
             var changed = false;
             var fontChanged = false;
             GUILayout.BeginHorizontal(optItemHeight);
             try {
-                drawLabel(ref label);
+                DrawLabel(ref label);
 
                 if (!edit.isSyncs[idx]) {
                     SetTextColor(uiParams.textStyleSC, ref txtColorRed);
@@ -516,7 +516,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     edit.Set(idx, val2, range);
                 }
 
-                changed |= drawSlider(ref sliderVal, range.editMin, range.editMax);
+                changed |= DrawSlider(ref sliderVal, range.editMin, range.editMax);
                 GUILayout.Space(buttonMargin);
 
             } catch(Exception e) {
@@ -532,7 +532,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             return changed;
         }
 
-        private void drawLabel(ref string label) {
+        private void DrawLabel(ref string label) {
             if(label != null) {
                 //float lWidth = 13*label.Length;
                 var lWidth = uiParams.fontSizeS*label.Length;
@@ -543,7 +543,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 GUILayout.Space(labelWidth - sliderInputWidth);
             }
         }
-        private bool drawSlider(ref float sliderVal, float min, float max) {
+        private bool DrawSlider(ref float sliderVal, float min, float max) {
             var changed = false;
             GUILayout.BeginVertical();
             try {

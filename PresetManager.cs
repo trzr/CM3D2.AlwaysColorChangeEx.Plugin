@@ -73,6 +73,22 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                         ti.texFile = tex2D.name;
                         var fp = _texModifier.GetFilter(maid, slotInfo.Id.ToString(), material.name, tex2D.name);
                         if (fp != null && !fp.HasNotChanged()) ti.filter = new TexFilter(fp);
+
+                        var offset = material.GetTextureOffset(texProp.propId);
+                        if (Math.Abs(offset.x) > ConstantValues.EPSILON_3) {
+                            ti.offsetX = offset.x;
+                        }
+                        if (Math.Abs(offset.y) > ConstantValues.EPSILON_3) {
+                            ti.offsetY = offset.y;
+                        }
+
+                        var scale = material.GetTextureScale(texProp.propId);
+                        if (Math.Abs(scale.x) > ConstantValues.EPSILON_3) {
+                            ti.scaleX = scale.x;
+                        }
+                        if (Math.Abs(scale.y) > ConstantValues.EPSILON_3) {
+                            ti.scaleY = scale.y;
+                        }
                     }
                 }
                 preset.slots.Add(slotItem);
@@ -259,6 +275,28 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                                 } else {
                                     LogUtil.Debug("texture file not found. file=", filename);
                                 }
+                            }
+
+                            if (texInfo.offsetX.HasValue || texInfo.offsetY.HasValue) {
+                                var offset = m.GetTextureOffset(texInfo.propName);
+                                if (texInfo.offsetX.HasValue) {
+                                    offset.x = texInfo.offsetX.Value;
+                                }
+                                if (texInfo.offsetY.HasValue) {
+                                    offset.y = texInfo.offsetY.Value;
+                                }
+                                m.SetTextureOffset(texInfo.propName, offset);
+                            }
+
+                            if (texInfo.scaleX.HasValue || texInfo.scaleY.HasValue) {
+                                var scale = m.GetTextureScale(texInfo.propName);
+                                if (texInfo.scaleX.HasValue) {
+                                    scale.x = texInfo.scaleX.Value;
+                                }
+                                if (texInfo.scaleY.HasValue) {
+                                    scale.y = texInfo.scaleY.Value;
+                                }
+                                m.SetTextureScale(texInfo.propName, scale);
                             }
 
                             // フィルタ適用

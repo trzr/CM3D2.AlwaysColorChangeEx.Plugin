@@ -24,6 +24,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         public Vector2 texScale = Vector2.one;
         public int toonType;
         public bool dirty;
+        public bool expand;
         
         
         private ACCTexture(PropKey propKey) {
@@ -60,8 +61,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
 
             editname = tex.name;
             if (tex is Texture2D) {
-               texOffset = mate.GetTextureOffset(propName);
-               texScale  = mate.GetTextureScale(propName);
+               texOffset = mate.GetTextureOffset(prop.propId);
+               texScale  = mate.GetTextureScale(prop.propId);
             } else {
                 LogUtil.DebugF("propName({0}): texture type:{1}", propName, tex.GetType());
             }
