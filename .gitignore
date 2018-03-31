@@ -1,4 +1,16 @@
+bin/
+_*/
+obj/
 Release/
+*.dll
+
 Resource/
 Dyn/
+.vs/
+
+**/*.bat
+!compile.bat
+
+*.csproj
 *.lnk
+*.bak
