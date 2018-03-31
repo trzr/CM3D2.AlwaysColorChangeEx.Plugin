@@ -110,8 +110,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             "toonRedA1",    "toonRedA2",
             "toonRedmmm1","toonRedmm1","toonRedm1",
             "toonYellowA1", "toonYellowA2", "toonYellowA3", "toonYellowA4",
-            "toonFace", "toonFace002",
-            "toonSkin", "toonSkin002",
+#if COM3D2
+            "toonFace",
+            "toonSkin",
+#else
+            "toonFace",     "toonFace002",
+            "toonSkin",     "toonSkin002",
+#endif
             "toonBlackA1",
             "toonFace_shadow",
             "toonDress_shadow",

@@ -5,6 +5,7 @@
  */
 using System;
 using System.Collections.Generic;
+using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
@@ -103,6 +104,36 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     }
 
     public class CCMaterial {
+        private static readonly Dictionary<PropKey, Func<CCMaterial, CCColor>> COLOR_DIC =
+            new Dictionary<PropKey, Func<CCMaterial, CCColor>>();
+        private static readonly Dictionary<PropKey, Func<CCMaterial, float?>> FLOAT_DIC =
+            new Dictionary<PropKey, Func<CCMaterial, float?>>();
+
+        static CCMaterial() {
+            COLOR_DIC.Add(PropKey._Color,        (mate) => mate.color);
+            COLOR_DIC.Add(PropKey._ShadowColor,  (mate) => mate.shadowColor);
+            COLOR_DIC.Add(PropKey._RimColor,     (mate) => mate.rimColor);
+            COLOR_DIC.Add(PropKey._OutlineColor, (mate) => mate.outlineColor);
+//        _SpecColor,
+//        _ReflectColor,
+//        _Emission,
+
+            FLOAT_DIC.Add(PropKey._Shininess,    (mate) => mate.shininess);
+            FLOAT_DIC.Add(PropKey._OutlineWidth, (mate) => mate.outlineWidth);
+            FLOAT_DIC.Add(PropKey._RimPower,     (mate) => mate.rimPower);
+            FLOAT_DIC.Add(PropKey._RimShift,     (mate) => mate.rimShift);
+            FLOAT_DIC.Add(PropKey._HiRate,       (mate) => mate.hiRate);
+            FLOAT_DIC.Add(PropKey._HiPow,        (mate) => mate.hiPow);
+            FLOAT_DIC.Add(PropKey._Cutoff,       (mate) => mate.cutoff);
+            FLOAT_DIC.Add(PropKey._Cutout,       (mate) => mate.cutout);
+            FLOAT_DIC.Add(PropKey._FloatValue1,  (mate) => mate.floatVal1);
+            FLOAT_DIC.Add(PropKey._FloatValue2,  (mate) => mate.floatVal2);
+            FLOAT_DIC.Add(PropKey._FloatValue3,  (mate) => mate.floatVal3);
+            FLOAT_DIC.Add(PropKey._ZTest,         (mate) => mate.ztest);
+            FLOAT_DIC.Add(PropKey._ZTest2,        (mate) => mate.ztest2);
+            FLOAT_DIC.Add(PropKey._ZTest2Alpha,  (mate) => mate.ztest2Alpha);
+        }
+            
         public string name;
         public string shader;
         // TODO
@@ -117,9 +148,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         public float? hiRate;
         public float? hiPow;
         public float? cutoff;
+        public float? cutout;
         public float? floatVal1;
         public float? floatVal2;
         public float? floatVal3;
+        public float? ztest;
+        public float? ztest2;
+        public float? ztest2Alpha;
         public List<TextureInfo> texList;
 
         public CCMaterial() {}
@@ -146,7 +181,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
 //        _SpecColor,
 //        _ReflectColor,
 //        _Emission,                        
-                }                        
+                }
             }
 
             foreach (var prop in type.fProps) {
@@ -173,6 +208,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     case PropKey._Cutoff:
                         cutoff = fVal;
                         break;
+                    case PropKey._Cutout:
+                        cutout = fVal;
+                        break;
                     case PropKey._FloatValue1:
                         floatVal1 = fVal;
                         break;
@@ -182,6 +220,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     case PropKey._FloatValue3:
                         floatVal3 = fVal;
                         break;
+                    case PropKey._ZTest:
+                        ztest = fVal;
+                        break;
+                    case PropKey._ZTest2:
+                        ztest2 = fVal;
+                        break;
+                    case PropKey._ZTest2Alpha:
+                        ztest2Alpha = fVal;
+                        break;
                 }                        
             }
         }        
@@ -190,72 +237,28 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             var sh = Shader.Find(shader);
             if (sh == null) return false;
 
+            LogUtil.Debug("apply shader:", sh.name);
             m.shader = sh;
             var type = ShaderType.Resolve(sh.name);
             if (type == ShaderType.UNKNOWN) return false;
 
             foreach (var colProp in type.colProps) {
-                CCColor cc = null;
-                switch(colProp.key) {
-                    case PropKey._Color:
-                        cc = color;
-                        break;
-                    case PropKey._ShadowColor:
-                        cc = shadowColor;
-                        break;
-                    case PropKey._RimColor:
-                        cc = rimColor;
-                        break;
-                    case PropKey._OutlineColor:
-                        cc = outlineColor;
-                        break;
-//        _SpecColor,
-//        _ReflectColor,
-//        _Emission,                        
+                Func<CCMaterial, CCColor> func;
+                if (COLOR_DIC.TryGetValue(colProp.key, out func)) {
+                    m.SetColor(colProp.propId, func(this).ToColor());
                 }
-                if (cc != null) m.SetColor(colProp.propId, cc.ToColor());
-                
             }
 
             foreach (var prop in type.fProps) {
-                float? fVal = null;
-                switch(prop.key) {
-                    case PropKey._Shininess:
-                        fVal = shininess;
-                        break;
-                    case PropKey._OutlineWidth:
-                        fVal = outlineWidth;
-                        break;
-                    case PropKey._RimPower:
-                        fVal = rimPower;
-                        break;
-                    case PropKey._RimShift:
-                        fVal = rimShift;
-                        break;
-                    case PropKey._HiRate:
-                        fVal = hiRate;
-                        break;
-                    case PropKey._HiPow:
-                        fVal = hiPow;
-                        break;
-                    case PropKey._Cutoff:
-                        fVal = cutoff;
-                        break;
-                    case PropKey._FloatValue1:
-                        fVal = floatVal1;
-                        break;
-                    case PropKey._FloatValue2:
-                        fVal = floatVal2;
-                        break;
-                    case PropKey._FloatValue3:
-                        fVal = floatVal3;
-                        break;
-                }
+                Func<CCMaterial, float?> func;
+                if (!FLOAT_DIC.TryGetValue(prop.key, out func)) continue;
+
+                var fVal = func(this);
                 if (fVal.HasValue) m.SetFloat(prop.propId, fVal.Value);
-                
             }
             return true;
         }
+
         public void Add(TextureInfo ti) {
             if (texList == null) texList = new List<TextureInfo>();
             texList.Add(ti);
@@ -265,6 +268,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     public class TextureInfo {
         public string propName;
         public string texFile;
+        public float offsetX;
+        public float offsetY;
+        public float scaleX;
+        public float scaleY;
         public TexFilter filter;
     }
 
@@ -289,15 +296,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             OutputMax = fp.OutputMax;
         }
         public TextureModifier.FilterParam ToFilter() {
-            var fp= new TextureModifier.FilterParam();
-            fp.Hue.Value = Hue;
-            fp.Saturation.Value = Saturation;
-            fp.Lightness.Value = Lightness;
-            fp.InputMin.Value = InputMin;
-            fp.InputMax.Value = InputMax;
-            fp.InputMid.Value = InputMid;
-            fp.OutputMin.Value = OutputMin;
-            fp.OutputMax.Value = OutputMax;
+            var fp = new TextureModifier.FilterParam {
+                Hue = {Value = Hue},
+                Saturation = {Value = Saturation},
+                Lightness = {Value = Lightness},
+                InputMin = {Value = InputMin},
+                InputMax = {Value = InputMax},
+                InputMid = {Value = InputMid},
+                OutputMin = {Value = OutputMin},
+                OutputMax = {Value = OutputMax}
+            };
             return fp;
         }
     }

@@ -14,9 +14,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
                 return INSTANCE;
             }
         }
-        private static FileUtilEx outUtil = FileUtilEx.Instance;
+        private static readonly FileUtilEx outUtil = FileUtilEx.Instance;
+        private readonly Assembly asmbl = Assembly.GetExecutingAssembly();
         private ResourceHolder() {}
-        private Assembly asmbl = Assembly.GetExecutingAssembly();
         private Texture2D dirImage;
         private Texture2D fileImage;
         private Texture2D pictImage;
@@ -24,6 +24,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
         private Texture2D pasteImage;
         private Texture2D plusImage;
         private Texture2D minusImage;
+        private Texture2D checkonImage;
+        private Texture2D checkoffImage;
         public Texture2D PictImage {
             get {
                 if (pictImage == null) pictImage = LoadTex("picture");
@@ -61,11 +63,24 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             }
         }
         public Texture2D MinusImage {
-            get {
-                if (minusImage == null) minusImage = LoadTex("minus");
-                return minusImage;
-            }
+            get { return minusImage ?? (minusImage = LoadTex("minus")); }
         }
+        public Texture2D CheckonImage {
+            get { return checkonImage ?? (checkonImage = LoadTex("checkon")); }
+        }
+        public Texture2D CheckoffImage {
+            get { return checkoffImage ?? (checkoffImage = LoadTex("checkoff")); }
+        }
+
+        private GUIContent checkon;
+        public GUIContent Checkon {
+            get { return checkon ?? (checkon = new GUIContent(CheckonImage)); }
+        }
+        private GUIContent checkoff;
+        public GUIContent Checkoff {
+            get { return checkoff ?? (checkoff = new GUIContent(CheckoffImage)); }
+        }
+
         private Texture2D LoadTex(string name) {
             try {
                 using (var fs = asmbl.GetManifestResourceStream(name + ".png")) {
@@ -79,22 +94,29 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
                 return new Texture2D(2, 2);
             }
         }
+
         internal byte[] LoadBytes(string path) {
             try {
                 var buffer = new byte[8192];
-                using (var fs = asmbl.GetManifestResourceStream(path))
-                using (var ms = new MemoryStream((int)fs.Length)) {
-                    int read;
-                    while ((read = fs.Read(buffer, 0, buffer.Length)) > 0) {
-                        ms.Write(buffer, 0, read);
+                using (var fs = asmbl.GetManifestResourceStream(path)) {
+                    if (fs != null) {
+                        using (var ms = new MemoryStream((int) fs.Length)) {
+                            int read;
+                            while ((read = fs.Read(buffer, 0, buffer.Length)) > 0) {
+                                ms.Write(buffer, 0, read);
+                            }
+                            return ms.ToArray();
+                        }
                     }
-                    return ms.ToArray();
                 }
             } catch(Exception e) {
                 LogUtil.Log("リソースのロードに失敗しました。path=", path, e);
                 throw;
             }
+
+            return new byte[0];
         }
+
         public void Clear() {
             if (pictImage != null)  UnityEngine.Object.DestroyImmediate(pictImage);
             if (dirImage  != null)  UnityEngine.Object.DestroyImmediate(dirImage);
@@ -103,6 +125,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             if (pasteImage != null) UnityEngine.Object.DestroyImmediate(pasteImage);
             if (plusImage  != null) UnityEngine.Object.DestroyImmediate(plusImage);
             if (minusImage != null) UnityEngine.Object.DestroyImmediate(minusImage);
+            if (checkonImage != null) UnityEngine.Object.DestroyImmediate(checkonImage);
+            if (checkoffImage != null) UnityEngine.Object.DestroyImmediate(checkoffImage);
             pictImage = null;
             dirImage  = null;
             fileImage = null;
@@ -110,6 +134,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             pasteImage = null;
             plusImage  = null;
             minusImage = null;
+            checkonImage = null;
+            checkoffImage = null;
         }
     }
 }

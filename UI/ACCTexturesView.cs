@@ -8,10 +8,10 @@ using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
     public class ACCTexturesView {
         private static readonly MaidHolder holder = MaidHolder.Instance;
-        public static EditTarget editTarget = new EditTarget();
-        private const float EPSILON = 0.00001f;
-        private static Settings settings = Settings.Instance;
-        private static TextureModifier textureModifier = TextureModifier.Instance;
+        private static readonly FileUtilEx outUtil = FileUtilEx.Instance;
+        public static readonly EditTarget editTarget = new EditTarget();
+        private static readonly Settings settings = Settings.Instance;
+        private static readonly TextureModifier textureModifier = TextureModifier.Instance;
 
         public static void Init(UIParams uiparams) {
             TextureModifier.uiParams = uiparams;
@@ -49,11 +49,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             inboxStyle.normal.background.SetPixels(colorArray);
             inboxStyle.normal.background.Apply();
             inboxStyle.padding.left = inboxStyle.padding.right = 2;
-
         }
 
-        private static Action<UIParams> updateUI = (uiparams) => {
-            float baseWidth = uiparams.textureRect.width - 20;
+        private static readonly Action<UIParams> updateUI = (uiparams) => {
+            var baseWidth = uiparams.textureRect.width - 20;
             buttonWidth  = GUILayout.Width(baseWidth * 0.09f);
             buttonLWidth = GUILayout.Width(baseWidth * 0.2f);
             contentWidth = GUILayout.MaxWidth(baseWidth * 0.69f);
@@ -74,9 +73,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         public static void UpdateTex(Maid maid, Material[] slotMaterials) {
             textureModifier.UpdateTex(maid, slotMaterials, editTarget);
         }
+
         public static bool IsChangedTexColor(Maid maid, string slot, Material material, string propName) {
             return textureModifier.IsChanged(maid, slot, material, propName);
         }
+
         public static TextureModifier.FilterParam GetFilter(Maid maid, string slot, Material material, int propId) {
             return textureModifier.GetFilter(maid, slot, material, propId);
         }
@@ -84,11 +85,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         public static TextureModifier.FilterParam GetFilter(Maid maid, string slot, Material material, string propName) {
             return textureModifier.GetFilter(maid, slot, material, propName);
         }
+
         public static Texture2D Filter(Texture2D srcTex, TextureModifier.FilterParam filterParam) {
             return textureModifier.ApplyFilter(srcTex, filterParam);
         }
 
-        private static FileUtilEx outUtil = FileUtilEx.Instance;
         // ComboBox用アイテムリスト
         private static GUIContent[] itemNames;
         private static GUIContent[] ItemNames {
@@ -98,9 +99,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 var list = new List<GUIContent>();
                 foreach (var name in settings.toonTexes) {
                     var texfile = name + FileConst.EXT_TEXTURE;
-                    var tex = Load(texfile);
-                    list.Add(new GUIContent(name, tex, name));
                     loaded.Add(texfile.ToLower());
+
+                    var tex = Load(texfile);
+                    if (tex == null) continue;
+                    list.Add(new GUIContent(name, tex, name));
                 }
 
                 foreach (var texfile in settings.toonTexAddon) {
@@ -150,6 +153,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             }
             return -1;
         }
+
         public static List<ACCTexture> Load(Material mate, ShaderType type) {
             
             if (type == null) {
@@ -163,18 +167,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             }
             return ret;
         }
-//        public static List<ACCTexture> Load(Material mate, MaterialType matType) {
-//            
-//            if (matType == null) {
-//                matType = ShaderMapper.resolve(mate.shader.name);
-//            }
-//
-//            var ret = new List<ACCTexture>(matType.texPropNames.Length);
-//            foreach (string propName in matType.texPropNames) {
-//               ret.Add(new ACCTexture(mate, propName, matType));
-//            }
-//            return ret;
-//        }
 
         public static FileBrowser fileBrowser;
         private string textureDir;
@@ -183,17 +175,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         List<ACCTexture> original;
         List<ACCTexture> edited;
         public bool expand;
-        private Dictionary<string, ComboBoxLO> combos = new Dictionary<string, ComboBoxLO>(2);
+        private readonly Dictionary<string, ComboBoxLO> combos = new Dictionary<string, ComboBoxLO>(2);
         Material material;
         //MaterialType matType;
-        ShaderType type;
 
         public ACCTexturesView(Material m, int matNo) {
             material = m;
             //this.matType = ShaderMapper.resolve(m.shader.name);
 
             // this.original = Load(m, matType);
-            type = ShaderType.Resolve(m.shader.name);
+            var type = ShaderType.Resolve(m.shader.name);
             original = Load(m, type);
             edited = new List<ACCTexture>(original.Count);
             foreach ( var tex in original ) {
@@ -283,6 +274,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                                 cbSelected = true;
                             }
                             hideField = combo.IsClickedComboButton;
+                        } else {
+                            GUILayout.Label(string.Empty, uiParams.optBtnWidth);
                         }
                         if (hideField) uiParams.textStyle.fontSize = (int)(fontSizeS*0.8);
                         editName = GUILayout.TextField(editName, uiParams.textStyle, contentWidth);
@@ -293,7 +286,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                         GUI.enabled = editTex.dirty;
                         if ((settings.toonComboAutoApply && cbSelected)
                             || GUILayout.Button("適", uiParams.bStyle, uiParams.optBtnWidth)) {
-                            Texture tex = ChangeTexFile(textureDir, editTex.editname, matNo, editTex.propName);
+                            var tex = ChangeTexFile(textureDir, editTex.editname, matNo, editTex.propName);
                             if (tex != null) editTex.tex = tex;
                             editTex.dirty = false;
                         }
@@ -342,6 +335,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             Texture changedTex;
             // キャッシュ削除用に変更前のテクスチャを取得
             var srcTex = material.GetTexture(propName) as Texture2D;
+            // ReSharper disable once PossibleNullReferenceException  nullを返すのはnull入力時のみ.ここではありえない
             var extension = Path.GetExtension(filename).ToLower();
             if (extension.Length == 0 || extension == FileConst.EXT_TEXTURE) {
                 string texName;
@@ -360,7 +354,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     changedTex.name = texName;
                 }
             } else {
-                var slot = holder.CurrentMaid.body0.GetSlot(holder.CurrentSlot.Name);
+                var slot = holder.CurrentMaid.body0.GetSlot((int)holder.CurrentSlot.Id);
                 // 直接イメージをロードして適用(要dir指定)
                 var mat = holder.GetMaterial(slot, matNo1);
                 if (mat == null) return null;

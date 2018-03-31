@@ -723,7 +723,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                         if (HasAlreadyWritten(writeFiles, filename0)) continue;
 
                         // mate出力==別のtexファイルを出力する可能性有り
-                        string matefilepath = Path.Combine(outDir, filename0);
+                        var matefilepath = Path.Combine(outDir, filename0);
                         fileUtil.WriteMateFile(toCreate.source, matefilepath, trgtMat);
                         // マテリアル名は上位と同じにして、同一pmatを使用する
                         //if (trgtMat.needPmatChange) {

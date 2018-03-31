@@ -1,6 +1,5 @@
 ﻿// テクスチャの色変え処理
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,16 +16,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             get { return INSTANCE; }
         }
 
-        private readonly FilterParams filterParams = new FilterParams();
-        private readonly OriginalTextureCache originalTexCache = new OriginalTextureCache();
+        private readonly FilterParams _filterParams = new FilterParams();
+        private readonly OriginalTextureCache _originalTexCache = new OriginalTextureCache();
 
         public static UIParams uiParams;
         public static GUIStyle lStyle;
         private static readonly OutputUtil OUT_UTIL = OutputUtil.Instance;
         
         public void Clear() {
-            originalTexCache.Clear();
-            filterParams.Clear();
+            _originalTexCache.Clear();
+            _filterParams.Clear();
         }
 
         public bool IsValidTarget(Maid maid, string slotName, Material material, string propName) {
@@ -38,15 +37,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             var tex2D = material.GetTexture(propName) as Texture2D;
             if (tex2D == null || string.IsNullOrEmpty(tex2D.name)) return ;
 
-            var key = CreateKey(maid.Param.status.guid, slotName, material.name, tex2D.name);
-            var fp = filterParams.GetOrAdd(key.ToString());
+            var key = CreateKey(MaidHelper.GetGuid(maid), slotName, material.name, tex2D.name);
+            var fp = _filterParams.GetOrAdd(key.ToString());
             fp.ProcGUI(tex2D);
         }
 
         public void Update(Maid maid, Dictionary<string, List<Material>> slotMaterials,
             List<Texture2D> textures, EditTarget texEdit ) {
 
-            originalTexCache.Refresh(textures.ToArray());
+            _originalTexCache.Refresh(textures.ToArray());
 
             FilterTexture(slotMaterials, textures, maid, texEdit);
         }
@@ -63,6 +62,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             }
             return key;
         }
+
         public bool UpdateTex(Maid maid, Material[] slotMaterials, EditTarget texEdit) {
             // material 抽出 => texture 抽出
             if (slotMaterials.Length <=  texEdit.matNo) return false;
@@ -75,8 +75,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             var tex2D = mat.GetTexture(texEdit.propName) as Texture2D;
             if (tex2D == null || string.IsNullOrEmpty(tex2D.name)) return false;
 
-            var key = CreateKey(maid.Param.status.guid, texEdit.slotName, mat.name, tex2D.name);
-            var filterParam = filterParams.GetOrAdd(key.ToString());
+            var key = CreateKey(MaidHelper.GetGuid(maid), texEdit.slotName, mat.name, tex2D.name);
+            var filterParam = _filterParams.GetOrAdd(key.ToString());
 
             // スライダー変更がなければ何もしない
             if (!filterParam.IsDirty) return false;
@@ -86,7 +86,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             return true;
         }
         public bool RemoveCache(Texture2D tex2D) {
-            return originalTexCache.Remove(tex2D.name);
+            return _originalTexCache.Remove(tex2D.name);
         }
 
         public bool RemoveFilter(Maid maid, string slotName, Material mat, string propName) {
@@ -97,8 +97,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         public bool RemoveFilter(Maid maid, string slotName, Material mat, Texture2D tex2D) {
-            var key = CreateKey(maid.Param.status.guid, slotName, mat.name, tex2D.name);
-            return filterParams.Remove(key.ToString());
+            var key = CreateKey(MaidHelper.GetGuid(maid), slotName, mat.name, tex2D.name);
+            return _filterParams.Remove(key.ToString());
         }
 
         public bool IsChanged(Maid maid, string slotName, Material mat, string propName) {
@@ -107,13 +107,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
             return IsChanged(maid, slotName, mat.name, tex2d.name);
         }
-        public bool IsChanged(Maid maid, string slotName, string matName, string texName) 
-        {
-            var key = CreateKey(maid.Param.status.guid, slotName, matName, texName);
 
-            var filterParam = filterParams.Get(key.ToString());
-            return (filterParam != null) && !filterParam.hasNotChanged();
+        public bool IsChanged(Maid maid, string slotName, string matName, string texName) {
+            var key = CreateKey(MaidHelper.GetGuid(maid), slotName, matName, texName);
+
+            var filterParam = _filterParams.Get(key.ToString());
+            return (filterParam != null) && !filterParam.HasNotChanged();
         }
+
         public FilterParam GetFilter(Maid maid, string slotName, Material mat, int propId) {
             var tex2d = mat.GetTexture(propId) as Texture2D;
             if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) return null;
@@ -128,9 +129,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             return GetFilter(maid, slotName, mat.name, tex2d.name);
         }
         public FilterParam GetFilter(Maid maid, string slotName, string matName, string texName) {
-            var key = CreateKey(maid.Param.status.guid, slotName, matName, texName);
+            var key = CreateKey(MaidHelper.GetGuid(maid), slotName, matName, texName);
 
-            return filterParams.Get(key.ToString());
+            return _filterParams.Get(key.ToString());
         }
         public bool DuplicateFilter(Maid maid, string slotName, Material mat, string fromPropName, string toPropName) {
             var srcTex2d = mat.GetTexture(fromPropName) as Texture2D;
@@ -141,9 +142,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             var dstTex2d = mat.GetTexture(toPropName) as Texture2D;
             if (dstTex2d == null || string.IsNullOrEmpty(dstTex2d.name)) return false;
 
-            var key = CreateKey(maid.Param.status.guid, slotName, mat.name, dstTex2d.name);
+            var key = CreateKey(MaidHelper.GetGuid(maid), slotName, mat.name, dstTex2d.name);
             var dstFilter = new FilterParam(srcFilter);
-            filterParams.Add(key.ToString(), dstFilter);
+            _filterParams.Add(key.ToString(), dstFilter);
 
             FilterTexture(dstTex2d, dstFilter);
             return true;
@@ -153,9 +154,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             var tex2d = mat.GetTexture(propName) as Texture2D;
             if (tex2d == null || string.IsNullOrEmpty(tex2d.name)) return false;
 
-            var key = CreateKey(maid.Param.status.guid, slotName, mat.name, tex2d.name);
+            var key = CreateKey(MaidHelper.GetGuid(maid), slotName, mat.name, tex2d.name);
             var filter2 = new FilterParam(filter);
-            filterParams.Add(key.ToString(), filter2);
+            _filterParams.Add(key.ToString(), filter2);
 
             FilterTexture(tex2d, filter2);
             return true;
@@ -171,7 +172,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 return null;
             }
 
-            return CreateKey(maid.Param.status.guid, slotName, material.name, tex2d.name).ToString();
+            return CreateKey(MaidHelper.GetGuid(maid), slotName, material.name, tex2d.name).ToString();
         }
 
         // 途中版
@@ -201,18 +202,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
         private FilterParam GetFilterParam(Maid maid, string slotName, Material material, string propName) {
             var key = GetKey(maid, slotName, material, propName);
-            return filterParams.GetOrAdd(key);
+            return _filterParams.GetOrAdd(key);
         }
 
         private void FilterTexture(
             IDictionary<string, List<Material>> slotMaterials,
-            List<Texture2D> textures, Maid maid, EditTarget texEdit)
-        {
+            List<Texture2D> textures, Maid maid, EditTarget texEdit) {
             List<Material> materials;
             if (slotMaterials.TryGetValue(texEdit.slotName, out materials)) {
                 FilterTexture(materials, textures, maid, texEdit);
             }
         }
+
         private void FilterTexture(
             ICollection<Material> slotMaterials,
             List<Texture2D> textures, Maid maid, EditTarget texEdit) {
@@ -233,9 +234,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
             FilterTexture(texture, filterParam);
         }
+
         // キャッシュにテクスチャソースを保持する
         private void FilterTexture(Texture2D texture, FilterParam filter) {
-            var orgTex = originalTexCache.GetOrAdd(texture);
+            var orgTex = _originalTexCache.GetOrAdd(texture);
             orgTex.dirty  = false;
             filter.ClearDirtyFlag();
 
@@ -278,7 +280,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                            c.b = Mathf.Pow(c.b, inputExp);
                        }
 
-                       Vector4 hsl = ColorUtil.RGBToHsl(c);
+                       var hsl = ColorUtil.RGBToHsl(c);
                        hsl.x = (hsl.x + hue) % 1f;
                        hsl.y *= saturation;
                        hsl.z *= lightness;
@@ -311,13 +313,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             public void Clear() {
                 _params.Clear();
             }
+
             public void Add(string key, FilterParam filter) {
                 _params[key] = filter;
             }
+
             public FilterParam Get(string key) {
                 FilterParam p;
                 return _params.TryGetValue(key, out p) ? p : null;
             }
+
             public FilterParam GetOrAdd(string key) {
                 FilterParam p;
                 if (_params.TryGetValue(key, out p)) return p;
@@ -325,13 +330,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 _params[key] = p;
                 return p;
             }
+
             public bool Remove(string key) {
                 return _params.Remove(key);
             }
         }
 
         public class FilterParam {
-            private static readonly NamedRange HueRange = new NamedRange("色相", 0f, 360f);
+            private static readonly NamedRange HueRange   = new NamedRange("色相", 0f, 360f);
             private static readonly NamedRange SaturRange = new NamedRange("彩度", 0f, 200f);
             private static readonly NamedRange LightRange = new NamedRange("明度", 0f, 200f);
             private static readonly NamedRange InpMinRange = new NamedRange("InpMin", 0f, 100f);
@@ -387,7 +393,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
             private const float THRESHOLD = 0.01f;
             // 初期値から変更されたかを判定する
-            public bool hasNotChanged() {
+            public bool HasNotChanged() {
                 return ( Hue.Value       < THRESHOLD &&
                          InputMin.Value  < THRESHOLD &&
                          OutputMin.Value < THRESHOLD &&
@@ -582,6 +588,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     _cacheDic[t.name] = texHolder;
                 }
             }
+
             public TextureHolder GetOrAdd(Texture2D tex) {
                 TextureHolder holder;
                 if (_cacheDic.TryGetValue(tex.name, out holder)) return holder;
@@ -590,6 +597,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 _cacheDic[tex.name] = holder;
                 return holder;
             }
+
             /// <summary>テクスチャキャッシュを削除する</summary>
             /// <param name="texName">テクスチャ名</param>
             /// <returns>削除された場合にtrue</returns>
@@ -600,6 +608,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 UnityEngine.Object.DestroyImmediate(holder.texture);
                 return _cacheDic.Remove(texName);
             }
+
             public void SetDirty(Texture2D texture) {
                 if (texture != null) {
                     SetDirty(texture.name);

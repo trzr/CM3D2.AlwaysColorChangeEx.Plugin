@@ -58,10 +58,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             var texTypeEmpty = new ShaderPropTex[0];
             var texTypeR  = new []{ShaderPropType.RenderTex,};
             var texType0  = new []{ShaderPropType.MainTex,};
-            var texType0a = new []{ShaderPropType.MainTex_a,};
+            var texType0a = new []{ShaderPropType.MainTexA,};
             var texType1  = new []{ShaderPropType.MainTex, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon, };//ShaderPropType.MultiColTex, };
-            var texType1a = new []{ShaderPropType.MainTex_a, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon,};// ShaderPropType.MultiColTex, };
+            var texType1t = new []{ShaderPropType.MainTex, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon, ShaderPropType.OutlineTex, ShaderPropType.OutlineToonRamp};
+            var texType1a = new []{ShaderPropType.MainTexA, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon,};// ShaderPropType.MultiColTex, };
             var texTypeH  = new []{ShaderPropType.MainTex, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon, ShaderPropType.HiTex,};// ShaderPropType.MultiColTex, };
+            var texTypeHt  = new []{ShaderPropType.MainTex, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon, ShaderPropType.HiTex, ShaderPropType.OutlineTex, ShaderPropType.OutlineToonRamp}; 
             
             var colEmpty  = new ShaderPropColor[0];
             var colC      = new []{ShaderPropType.Color, };
@@ -75,7 +77,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             
             var propEmpty = new ShaderPropFloat[0];
             var propL     = new []{ShaderPropType.Shininess, };
+            var propLC    = new []{ShaderPropType.Shininess, ShaderPropType.Cutout};
             var propTL    = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, };
+            var propTLZ   = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.ZTest, ShaderPropType.ZTest2, ShaderPropType.ZTest2Alpha};
             var propTLC   = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.Cutoff, };
             var propTLO   = new []{ShaderPropType.Shininess, ShaderPropType.OutlineWidth, ShaderPropType.RimPower, ShaderPropType.RimShift, };
             var propTLH   = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.HiRate, ShaderPropType.HiPow};
@@ -153,6 +157,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     case PropKey._ToonRamp:
                     case PropKey._ShadowTex:
                     case PropKey._ShadowRateToon:
+                    case PropKey._OutlineTex:
+                    case PropKey._OutlineToonRamp:
                     case PropKey._HiTex:
                     case PropKey._RenderTex:
                     case PropKey._BumpMap:
@@ -197,8 +203,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     case PropKey._FloatValue1:
                     case PropKey._FloatValue2:
                     case PropKey._FloatValue3:
+                    case PropKey._ZTest:
+                    case PropKey._ZTest2:
+                    case PropKey._ZTest2Alpha:
                     case PropKey._Parallax:
                     case PropKey._Cutoff:
+                    case PropKey._Cutout:
                     case PropKey._EmissionLM:
                     case PropKey._UseMulticolTex:
                     case PropKey._Strength:

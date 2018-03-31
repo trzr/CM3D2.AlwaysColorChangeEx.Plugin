@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Windows.Forms;
 using UnityEngine;
-using CM3D2.AlwaysColorChangeEx.Plugin;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
@@ -68,18 +66,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             
             InitType();
         }
+
         private void InitType() {
             // Color生成
             var colProps = type.colProps;
             editColors = new EditColor[colProps.Length];
             for (var i=0; i<colProps.Length; i++) {
                 var colProp = colProps[i];
-                var ec = new EditColor(null, colProp.colorType);
-                if (material != null) {
-                    ec.Set( material.GetColor(colProps[i].propId) );
-                } else {
-                    ec.Set( colProps[i].defaultVal );
-                }
+                var color = material != null ? material.GetColor(colProp.propId) : colProp.defaultVal;
+                var ec = new EditColor(color, colProp.colorType);
                 editColors[i] = ec;
             }
 
@@ -96,10 +91,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         }
 
         private Color GetColor(int i) {
-            if (i < editColors.Length) {
-                return editColors[i].val.HasValue ? editColors[i].val.Value : type.colProps[i].defaultVal;
-            }
-            return Color.white;
+            return i < editColors.Length ? editColors[i].val : Color.white;
         }
 
         public void ChangeShader(string shaderName, int shaderIdx=-1) {
@@ -113,7 +105,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             if (type1 == ShaderType.UNKNOWN) return;
 
             Update(type1);
-            LogUtil.Debug("selected shader updated");
+            LogUtil.Debug("selected shader updated: ", shaderName);
 
             //} else {
             //    // var script = CustomShaderHolder.ShaderScripts[shaderIdx];
@@ -148,7 +140,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             var createdColors = new EditColor[colProps.Length];
             for (var i=0; i<colProps.Length; i++) {
                 var colProp = colProps[i];
-                if (i < editColors.Length && editColors[i].val.HasValue) {
+                if (i < editColors.Length) {
                     // カラータイプが異なる場合は、インスタンスを作り直して色をコピー
                     if (editColors[i].type == colProp.colorType) {
                         createdColors[i] = editColors[i];
@@ -156,18 +148,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                         createdColors[i] = new EditColor(editColors[i].val, colProp.colorType); 
                     }
                 } else {
-                    var ec = new EditColor(null, colProp.colorType);
+                    Color color;
                     if (material != null) {
-                        ec.Set( material.GetColor(colProps[i].propId) );
+                        color = material.GetColor(colProp.propId);
                     } else {
-                        ec.Set( (Original != null)? Original.GetColor(i): colProps[i].defaultVal );
+                        color = (Original != null)? Original.GetColor(i): colProp.defaultVal;
                     }
-                    createdColors[i] = ec;
+                    createdColors[i] = new EditColor(color, colProp.colorType);
                 }
             }
             editColors = createdColors;
-            
-            
+
             var props = sdrType.fProps;
             var createdVals = new EditValue[props.Length];
             for (var i=0; i<props.Length; i++) {
@@ -231,11 +222,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
 
         public bool HasChanged(ACCMaterial mate) {
             // 同一シェーダを想定
-            if (editColors.Where((t, i) => t.val != mate.editColors[i].val).Any()) {
-                return true;
-            }
-
-            return editVals.Where((t, i) => !NumberUtil.Equals(t.val, mate.editVals[i].val)).Any();
+            return editColors.Where((t, i) => t.val != mate.editColors[i].val).Any()
+                   || editVals.Where((t, i) => !NumberUtil.Equals(t.val, mate.editVals[i].val)).Any();
         }
                 
         public void SetColor(string propName, Color c) {
@@ -249,6 +237,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     return;
                 }
                 LogUtil.Debug("propName mismatched:", propName);
+
             } catch(Exception e) {
                 LogUtil.Debug("unsupported propName found:", propName, e);
             }
@@ -265,6 +254,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     return;
                 }
                 LogUtil.Debug("propName mismatched:", propName);
+
             } catch(Exception e) {
                 LogUtil.Debug("unsupported propName found:", propName, e);
             }
@@ -443,7 +433,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                 // PropType.col
                 writer.Write(colProp.type.ToString());
                 writer.Write(colProp.keyName);
-                OUT_UTIL.Write(writer, eColor.val.Value);
+                OUT_UTIL.Write(writer, eColor.val);
             }
             // f
             for (var i=0; i<mate.editVals.Length; i++) {

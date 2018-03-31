@@ -12,45 +12,43 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         private static readonly string[] empty = new string[0];
 
         public bool hasAlpha;
-        public Color? val;
-        public ColorType type;
+        public Color val;
+        public readonly ColorType type;
 
         public bool[] isSyncs;
         public string[] editVals;
         
-        public EditColor(Color? val1, ColorType type = ColorType.rgb) {
+        public EditColor(Color val1, ColorType type = ColorType.rgb) {
             this.type = type;
             Set( val1 );
         }
 
-        private string[] ToEdit(ref Color? c0) {
-            var c = c0.Value;
+        private string[] ToEdit(ref Color c0) {
             switch(type) {
                 case ColorType.rgb:
                     return new[] {
-                    c.r.ToString(range.format),
-                    c.g.ToString(range.format),
-                    c.b.ToString(range.format)};
+                    c0.r.ToString(range.format),
+                    c0.g.ToString(range.format),
+                    c0.b.ToString(range.format)};
                 case ColorType.rgba:
                     return new[] {
-                        c.r.ToString(range.format),
-                        c.g.ToString(range.format),
-                        c.b.ToString(range.format),
-                        c.a.ToString(range_a.format)};
+                        c0.r.ToString(range.format),
+                        c0.g.ToString(range.format),
+                        c0.b.ToString(range.format),
+                        c0.a.ToString(range_a.format)};
                 case ColorType.a:
                     return new[] {
-                        c.a.ToString(range_a.format)};
+                        c0.a.ToString(range_a.format)};
             }
             return empty;
         }
 
-        public void Set(Color? val1) {
-            if (!val1.HasValue) {
-                isSyncs = null;
-                editVals = null;
-                val = null;
-                return;
-            }
+        public void Set(Color val1) {
+//            if (!val1.HasValue) {
+//                isSyncs = null;
+//                editVals = null;
+//                return;
+//            }
             
             val = val1;
             editVals = ToEdit(ref val);
@@ -59,25 +57,25 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             }
             for (var i=0; i< isSyncs.Length; i++ ) isSyncs[i] = true;
         }
-        public float GetValue(int idx) {
-            if (val.HasValue) {
-                if (type == ColorType.a) {
-                    return val.Value.a;
-                }
 
-                switch (idx) {
-                case 0:
-                    return val.Value.r;
-                case 1:
-                    return val.Value.g;
-                case 2:
-                    return val.Value.b;
-                case 3:
-                    return val.Value.a;
-                }
+        public float GetValue(int idx) {
+            if (type == ColorType.a) {
+                return val.a;
+            }
+
+            switch (idx) {
+            case 0:
+                return val.r;
+            case 1:
+                return val.g;
+            case 2:
+                return val.b;
+            case 3:
+                return val.a;
             }
             return 0;
         }
+
         public EditRange GetRange(int idx) {
             switch(type) {
                 case ColorType.rgb:
@@ -91,7 +89,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         }
 
         public void Set(int idx, string editVal1, EditRange er = null) {
-            if (idx >= editVals.Length || !val.HasValue) return;
+            if (idx >= editVals.Length) return;
             editVals[idx] = editVal1;
 
             if (er == null) er = GetRange(idx);
@@ -103,28 +101,24 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 else sync = true;
 
                 if (sync) {
-                        
-                    // ReSharper disable once PossibleInvalidOperationException
-                    var c = val.Value;
                     if (type == ColorType.a) {
-                        c.a = v;
+                        val.a = v;
                     } else {
                         switch(idx) {
                         case 0:
-                            c.r = v;
+                            val.r = v;
                             break;
                         case 1:
-                            c.g = v;
+                            val.g = v;
                             break;
                         case 2:
-                            c.b = v;
+                            val.b = v;
                             break;
                         case 3:
-                            c.a = v;
+                            val.a = v;
                             break;
                         }                                
                     }
-                    val = c;
                 }
             }
             isSyncs[idx] = sync;

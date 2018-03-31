@@ -5,14 +5,13 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
-{
+namespace CM3D2.AlwaysColorChangeEx.Plugin.Render {
     ///
     /// ボーン描画クラス.
-    ///  ボーンにアタッチさせた方が恐らく容易だが、極力オリジナルのオブジェクトにアタッチを避けて実装.
+    ///  オリジナルのオブジェクトへのアタッチを避け、
+    ///  Updateにより位置を適宜更新する.
     ///
-    public class CustomBoneRenderer //: MonoBehaviour
-    {
+    public class CustomBoneRenderer {//: MonoBehaviour {
         #region Fields
         private const string NAME_PREFIX = "___LINE_";
         private const string NAME_SCL = "_SCL_";
@@ -28,6 +27,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
         private bool _isVisible;
         private bool _skipVisble;
         #endregion
+
+        ~CustomBoneRenderer() {
+            ClearCache();
+        }
 
         /// 指定されたメイドのインスタンスID
         private int _targetId;
@@ -54,6 +57,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
         }
 
         public void Setup(Transform bone) {
+            if (_rootBone == bone) return;
+
             Clear();
             _rootBone = bone;
 
@@ -75,6 +80,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
             _lineDict.Add(bone.name, lineRenderer);
 
             foreach (Transform child in bone) {
+                if (child.childCount == 0) continue;
+                if (child.name.StartsWith(ConstantValues.NAME_PREFIX)) continue;
+
                 SetupBone(child);
             }
         }
@@ -108,18 +116,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
             }
         }
 
+        private void EmptyBone(LineRenderer renderer) {
+#if UNITY_5_6_OR_NEWER
+            renderer.positionCount = 0;
+#else
+            renderer.SetVertexCount(0);
+#endif
+            renderer.enabled = false;
+            // if (_isFirst) Log.Debug(renderer.name, " is leaf");
+        }
+
         public void UpdatePosition(Transform bone, bool isRoot=false) {
 //            if (bone.name.StartsWith(NAME_PREFIX)) return;
             LineRenderer boneLine;
             if (!_lineDict.TryGetValue(bone.name, out boneLine)) return;
 
             if (bone.childCount == 0) {
-#if UNITY_5_6_OR_NEWER
-                boneLine.positionCount = 0;
-#else
-                boneLine.SetVertexCount(0);
-#endif
-                boneLine.enabled = false;
+                EmptyBone(boneLine);
                 return;
             }
 #if UNITY_5_6_OR_NEWER
@@ -132,6 +145,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
             Vector3? pos = null;
             if (bone.childCount == 1) {
                 var child0 = bone.GetChild(0);
+                if (child0.name.StartsWith(ConstantValues.NAME_PREFIX)) {
+                    EmptyBone(boneLine);
+                    return;
+                }
                 pos = child0.position;
                 if (pos == bone.position) {
                     var vec = new Vector3(-0.1f, 0f, 0f);
@@ -140,23 +157,24 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
                 }
             } else {
                 if (bone.childCount == 2) {
-                    if (bone.GetChild(0).name.EndsWith(NAME_SCL)) {
-                        pos = bone.GetChild(1).position;
-                    } else if (bone.GetChild(1).name.EndsWith(NAME_SCL)) {
-                        pos = bone.GetChild(0).position;
+                    var child0 = bone.GetChild(0);
+                    var child1 = bone.GetChild(1);
+                    if (child0.name.EndsWith(NAME_SCL) || child0.name.StartsWith(ConstantValues.NAME_PREFIX)) {
+                        pos = child1.position;
+                    } else if (child1.name.EndsWith(NAME_SCL) || child1.name.StartsWith(ConstantValues.NAME_PREFIX)) {
+                        pos = child0.position;
                     }
                 }
                 if (!pos.HasValue) {
-                    var maxLength = 0f;
+                    var maxLength = 0.1f;
                     if (!isRoot) {
                         foreach (Transform child in bone) {
+                            if (child.name.StartsWith(ConstantValues.NAME_PREFIX)) continue;
                             var delta = child.position - bone.position;
                             var length = delta.magnitude;
 
                             if (length > maxLength) maxLength = length;
                         }
-                    } else {
-                        maxLength = 0.1f;
                     }
 
                     var vec = new Vector3(-maxLength, 0f, 0f);
@@ -209,7 +227,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render
             line.startWidth = _lineWidth;
             line.endWidth   = _lineWidth * 0.2f;
 #else            
-            line.SetWidth(_lineWidth, _lineWidth*0.20f);
+            line.SetWidth(_lineWidth, _lineWidth * 0.20f);
 #endif
             return line;
         }

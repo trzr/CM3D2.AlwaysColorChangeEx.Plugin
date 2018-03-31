@@ -62,9 +62,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             IsTarget = _isTargetNormal;
             IsStockTarget = _isStockNormal;
         }
+
         public Mode GetMode() {
             return _mode;
         }
+
         public void Init() {
             CheckMode();
             var settings = Settings.Instance;

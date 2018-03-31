@@ -1,15 +1,13 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Windows.Forms.VisualStyles;
 using UnityEngine;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
+using UnityEngine.Rendering;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
     internal class ACCMaterialsView {
         private const float EPSILON = 0.000001f;
-        private static Settings settings = Settings.Instance;
 
         // ComboBox用アイテムリスト
         private static GUIContent[] shaderNames;
@@ -25,6 +23,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 return shaderNames;
             }
         }
+        private static GUIContent[] compareFuncs;
+        private static GUIContent[] CompareFuncs {
+            get {
+                if (compareFuncs == null) {
+                    var names = Enum.GetNames(typeof(CompareFunction));
+                    compareFuncs = new GUIContent[names.Length];
+                    var idx = 0;
+                    foreach (var name in names) {
+                        compareFuncs[idx++] = new GUIContent(name);
+                    }
+                }
+                return compareFuncs;
+            }
+        }
 
         public static void Init(UIParams uiparams) {
             if (uiParams != null) return;
@@ -38,7 +50,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
             if (uiParams != null) uiParams.Remove(updateUI);
         }
-        private static ResourceHolder resHolder = ResourceHolder.Instance;
+        private static readonly ResourceHolder resHolder = ResourceHolder.Instance;
         private static GUIContent plusIcon;
         private static GUIContent minusIcon;
         private static GUIContent copyIcon;
@@ -64,6 +76,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         //private readonly GUIStyle lStyleC   = new GUIStyle("label");
         //private readonly GUIStyle hsldStyle = new GUIStyle("horizontalSlider");
         private static GUIStyle bStyleLeft    = new GUIStyle("label");
+        private static GUIStyle bStyleRight   = new GUIStyle("label");
         private static GUIStyle bStyleSS      = new GUIStyle("button");
         private static GUILayoutOption optItemHeight;
         private static GUILayoutOption optUnitHeight;
@@ -107,7 +120,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             optInputWidth = GUILayout.Width(sliderInputWidth);
             optItemHeight = GUILayout.Height(uiparams.itemHeight);
             optUnitHeight = GUILayout.Height(uiparams.unitHeight);
-            
 
             txtColor = uiparams.textStyleSC.normal.textColor;
 
@@ -115,6 +127,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             bStyleLeft.fontSize  = uiparams.fontSize;
             bStyleLeft.normal.textColor = uiparams.lStyleC.normal.textColor;
             bStyleLeft.alignment = TextAnchor.MiddleLeft;
+
+            bStyleRight.fontStyle = uiparams.lStyleC.fontStyle;
+            bStyleRight.fontSize  = uiparams.fontSize;
+            bStyleRight.normal.textColor = uiparams.lStyleC.normal.textColor;
+            bStyleRight.alignment = TextAnchor.MiddleRight;
 
             baseWidth = (uiparams.textureRect.width-20)*0.06f;
             bWidthOpt  = GUILayout.Width(baseWidth);
@@ -134,6 +151,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         private ClipBoardHandler clipHandler = ClipBoardHandler.Instance;
         public ACCMaterial edited;
         public ComboBoxLO shaderCombo;
+        public ComboBoxLO compareCombo;
         public bool expand;
         private int matIdx;
         private int slotIdx;
@@ -145,9 +163,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             edited = new ACCMaterial(m, r);
         }
         public Action<string> tipsCall;
-
-        private readonly bool[] FLAG_RATIO = {true, true, false};
-        private readonly bool[] FLAG_INV  = {false, false, true};
         
         public void Show(bool reload) {
             // TODO tooltipをステータスバーに表示
@@ -222,7 +237,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 var idx = edited.type.idx;
 
                 if (shaderCombo == null) {
-                    GUIContent selected = (idx >= 0 && idx < ShaderNames.Length) ? ShaderNames[idx] : GUIContent.none;
+                    var selected = (idx >= 0 && idx < ShaderNames.Length) ? ShaderNames[idx] : GUIContent.none;
                     shaderCombo = new ComboBoxLO(selected, ShaderNames, uiParams.bStyleSC, uiParams.boxStyle, uiParams.listStyle, false);
                 } else {
                     shaderCombo.SelectedItemIndex = idx;
@@ -258,30 +273,29 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     var editColor = edited.editColors[i];
                     if (reload) {
                         editColor.Set(material.GetColor(colProp.propId));
-                    } else {
-                        if (!editColor.val.HasValue) {
-                            editColor.Set(colProp.defaultVal);
-                            LogUtil.DebugF("value is empty. set white. color={0}, vals={1}, syncs={2}",
-                                editColor.val, editColor.editVals, editColor.isSyncs);
-                        }
+//                    } else {
+//                        if (!editColor.val.HasValue) {
+//                            editColor.Set(colProp.defaultVal);
+//                            LogUtil.DebugF("value is empty. set white. color={0}, vals={1}, syncs={2}",
+//                                editColor.val, editColor.editVals, editColor.isSyncs);
+//                        }
                     }
                         
                     var beforeColor = editColor.val;
                     setColorSlider(colProp.name, ref editColor, colProp.colorType);
                     if (editColor.val != beforeColor) {
-                        material.SetColor(colProp.propId, editColor.val.Value);
+                        material.SetColor(colProp.propId, editColor.val);
                     }
                 }
 
                 for (var i=0; i< sdType.fProps.Length; i++) {
                     var prop = sdType.fProps[i];
+                    if (reload) edited.editVals[i].Set(material.GetFloat(prop.propId));
+
                     switch (prop.valType) {
                         case ValType.Float:
                             // slider
                             var fprop = prop;
-                            if (reload) {
-                                edited.editVals[i].Set(material.GetFloat(fprop.propId));
-                            }
                             // fprop.SetValue(mat, val);
                             SetupFloatSlider(prop.name, edited.editVals[i],
                                              fprop.sliderMin, fprop.sliderMax, 
@@ -289,7 +303,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                                               fprop.opts, null, fprop.presetVals);
                             break;
                         case ValType.Bool:
-                            // TODO チェックボックス
+                            SetupCheckBox(prop.name, edited.editVals[i],
+                                (val) => prop.SetValue(material, val));
+                            break;
+                        case ValType.Enum:
+                            SetupComboBox(prop.name, edited.editVals[i],
+                                (val) => prop.SetValue(material, val));
                             break;
                     }
                 }
@@ -297,6 +316,52 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             } finally {
                 GUILayout.EndVertical();
             }
+        }
+
+        private void SetupComboBox(string label, EditValue edit, Action<float> func) {
+            GUILayout.BeginHorizontal();
+            try {
+                GUILayout.Label(label, uiParams.lStyle, optItemHeight);
+                
+                GUILayout.Space(uiParams.marginL);
+                var idx = (int)edit.val;
+                if (compareCombo == null) {
+                    var selected = (idx >= 0 && idx < CompareFuncs.Length) ? CompareFuncs[idx] : GUIContent.none;
+                    compareCombo = new ComboBoxLO(selected, CompareFuncs, uiParams.bStyleSC, uiParams.boxStyle, uiParams.listStyle, false);
+                } else {
+                    compareCombo.SelectedItemIndex = idx;
+                }
+                compareCombo.Show(GUILayout.ExpandWidth(true));//uiParams.optInsideWidth);
+
+                var selectedIdx = compareCombo.SelectedItemIndex;
+                if (idx == selectedIdx || selectedIdx == -1) return;
+
+                edit.Set(selectedIdx);
+                func(selectedIdx);
+
+            } finally {
+                GUILayout.EndHorizontal();
+            }
+
+        }
+
+        private void SetupCheckBox(string label, EditValue edit, Action<float> func) {
+            GUILayout.BeginHorizontal();
+            try {
+                GUILayout.Label(label, uiParams.lStyle, optItemHeight);
+                
+                GUILayout.Space(uiParams.marginL);
+                var val = edit.val;
+                var cont = NumberUtil.Equals(val, 0f) ? ResourceHolder.Instance.Checkoff : ResourceHolder.Instance.Checkon;
+                if (!GUILayout.Button(cont, bStyleRight, GUILayout.Width(50))) return;
+
+                val = 1 - val;
+                edit.Set(val);
+                func(val);
+            } finally {
+                GUILayout.EndHorizontal();
+            }
+
         }
             
         private void SetupFloatSlider(string label, EditValue edit, float sliderMin, float sliderMax,
@@ -312,6 +377,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             GUILayout.Space(uiParams.marginL);
 
             var changed = false;
+
             Action<float> preset = (val) =>  {
                 var blabel = val.ToString(CultureInfo.InvariantCulture);
                 GUILayoutOption opt;
@@ -348,8 +414,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             GUILayout.BeginHorizontal();
             GUILayout.Label(label, uiParams.lStyle, optItemHeight);
 
-
-            var c = edit.val.Value;
+            var c = edit.val;
             var changed = false;
             float[] vals = {0, 0.5f, 1f, 1.5f, 2f};
             foreach (var val in vals) {

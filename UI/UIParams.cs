@@ -227,7 +227,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             optCategoryWidth = GUILayout.MaxWidth(fontSize * 12f * 0.47f);
 
             nodeSelectRect.Set(margin, unitHeight * 2, winRect.width - margin * 2, winRect.height - unitHeight * 4.5f);
-            colorRect.Set(margin, unitHeight * 2, winRect.width - margin * 3, winRect.height - unitHeight * 4);
+            colorRect.Set(margin, unitHeight * 2, winRect.width - margin, winRect.height - unitHeight * 4);
             labelRect.Set(0, 0, winRect.width - margin * 2, itemHeight * 1.2f);
             subRect.Set(0, itemHeight, winRect.width - margin * 2, itemHeight);
 

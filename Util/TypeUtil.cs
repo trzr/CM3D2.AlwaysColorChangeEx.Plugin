@@ -9,13 +9,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
         public const int WEAR_END   = (int)MPN_TYPE_RANGE.WEAR_END;
         public const int PARTSCOLOR_START = (int)MaidParts.PARTS_COLOR.NONE + 1;
         public const int PARTSCOLOR_END   = (int)MaidParts.PARTS_COLOR.MAX - 1;
+
         public static bool IsBody(MPN mpn) {
             var mpnNo = (int)mpn;
-            return  (mpnNo >= BODY_START && mpnNo <= BODY_END);
+            return  (BODY_START <= mpnNo && mpnNo <= BODY_END);
         }
+
         public static bool IsWear(MPN mpn) {
             var mpnNo = (int)mpn;
-            return  (mpnNo >= WEAR_START && mpnNo <= WEAR_END);
+            return  (WEAR_START <= mpnNo && mpnNo <= WEAR_END);
         }
     }
 }

@@ -12,6 +12,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
         public static bool IsSupport() {
             return copyBufferProperty != null;
         }
+
         public static string clipBoard {
             get {
                 return (string)copyBufferProperty.GetValue(null, null);

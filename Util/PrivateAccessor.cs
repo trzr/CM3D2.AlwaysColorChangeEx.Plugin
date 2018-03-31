@@ -24,6 +24,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             }
             return default (T);
         }
+
         public static T Get<T>(Type type, string fieldName) {
             try {
                 var field =  type.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);//  | BindingFlags.GetField | BindingFlags.SetField 
@@ -33,6 +34,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             }
             return default (T);
         }
+
         public static void Set<T>(object instance, string fieldName, T value) {
             try {
                 var field =  instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);//  | BindingFlags.GetField | BindingFlags.SetField 

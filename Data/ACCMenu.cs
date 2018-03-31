@@ -215,6 +215,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     // パラメータ数が変更される場合があれば…
                     // string[] writeParams = null;
 
+                    // 特定のパラメータを置き換え
                     switch (key) {
                         case "priority":
                             param[0] = menu.priority;
@@ -248,61 +249,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                         case "半脱ぎ":
                             param[0] = menu.resFiles[param[0]].EditFileName();
                             break;
-                        //case "color_set":
-                        //    break;
-//                            case "maskitem":
-//                                // slot=param[0]
-//                                // menu.maskItems.Add(slot0);
-//                                break;
-//
-//                            case "delitem":
-//                                // slot=param[0]
-//                                // menu.delItems.Add(slot0);
-//                                break;
-//
-//                            case "node消去":
-//                                // menu.delNodes.Add(param[0]);
-//                                break;
-//                            case "node表示":
-//                                // menu.showNodes.Add(param[0]);
-//                                break;
-//                            case "パーツnode消去":
-//                                // menu.delPartsNodes.Add(param);
-//                                break;
-//                            case "パーツnode表示":
-//                                // menu.showPartsNodes.Add(param);
-//                                break;
-                        //case "メニューフォルダ":
-                        //    menu.menuFolder = param[0];
-                        //    break;
-                        //case "category":
-                        //    menu.category = param[0];
-                        //    break;
-                        //case "catno":
-                        //    menu.catno = param[0];
-                        //    break;
-                        //case "属性追加":
-                        //    break;
-                        //case "アタッチポイントの設定":
-                        //    break;
-                        //case "tex":
-                        //case "テクスチャ変更":
-                        //    break;
-                        //case "テクスチャ合成":
-                        //    break;
-                        //case "unsetitem":
-                        //    break;
-                        //case "commenttype":
-                        //    break;
-                        //case "アイテムパラメータ":
-                        //    if (param.Length == 3) {
-                        //        param = ;
-                        //        //Array.Copy(param, 0, itemParam, 0, param.Length);
-                        //    }
-                        //    break;
-                        //case "アイテム":
-                        //    menu.items.Add(Path.GetFileNameWithoutExtension(param[0]));
-                        //    break;
                     }
                     // if (writeParams == null) writeParams = param;
                     dataWriter.Write((byte) (param.Length+1));
@@ -369,6 +315,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
 
             return LogUtil.Error("MENUファイルのヘッダーファイルが正しくありません。", header, ", ", filename);
         }
+
         private static void Load(BinaryReader reader, string filename, ACCMenu menu) {
             menu.version = reader.ReadInt32();
             menu.txtpath = reader.ReadString();
@@ -553,7 +500,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         public bool hasParamChanged      { get; set;} // materialのパラメータ変更
         public bool hasTexColorChanged   { get; set;} // texの色変更
         public bool hasTexFileChanged    { get; set;} // texファイルの変更
-        public Dictionary<PropKey, TargetTexture> texDic = new Dictionary<PropKey, TargetTexture>(5);
+        public readonly Dictionary<PropKey, TargetTexture> texDic = new Dictionary<PropKey, TargetTexture>(5);
 
         public ACCMaterial   editedMat { get; set;}
         public ACCMaterialEx srcMat    { get; set;}
@@ -620,7 +567,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                 
                 var tex = editedMat.material.GetTexture(texProp.propId);
                 var filter = ACCTexturesView.GetFilter(maid, slotName, editedMat.material, texProp.propId);
-                var colorChanged = (filter != null) && !filter.hasNotChanged();
+                var colorChanged = (filter != null) && !filter.HasNotChanged();
                 var fileChanged = false;
                 if (tex != null && srcMat != null) {
                     ACCTextureEx baseTex;

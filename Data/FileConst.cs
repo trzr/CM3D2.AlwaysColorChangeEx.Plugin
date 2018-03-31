@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
@@ -57,16 +56,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             {"_ShadowTex",      "_shadow"},
             {"_ShadowRateToon", "_rate"},
             {"_HiTex", "_s"},
+            {"_OutlineTex", "_line"},
+            {"_OutlineToonRamp", "_outoon"},
         };
 
         public static string GetTexSuffix(string propName) {
             string suffix;
-            return TexSuffix.TryGetValue(propName, out suffix) ? suffix : "";
+            return TexSuffix.TryGetValue(propName, out suffix) ? suffix : string.Empty;
         }
 
         public static string GetModelSuffix(string propName) {
             string suffix;
-            return modelSuffix.TryGetValue(propName, out suffix) ? suffix : "";
+            return modelSuffix.TryGetValue(propName, out suffix) ? suffix : string.Empty;
         }
 
         private static readonly Dictionary<string, string> modelSuffix = new Dictionary<string, string> {

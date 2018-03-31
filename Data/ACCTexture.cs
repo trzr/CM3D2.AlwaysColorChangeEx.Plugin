@@ -32,6 +32,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
 
             switch (propKey) {
             case PropKey._ToonRamp:
+            case PropKey._OutlineToonRamp:
                 toonType = RAMP;
                 break;
             case PropKey._ShadowRateToon:
@@ -44,6 +45,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             propKey = (PropKey)Enum.Parse(typeof(PropKey), propName);
             switch (propKey) {
             case PropKey._ToonRamp:
+            case PropKey._OutlineToonRamp:
                 toonType = RAMP;
                 break;
             case PropKey._ShadowRateToon:

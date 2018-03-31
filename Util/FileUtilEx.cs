@@ -45,6 +45,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
         public void WriteTexFile(string filepath, string txtPath, byte[] imageBytes) {
             UTIL.WriteTex(filepath, txtPath, imageBytes);
         }
+
         public void WritePmat(string outpath, string name, float priority, string shader) {
             UTIL.WritePmat(outpath, name, priority, shader);
         }
@@ -177,6 +178,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
                 throw new ACCException(msg.ToString());
             }
         }
+
         private List<ReplacedInfo> WriteMenuFile(BinaryReader reader, string header, string outfilepath, ResourceRef res) {
             using ( var writer = new BinaryWriter(File.OpenWrite(outfilepath)) ) {
                 try {
@@ -216,6 +218,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
                 throw new ACCException(msg.ToString());
             }
         }
+
         private bool WriteModelFile(BinaryReader reader, string header, string outfilepath, SlotMaterials slotMat) {
             using ( var writer = new BinaryWriter(File.OpenWrite(outfilepath)) ) {
                 return TransferModel(reader, header, writer, slotMat);
@@ -315,6 +318,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             }
             return true;
         }
+
         public void WriteMateFile(string infile, string outfilepath, TargetMaterial trgtMat) {
             bool onBuffer;
             using ( var reader = new BinaryReader(GetStream(infile, out onBuffer), Encoding.UTF8) ) {
@@ -339,6 +343,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
                 throw new ACCException(msg.ToString());
             }
         }
+
         public void WriteMateFile(BinaryReader reader, string header, string outfilepath, TargetMaterial trgtMat) {
 
             using ( var writer = new BinaryWriter(File.OpenWrite(outfilepath)) ) {
@@ -490,6 +495,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
         private void DiscardMateProp(BinaryReader reader, string type) {
             TransferMateProp(reader, null, type, null);
         }
+
         private void TransferMateProp(BinaryReader reader, BinaryWriter writer, string type, string propName, ref string texfile) {
             Write(writer, type, propName);
             switch (type) {
@@ -530,21 +536,26 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             if (writer == null) return;
             foreach (var d in data)  writer.Write(d);
         }
+
         private void Write(BinaryWriter writer, float data) {
             if (writer != null) writer.Write(data);
         }
+
         private void Write(BinaryWriter writer, byte data) {
             if (writer != null) writer.Write(data);
         }
+
         public void Write(BinaryWriter writer, Vector2 data) {
             if (writer == null) return;
             writer.Write(data.x);
             writer.Write(data.y);
         }
+
         private void Write(BinaryWriter writer, params float[] data) {
             if (writer == null) return;
             foreach (var f in data)  writer.Write(f);
         }
+
         public void Write(BinaryWriter writer, Color color) {
             if (writer == null) return;
             writer.Write(color.r);
@@ -559,9 +570,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
                 if (writer != null) writer.Write(data);
             }
         }
+
         private void TransferVec4(BinaryReader reader, BinaryWriter writer) {
             TransferVec(reader, writer, 4);
         }
+
         private void TransferString(BinaryReader reader, BinaryWriter writer, int count) {
             for(var i=0; i<count; i++) {
                 var data = reader.ReadString();

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using CM3D2.AlwaysColorChangeEx.Plugin;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using UnityEngine;
 
@@ -21,9 +20,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         public const int MATE_TEX    = 0x8;
         public const int MATE_ALL    = 0xf;
 
-
-        public MateHandler() { }
-        private static Settings settings = Settings.Instance;
+        private static readonly Settings settings = Settings.Instance;
         public string filepath;
         public int bufferSize = 8192;
         public string Read(string path=null) {
@@ -50,7 +47,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             buff.Append(reader.ReadString()).Append("\r\n\r\n"); // shader2
             
             while(true) {
-                string type = reader.ReadString();
+                var type = reader.ReadString();
                 //writer.Write(type);
                 if (type == "end") break;
 
@@ -59,23 +56,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                 buff.Append('\t').Append(propName).Append("\r\n");
                 switch (type) {
                 case "tex":
-                    string sub = reader.ReadString();
+                    var sub = reader.ReadString();
                     buff.Append('\t').Append(sub).Append("\r\n");
                     switch (sub) {
-                        case "tex2d":
-                            buff.Append('\t').Append(reader.ReadString()).Append("\r\n");
-                            buff.Append('\t').Append(reader.ReadString()).Append("\r\n");
-                            buff.Append('\t').Append(reader.ReadSingle())
-                                .Append(' ').Append(reader.ReadSingle())
-                                .Append(' ').Append(reader.ReadSingle())
-                                .Append(' ').Append(reader.ReadSingle()).Append("\r\n");
-                            break;
-                        case "null":
-                            break;
-                        case "texRT":
-                            buff.Append('\t').Append(reader.ReadString()).Append("\r\n");
-                            buff.Append('\t').Append(reader.ReadString()).Append("\r\n");
-                            break;
+                    case "tex2d":
+                        buff.Append('\t').Append(reader.ReadString()).Append("\r\n");
+                        buff.Append('\t').Append(reader.ReadString()).Append("\r\n");
+                        buff.Append('\t').Append(reader.ReadSingle())
+                            .Append(' ').Append(reader.ReadSingle())
+                            .Append(' ').Append(reader.ReadSingle())
+                            .Append(' ').Append(reader.ReadSingle()).Append("\r\n");
+                        break;
+                    case "null":
+                        break;
+                    case "texRT":
+                        buff.Append('\t').Append(reader.ReadString()).Append("\r\n");
+                        buff.Append('\t').Append(reader.ReadString()).Append("\r\n");
+                        break;
                     }
                     break;
      
@@ -142,29 +139,29 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     var sub = ReadLine(sr).Trim();
                     writer.Write(sub);
                     switch (sub) {
-                        case "tex2d":
-                            writer.Write(ReadLine(sr).Trim());
-                            writer.Write(ReadLine(sr).Trim());
-                            var vals = ReadLine(sr).Split(' ');
-                            if (vals.Length != 4) {
-                                throw new Exception("オフセット、スケール値が正しく（４値）指定されていません。propName=" + propName);                                
+                    case "tex2d":
+                        writer.Write(ReadLine(sr).Trim());
+                        writer.Write(ReadLine(sr).Trim());
+                        var vals = ReadLine(sr).Split(' ');
+                        if (vals.Length != 4) {
+                            throw new Exception("オフセット、スケール値が正しく（４値）指定されていません。propName=" + propName);                                
+                        }
+                        
+                        for (var i=0; i<4; i++) {
+                            float f;
+                            if ( float.TryParse(vals[i], out f) ) {
+                                writer.Write(f);
+                            } else {
+                                throw new Exception("オフセット、スケール値をfloatに変換できません。propName=" + propName);
                             }
-                            
-                            for (var i=0; i<4; i++) {
-                                float f;
-                                if ( float.TryParse(vals[i], out f) ) {
-                                    writer.Write(f);
-                                } else {
-                                    throw new Exception("オフセット、スケール値をfloatに変換できません。propName=" + propName);
-                                }
-                            }
-                            break;
-                        case "null":
-                            break;
-                        case "texRT":
-                            writer.Write(ReadLine(sr).Trim());
-                            writer.Write(ReadLine(sr).Trim());
-                            break;
+                        }
+                        break;
+                    case "null":
+                        break;
+                    case "texRT":
+                        writer.Write(ReadLine(sr).Trim());
+                        writer.Write(ReadLine(sr).Trim());
+                        break;
                     }
                     break;
                 case "col":
@@ -173,9 +170,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     if (colVals.Length != 4) {
                         throw new Exception("Color値の指定が正しく（４値）指定されていません。propName=" + propName);                                
                     }
-                    for (var i=0; i<4; i++) {
+                    foreach (var colVal in colVals) {
                         float f;
-                        if ( float.TryParse(colVals[i], out f) ) {
+                        if ( float.TryParse(colVal, out f) ) {
                             writer.Write(f);
                         } else {
                             throw new Exception("color値をfloatに変換できません。propName=" + propName);
@@ -204,7 +201,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             buff.Append("1000\r\n");
             buff.Append(target.name.ToLower()).Append("\r\n");
             buff.Append(target.name).Append("\r\n");
-            string shaderName = target.type.name;
+            var shaderName = target.type.name;
             buff.Append(shaderName).Append("\r\n");
             buff.Append(ShaderType.GetShader2(shaderName)).Append("\r\n\r\n");
             
@@ -301,7 +298,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                 // 
                 
                 // ヘッダ部分は読み捨て
-                for (int i = 0; i < 5; i++) sr.ReadLine(); 
+                for (var i = 0; i < 5; i++) sr.ReadLine(); 
                 
                 var line = sr.ReadLine();
                 var work = new List<string>();
@@ -309,7 +306,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     if (line.Length != 0 && line[0] != '\t') {
                         work.Clear();
                         // 次のタイプまで読み込み
-                        string type = line.Trim();
+                        var type = line.Trim();
                         while ((line = sr.ReadLine()) != null) {
                             if (line.Length == 0)
                                 continue;
@@ -335,7 +332,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                                         continue;
                                         
                                     } else if (work.Count < 5)  {
-                                        string tmp = string.Empty;
+                                        var tmp = string.Empty;
                                         if (work.Count >= 1) {
                                             tmp = "propName="+work[0];
                                         }
@@ -353,7 +350,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                                     var prevTex = mate.GetTexture(texKey.propId);
                                     if (prevTex != null && prevTex.name == texName) continue;
                                     
-                                    var fvals = parseVals(work[4], propName1, 4);
+                                    var fvals = ParseVals(work[4], propName1, 4);
                                     if (fvals == null) continue;
                                     
                                     if (!texName.ToLower().EndsWith(FileConst.EXT_TEXTURE, StringComparison.Ordinal)) {
@@ -385,7 +382,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                                         LogUtil.Log("シェーダに対応していないプロパティのためスキップします.propName=", propName2);
                                         continue;
                                     }
-                                    var colVals = parseVals(work[1], propName2, 4);
+                                    var colVals = ParseVals(work[1], propName2, 4);
                                     if (colVals == null)
                                         continue;
                                     
@@ -426,7 +423,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             return true;
         }
 
-        private float[] parseVals(string text, string propName = null, int count=4) {
+        private float[] ParseVals(string text, string propName = null, int count=4) {
             var vals = text.Split(' ');
             if (vals.Length < count) {
                 LogUtil.LogF("float値が正しく（{0}個）指定されていません。スキップします。propName={1}", count, propName);

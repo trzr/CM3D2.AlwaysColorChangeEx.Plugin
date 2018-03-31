@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// <summary>
@@ -105,6 +106,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         }
     }
 
+    public class ShaderPropEnum :ShaderPropFloat {
+        public string[] names;
+        public ShaderPropEnum(PropKey key, Type enumType, int min, int max) : base(key, ValType.Enum) {
+            names = Enum.GetNames(enumType);
+            range = new EditRange("F0", min, max);
+        }
+        public void SetValue(Material m, int enumVal) {
+            m.SetFloat(propId, enumVal);
+        }
+    }
+
     public class ShaderPropColor :ShaderProp {
         public ShaderPropColor(string name, PropKey key, int id, ColorType colType) : base(name, key, id, ValType.Color) {
             colorType = colType;
@@ -147,7 +159,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         private static readonly PresetOperation[] PRESET_PM = { minus10, minus1, plus1, plus10};
 
         private static readonly Settings settings = Settings.Instance;
-        private static Dictionary<string, ShaderProp> _customProps = new Dictionary<string, ShaderProp>();
         private static bool _initialized;
         public static void Initialize() {
             if (_initialized) return;
@@ -177,9 +188,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             Parallax         = new ShaderPropFloat(PropKey._Parallax, "F4",
                 new[]{0.005f, 0.08f, 0.001f, 0.1f}, PRESET_RATIO, 0.02f, 0.02f);
             Cutoff           = new ShaderPropFloat(PropKey._Cutoff, "F3",
-                new[]{0f, 1f, 0f, 1f}, PRESET_RATIO, 0f, 0f, 0.5f, 1f);
+                new[]{0f, 1f, 0f, 1f}, PRESET_RATIO, 0.5f, 0f, 0.5f, 1f);
+            Cutout           = new ShaderPropFloat(PropKey._Cutout, "F3",
+                new[]{0f, 1f, 0f, 1f}, PRESET_RATIO, 0.5f, 0f, 0.5f, 1f);
             EmissionLM       = new ShaderPropBool(PropKey._EmissionLM);
             UseMulticolTex   = new ShaderPropBool(PropKey._UseMulticolTex);
+            ZTest            = new ShaderPropEnum(PropKey._ZTest, typeof(CompareFunction), 0, 8);
+            ZTest2           = new ShaderPropBool(PropKey._ZTest2);
+            ZTest2Alpha      = new ShaderPropFloat(PropKey._ZTest2Alpha, "F3",
+                new[]{0f, 1f, 0f, 1f}, PRESET_RATIO, 0.8f, 0f, 0.8f, 1f);
 
             Strength         = new ShaderPropFloat(PropKey._Strength, "F2",
                 new[]{0f, 1f, 0f, 1f}, PRESET_RATIO, 0.2f, 0.2f);
@@ -215,6 +232,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         internal static ShaderPropFloat FloatValue3;
         internal static ShaderPropFloat Parallax;
         internal static ShaderPropFloat Cutoff;
+        internal static ShaderPropFloat Cutout;
+        internal static ShaderPropEnum ZTest;
+        internal static ShaderPropBool ZTest2;
+        internal static ShaderPropFloat ZTest2Alpha;
         internal static ShaderPropBool EmissionLM;
         internal static ShaderPropBool UseMulticolTex;
         internal static ShaderPropFloat Strength;
@@ -237,10 +258,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         internal static readonly ShaderPropColor Emission     = new ShaderPropColor(PropKey._Emission, ColorType.rgba);
 
         internal static readonly ShaderPropTex MainTex        = new ShaderPropTex(PropKey._MainTex, TexType.rgb);
-        internal static readonly ShaderPropTex MainTex_a      = new ShaderPropTex(PropKey._MainTex, TexType.rgba);
+        internal static readonly ShaderPropTex MainTexA       = new ShaderPropTex(PropKey._MainTex, TexType.rgba);
         internal static readonly ShaderPropTex ToonRamp       = new ShaderPropTex(PropKey._ToonRamp, TexType.rgb);
         internal static readonly ShaderPropTex ShadowTex      = new ShaderPropTex(PropKey._ShadowTex, TexType.rgb);
         internal static readonly ShaderPropTex ShadowRateToon = new ShaderPropTex(PropKey._ShadowRateToon, TexType.rgb);
+        internal static readonly ShaderPropTex OutlineTex     = new ShaderPropTex(PropKey._OutlineTex, TexType.rgb);
+        internal static readonly ShaderPropTex OutlineToonRamp = new ShaderPropTex(PropKey._OutlineToonRamp, TexType.rgb);
         internal static readonly ShaderPropTex HiTex          = new ShaderPropTex(PropKey._HiTex, TexType.rgb);
         internal static readonly ShaderPropTex RenderTex      = new ShaderPropTex(PropKey._RenderTex, TexType.nulltex);
         internal static readonly ShaderPropTex BumpMap        = new ShaderPropTex(PropKey._BumpMap, TexType.bump);
@@ -267,6 +290,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         Color,
         Float,
         Bool,
+        Enum,
     }
     public enum ColorType {
         rgba,
@@ -288,6 +312,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         _ToonRamp,
         _ShadowTex,
         _ShadowRateToon,
+        _OutlineTex,
+        _OutlineToonRamp,
         _HiTex,
         _RenderTex,
         _BumpMap,
@@ -322,6 +348,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         _FloatValue3,
         _Parallax,
         _Cutoff,
+        _Cutout,
         _EmissionLM,
         _UseMulticolTex,
         _Strength,
@@ -333,6 +360,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         _ColorMask,
         _EnvAlpha,
         _EnvAdd,
+        _ZTest,
+        _ZTest2,
+        _ZTest2Alpha,
 
         _SetManualRenderQueue,
 

@@ -14,15 +14,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             range = attr;
             Set( val1 );
         }
+
         public EditValue(float val1, string format, float min, float max) {
             range = new EditRange(format, min, max);
             Set( val1 );
         }
+
         public void Set(float val1) {
             val = val1;
             editVal = val.ToString(range.format);
             isSync = true;
         }
+
         public void SetWithCheck(float val1) {
             if (range.editMin > val1) val = range.editMin;
             else if (range.editMax < val1) val = range.editMax;
@@ -30,6 +33,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             editVal = val.ToString(range.format);
             isSync = true;
         }
+
         public void Set(string editVal1) {
             editVal = editVal1;
 
@@ -43,6 +47,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             }
         }
     }
+
     public class EditRange {
         static Settings settings = Settings.Instance;
         public static readonly EditRange renderQueue  = new EditRange("F0", 0, 5000f);
