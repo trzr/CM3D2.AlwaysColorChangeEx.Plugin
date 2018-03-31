@@ -27,7 +27,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
      PluginFilter("CM3D2OHVRx64"),
 #endif
      PluginName("CM3D2_ACCex"),
-     PluginVersion("0.2.10.1")]
+     PluginVersion("0.3.0.0")]
     class AlwaysColorChangeEx : PluginBase {
 
         public static volatile string PluginName;
