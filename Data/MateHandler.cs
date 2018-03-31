@@ -281,7 +281,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                 sr.ReadLine(); // version
                 var mate = target.material;
     
-                // TODO マテリアル名を変更か、あるいはマテリアル名に対応するRenderQueueを設定
+                // 改良案) マテリアル名を変更か、あるいはマテリアル名に対応するRenderQueueを設定
                 sr.ReadLine(); // name1
                 sr.ReadLine(); // name2
     
@@ -293,12 +293,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     }
                 }            
                 var shaderType = target.type;
-
-                // シェーダに対応していないプロパティはスルー
-                // 
-                
-                // ヘッダ部分は読み捨て
-                for (var i = 0; i < 5; i++) sr.ReadLine(); 
                 
                 var line = sr.ReadLine();
                 var work = new List<string>();
@@ -319,8 +313,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                                 break;
                             }
                         }
-                        if (work.Count == 0)
-                            continue;
+                        if (work.Count == 0) continue;
                         
                         switch (type) {
                             case "tex":
@@ -348,25 +341,30 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                                     }
                                     // tex名が同一の場合はは変更しない
                                     var prevTex = mate.GetTexture(texKey.propId);
-                                    if (prevTex != null && prevTex.name == texName) continue;
-                                    
-                                    var fvals = ParseVals(work[4], propName1, 4);
-                                    if (fvals == null) continue;
-                                    
-                                    if (!texName.ToLower().EndsWith(FileConst.EXT_TEXTURE, StringComparison.Ordinal)) {
-                                        texName += FileConst.EXT_TEXTURE;
+                                    if (prevTex == null || prevTex.name != texName) {
+
+                                        if (!texName.ToLower().EndsWith(FileConst.EXT_TEXTURE, StringComparison.Ordinal)) {
+                                            texName += FileConst.EXT_TEXTURE;
+                                        }
+
+                                        if (!outUtil.Exists(texName)) {
+                                            LogUtil.LogF("tex({0}) not found. (propName={1})", texName, propName1);
+                                            continue;
+                                        }
+
+                                        // テクスチャの適用
+                                        var tex2D = outUtil.LoadTexture(texName);
+                                        mate.SetTexture(texKey.propId, tex2D);
                                     }
-                                    
-                                    if (!outUtil.Exists(texName)) {
-                                        LogUtil.LogF("tex({0}) not found. (propName={1})", texName, propName1);
+                                    var fvals = ParseVals(work[4], propName1, 4);
+                                    if (fvals == null) {
+                                        LogUtil.DebugF("tex({0}) prop is null", texName);
                                         continue;
                                     }
-                                    // テクスチャの適用
-                                    var tex2D = outUtil.LoadTexture(texName);
-                                    mate.SetTexture(texKey.propId, tex2D);
-                                    mate.SetTextureOffset(propName1, new Vector2(fvals[0], fvals[1]));
-                                    mate.SetTextureScale(propName1, new Vector2(fvals[2], fvals[3]));
-                                    LogUtil.DebugF("tex({0}) loaded to {1}", texName, propName1);
+
+                                    mate.SetTextureOffset(texKey.propId, new Vector2(fvals[0], fvals[1]));
+                                    mate.SetTextureScale(texKey.propId, new Vector2(fvals[2], fvals[3]));
+                                    LogUtil.DebugF("tex({0}) loaded to {1}", texName, texKey.keyName);
                                 }
                                 break;
     
