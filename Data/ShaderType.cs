@@ -90,11 +90,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                 new ShaderType("CM3D2/Toony_Lighted", "トゥーン",                          texType1,  colTL,   propTL ),
                 new ShaderType("CM3D2/Toony_Lighted_Trans",　"トゥーン 透過",              texType1a, colTLa,  propTLC, true ),
                 new ShaderType("CM3D2/Toony_Lighted_Trans_NoZ",　"トゥーン 透過 NoZ",      texType1a, colTLa,  propTL,  true ),
+#if COM3D2
+                new ShaderType("CM3D2/Toony_Lighted_Trans_NoZTest",　"トゥーン 透過 NoZTest",      texType1a, colTLa,  propTLZ,  true ),
+#endif
                 new ShaderType("CM3D2/Toony_Lighted_Outline","トゥーン 輪郭線",            texType1,  colTLO,  propTLO ),
                 new ShaderType("CM3D2/Toony_Lighted_Outline_Trans","トゥーン 輪郭線 透過", texType1a, colTLOa, propTLO, true ),
+#if COM3D2
+                new ShaderType("CM3D2/Toony_Lighted_Outline_Tex","トゥーン 輪郭線 Tex",    texType1t, colTLO,  propTLO ),
+#endif
                 new ShaderType("CM3D2/Toony_Lighted_Hair","トゥーン 髪",                   texTypeH,  colTL,   propTLH ),
                 new ShaderType("CM3D2/Toony_Lighted_Hair_Outline","トゥーン 髪 輪郭線",    texTypeH,  colTLO,  propTLHO ),
-                new ShaderType("CM3D2/Lighted","非トゥーン",            texType0,  colL,     propL ),
+#if COM3D2
+                new ShaderType("CM3D2/Toony_Lighted_Hair_Outline_Tex","トゥーン 髪 輪郭線 Tex", texTypeHt,  colTLO,  propTLHO ),
+#endif
+                new ShaderType("CM3D2/Lighted","非トゥーン",                       texType0,  colL,     propL ),
+#if COM3D2
+                new ShaderType("CM3D2/Lighted_Cutout_AtC","非トゥーン Cutout",     texType0,  colL,     propLC ),
+#endif
                 new ShaderType("CM3D2/Lighted_Trans","透過",            texType0a, colLa,    propL, true ),
                 new ShaderType("Unlit/Texture","発光",                  texType0,  colEmpty, propEmpty ),
                 new ShaderType("Unlit/Transparent","発光 透過",         texType0a, colEmpty, propEmpty, true ), 
@@ -114,6 +126,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             foreach (var s in shaders) {
                 shader2Map[s.name] = s.name.Replace("/", "__");
             };
+            shader2Map["CM3D2/Toony_Lighted_Hair_Outline_Tex"] = "CM3D2__Toony_Lighted_Hair_Outline";
 
         }
 
