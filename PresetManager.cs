@@ -73,8 +73,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                         ti.texFile = tex2D.name;
                         var fp = _texModifier.GetFilter(maid, slotInfo.Id.ToString(), material.name, tex2D.name);
                         if (fp != null && !fp.HasNotChanged()) ti.filter = new TexFilter(fp);
-
+#if UNITY_5_6_OR_NEWER
                         var offset = material.GetTextureOffset(texProp.propId);
+#else
+                        var offset = material.GetTextureOffset(texProp.keyName);
+#endif
                         if (Math.Abs(offset.x) > ConstantValues.EPSILON_3) {
                             ti.offsetX = offset.x;
                         }
@@ -82,7 +85,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                             ti.offsetY = offset.y;
                         }
 
+#if UNITY_5_6_OR_NEWER
                         var scale = material.GetTextureScale(texProp.propId);
+#else
+                        var scale = material.GetTextureScale(texProp.keyName);
+#endif
                         if (Math.Abs(scale.x) > ConstantValues.EPSILON_3) {
                             ti.scaleX = scale.x;
                         }
@@ -354,7 +361,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             }
 
             SetProp = (maid, mpn, str, id) => {
-                LogUtil.Info("failed to apply preset(SetProp method) mpn=", mpn.name);
+                LogUtil.Log("failed to apply preset(SetProp method) mpn=", mpn);
             };
 
             LogUtil.Error("failed to load Maid#SetProp method. Preset-feature dose not work properly.");

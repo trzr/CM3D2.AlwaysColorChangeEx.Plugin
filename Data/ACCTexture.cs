@@ -61,8 +61,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
 
             editname = tex.name;
             if (tex is Texture2D) {
+#if UNITY_5_6_OR_NEWER
                texOffset = mate.GetTextureOffset(prop.propId);
                texScale  = mate.GetTextureScale(prop.propId);
+#else
+               texOffset = mate.GetTextureOffset(prop.keyName);
+               texScale  = mate.GetTextureScale(prop.keyName);
+#endif
             } else {
                 LogUtil.DebugF("propName({0}): texture type:{1}", propName, tex.GetType());
             }

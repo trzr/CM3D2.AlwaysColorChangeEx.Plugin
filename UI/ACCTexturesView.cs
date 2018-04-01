@@ -317,6 +317,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
                     GUILayout.BeginVertical();
                     try {
+#if UNITY_5_6_OR_NEWER
                         var offset = material.GetTextureOffset(editTex.prop.propId);
                         var tex = editTex;
                         if (DrawSliders("offset", ref offset, -1, 1, () => tex.original.texOffset)) {
@@ -327,6 +328,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                         if (DrawSliders("scale ", ref scale, 0.001f, 20f, () => tex.original.texScale, true)) {
                             material.SetTextureScale(editTex.prop.propId, scale);
                         }
+#else
+                        var offset = material.GetTextureOffset(editTex.prop.keyName);
+                        var tex = editTex;
+                        if (DrawSliders("offset", ref offset, -1, 1, () => tex.original.texOffset)) {
+                            material.SetTextureOffset(editTex.prop.keyName, offset);
+                        }
+
+                        var scale = material.GetTextureScale(editTex.prop.keyName);
+                        if (DrawSliders("scale ", ref scale, 0.001f, 20f, () => tex.original.texScale, true)) {
+                            material.SetTextureScale(editTex.prop.keyName, scale);
+                        }
+#endif
                     } finally {
                         GUILayout.EndVertical();
                     }

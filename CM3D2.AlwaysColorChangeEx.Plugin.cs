@@ -851,7 +851,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     var rendererer1 = holder.GetRenderer(slot);
                     if (rendererer1 != null) {
                         targetMaterials = rendererer1.materials;
+#if COM3D2
                         materialViews = InitMaterialView(rendererer1, menufile, (int)slot.SlotId);
+#else
+                        materialViews = InitMaterialView(rendererer1, menufile, slot.CategoryIdx);
+#endif
                     } else {
                         targetMaterials = EMPTY_ARRAY;
                     }
@@ -1500,6 +1504,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 if (bPresetApplyWear) {
                     presetMgr.ApplyPresetMaterial(targetMaid, preset);
                 }
+
                 if (bPresetApplyNode && preset.delNodes != null) {
                     // 表示ノードを反映 (プリセットで未定義のノードは変更されない）
                     foreach (var node in preset.delNodes) {
@@ -1507,6 +1512,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     }
                     holder.SetDelNodes(targetMaid, preset, false);
                 }
+
                 if (bPresetApplyMask) {
                     holder.SetMaskSlots(targetMaid, preset);
                 }

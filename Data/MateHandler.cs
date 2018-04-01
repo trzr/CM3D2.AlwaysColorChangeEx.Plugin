@@ -361,19 +361,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                                         LogUtil.DebugF("tex({0}) prop is null", texName);
                                         continue;
                                     }
-
+#if UNITY_5_6_OR_NEWER
                                     mate.SetTextureOffset(texKey.propId, new Vector2(fvals[0], fvals[1]));
                                     mate.SetTextureScale(texKey.propId, new Vector2(fvals[2], fvals[3]));
+#else
+                                    mate.SetTextureOffset(texKey.keyName, new Vector2(fvals[0], fvals[1]));
+                                    mate.SetTextureScale(texKey.keyName, new Vector2(fvals[2], fvals[3]));
+#endif
                                     LogUtil.DebugF("tex({0}) loaded to {1}", texName, texKey.keyName);
                                 }
                                 break;
-    
+
                             case "col":
                             case "vec":
                                 if ((apply & MATE_COLOR) > 0) {
                                     if (work.Count < 2)
                                         continue;
-        
+
                                     var propName2 = work[0];
                                     var texKey2 = shaderType.GetShaderProp(propName2);
                                     if (texKey2 == null) {
@@ -383,18 +387,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                                     var colVals = ParseVals(work[1], propName2, 4);
                                     if (colVals == null)
                                         continue;
-                                    
+
                                     var color = new Color(colVals[0], colVals[1], colVals[2], colVals[3]);
                                     mate.SetColor(texKey2.propId, color);
                                     LogUtil.DebugF("color set ({0})", propName2);
                                 }
                                 break;
-                                
+
                             case "f":
                                 if ((apply & MATE_FLOAT) > 0) {
                                     if (work.Count < 2)
                                         continue;
-        
+
                                     var propName3 = work[0];
                                     var texKey3 = shaderType.GetShaderProp(propName3);
                                     if (texKey3 == null) {
