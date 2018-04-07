@@ -194,9 +194,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                             if (CM3.dicDelItem[mpn.name].Equals(mpn.filename, StringComparison.OrdinalIgnoreCase)) {
                                 continue;
                             }
-                        // 空でなくとも同じアイテムであればスキップ
-                        } else if (mpn.filename.Equals(prop.strFileName, StringComparison.OrdinalIgnoreCase)) {
-                            continue;
                         }
                         // LogUtil.Debug("apply prop(del): ", mpn.filename, ", old:", prop.strFileName);
                         if (SetProp != null) SetProp(maid, mpn.name, mpn.filename, 0);
