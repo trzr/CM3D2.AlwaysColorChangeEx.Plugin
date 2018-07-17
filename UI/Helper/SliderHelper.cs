@@ -21,6 +21,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
         private float baseWidth;
         private GUILayoutOption bWidthOpt;
         private GUILayoutOption bWidthWOpt;
+        private GUILayoutOption bWidthTOpt;
         private GUILayoutOption optItemHeight;
         private GUILayoutOption optInputWidth;
 
@@ -45,9 +46,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
 
             textColor = uiparams.textStyleSC.normal.textColor;
 
-            baseWidth = (uiparams.textureRect.width-20)*0.06f;
-            bWidthOpt  = GUILayout.Width(baseWidth);
-            bWidthWOpt = GUILayout.Width(baseWidth*2);
+            baseWidth = 22f;
+            bWidthOpt  = GUILayout.Width(baseWidth*0.8f);
+            bWidthWOpt = GUILayout.Width(baseWidth*1.2f);
+            bWidthTOpt = GUILayout.Width(baseWidth*1.6f);
 
             bStyleSS.normal.textColor = uiparams.bStyleSC.normal.textColor;
             bStyleSS.alignment = TextAnchor.MiddleCenter;
@@ -74,10 +76,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
 
             Action<float> preset = (val) => {
                 var blabel = val.ToString(CultureInfo.InvariantCulture);
-                GUILayoutOption opt;
-                if (blabel.Length <= 1) opt = bWidthOpt;
-                else if (blabel.Length <= 3) opt = bWidthWOpt;
-                else opt = GUILayout.Width(baseWidth * 0.5f * (blabel.Length + 1));
+                GUILayoutOption opt = getWidthOpt(blabel.Length);
                 if (!GUILayout.Button(blabel, bStyleSS, opt)) return;
 
                 edit.Set(val);
@@ -96,7 +95,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
 
             if (presetOprs != null) {
                 foreach (var pset in presetOprs) {
-                    var widthOpt = (pset.label.Length == 1) ? bWidthOpt : bWidthWOpt;
+                    var widthOpt = getWidthOpt(pset.label.Length);
                     if (!GUILayout.Button(pset.label, bStyleSS, widthOpt)) continue;
 
                     edit.SetWithCheck(pset.func(edit.val));
@@ -110,6 +109,21 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
                 func(edit.val);
             }
         }
+
+        private GUILayoutOption getWidthOpt(int length) {
+            switch (length) {
+            case 0:
+            case 1:
+                return bWidthOpt;
+            case 2:
+                return bWidthWOpt;
+            case 3:
+                return bWidthTOpt;
+            default:
+                return GUILayout.Width(baseWidth * 0.45f * (length + 1));
+            }
+        }
+
         private static readonly float DELTA = 0.1f;
         public static readonly float[] DEFAULT_PRESET = {0, 0.5f, 1f};
         public static readonly float[] DEFAULT_PRESET2 = {0, 0.5f, 1f, 1.5f, 2f};
@@ -131,7 +145,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
 
                 foreach (var val in vals) {
                     var blabel = val.ToString(CultureInfo.InvariantCulture);
-                    if (!GUILayout.Button(blabel, bStyleSS, (blabel.Length > 1) ? bWidthWOpt : bWidthOpt)) continue;
+                    if (!GUILayout.Button(blabel, bStyleSS, getWidthOpt(blabel.Length))) continue;
                     c.r = c.g = c.b = val;
                     changed = true;
                 }
