@@ -134,16 +134,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
             tStyleL.normal.textColor = textColor;
             tStyleL.alignment = txtAlignment;
-            //        var tex2D = new Texture2D(2, 2);
-            //        tex2D.SetPixels(new Color[]{Color.white, Color.white});
-            //        tStyleL.onHover.background = tStyleL.hover.background = tex2D;
-            //        var texGray = new Texture2D(2, 2);
-            //        texGray.SetPixels(new Color[]{Color.gray, Color.white});
-            //        tStyleL.focused.background = tStyleL.onFocused.background = texGray;
-            //        var tex2 = new Texture2D(2, 2);
-            //        tex2.SetPixels(new Color[]{Color.gray, Color.grey});
-            //        tStyleL.active.background = tStyleL.onActive.background = tex2;
-            //tStyle.stretchWidth = true;
 
             textStyle.normal.textColor = textColor;
             textStyleSC.normal.textColor = textColor;

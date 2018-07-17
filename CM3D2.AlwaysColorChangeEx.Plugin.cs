@@ -143,11 +143,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private CustomBoneRenderer boneRenderer;
         private int selectedSlotID;
         private bool boneVisible;
+        private bool skipEmptySlot = true;
         private readonly string[] slotNames;
         private SliderHelper sliderHelper;
         private CheckboxHelper cbHelper;
         private EditColor editColor = new EditColor(Color.white, ColorType.rgba, EditColor.RANGE, EditColor.RANGE);
         private bool editExpand;
+        private readonly GUIColorStore colorStore = new GUIColorStore();
 
         #endregion
 
@@ -1631,14 +1633,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 GUILayout.BeginHorizontal();
                 try {
                     GUI.enabled = selectedSlotID != -1 && boneRenderer.IsEnabled();
-                    Color? bkBgColor = null;
-                    Color? bkCntColor = null;
                     string buttonText;
                     if (boneVisible) {
-                        bkBgColor = GUI.backgroundColor;
-                        bkCntColor = GUI.contentColor;
-                        GUI.backgroundColor = Color.green;
-                        GUI.contentColor    = Color.white;
+                        colorStore.SetColor(Color.white, Color.green);
                         buttonText = "ボーン表示";
                     } else {
                         buttonText = "ボーン非表示";
@@ -1652,12 +1649,19 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                             boneRenderer.TargetId = maid.GetInstanceID();
                         }
                     }
-                    if (bkBgColor.HasValue) {
-                        GUI.backgroundColor = bkBgColor.Value;
-                        GUI.contentColor = bkCntColor.Value;
-                    }
-                } finally {
+                    colorStore.Restore();
                     GUI.enabled = true;
+                    if (skipEmptySlot) {
+                        colorStore.SetColor(Color.white, Color.green);
+                        buttonText = "空スロット省略";
+                    } else {
+                        buttonText = "全スロット表示";
+                    }
+                    if (GUILayout.Button(buttonText, uiParams.bStyle, uiParams.optBtnHeight, toggleWidth)) {
+                        skipEmptySlot = !skipEmptySlot;
+                    }
+                    colorStore.Restore();
+                } finally {
                     GUILayout.EndHorizontal();
                 }
                 scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition,
@@ -1665,10 +1669,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                                                                GUILayout.Height(height));
                 try {
                     for (var i = 0; i < slotNames.Length; i++) {
+                        var slotItem = maid.body0.goSlot[i];
+                        var slotEnabled = (slotItem.obj != null && slotItem.morph != null);
+                        if (skipEmptySlot && !slotEnabled) continue;
+
                         GUILayout.BeginHorizontal();
                         try {
-                            var slotItem = maid.body0.goSlot[i];
-                            var slotEnabled = (slotItem.obj != null && slotItem.morph != null);
                             GUI.enabled = slotEnabled;
                             var selected = (i == selectedSlotID);
                             var toggleOn = GUILayout.Toggle(selected, slotNames[i], uiParams.tStyleS, toggleWidth);

@@ -42,6 +42,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             if (shader2Map == null) Init();
 
             string ret;
+            // ReSharper disable once PossibleNullReferenceException
             return shader2Map.TryGetValue(shader1, out ret) ? ret : string.Empty;
         }
         
