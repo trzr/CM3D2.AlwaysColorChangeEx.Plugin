@@ -11,6 +11,7 @@ using UnityInjector;
 using UnityInjector.Attributes;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using CM3D2.AlwaysColorChangeEx.Plugin.Render;
 
@@ -142,7 +143,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private CustomBoneRenderer boneRenderer;
         private int selectedSlotID;
         private bool boneVisible;
-        private string[] slotNames;
+        private readonly string[] slotNames;
+        private SliderHelper sliderHelper;
+        private CheckboxHelper cbHelper;
+        private EditColor editColor = new EditColor(Color.white, ColorType.rgba, EditColor.RANGE, EditColor.RANGE);
+        private bool editExpand;
+
         #endregion
 
         public AlwaysColorChangeEx() {
@@ -183,6 +189,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             //var go = new GameObject("BoneRenderer");
             //boneRenderer = go.AddComponent<CustomBoneRenderer>();
             boneRenderer = new CustomBoneRenderer();
+            sliderHelper = new SliderHelper(uiParams);
+            cbHelper = new CheckboxHelper(uiParams);
 #if UNITY_5_5_OR_NEWER
             SceneManager.sceneLoaded += SceneLoaded;
 #endif
@@ -800,7 +808,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             var idx = 0;
             var ret = new List<ACCMaterialsView>(materials.Length);
             foreach (var material in materials) {
-                var view = new ACCMaterialsView(r, material, slotIdx, idx++) {
+                var view = new ACCMaterialsView(r, material, slotIdx, idx++, sliderHelper, cbHelper) {
                     tipsCall = SetTips
                 };
                 ret.Add(view);
@@ -821,71 +829,71 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             GUILayout.Label(title, uiParams.lStyleB);
             // TODO 選択アイテム名、説明等を表示 可能であればアイコンも 
 
-            scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition, 
-                                                           GUILayout.Width(uiParams.colorRect.width),
-                                                           GUILayout.Height(uiParams.colorRect.height));
-            try {
-                if (holder.CurrentMaid.IsBusy) {
-                    GUILayout.Space(100);
-                    GUILayout.Label("変更中...", uiParams.lStyleB);
+            if (holder.CurrentMaid.IsBusy) {
+                GUILayout.Space(100);
+                GUILayout.Label("変更中...", uiParams.lStyleB);
+                return;
+            }
+            // **_del_.menuを選択の状態が続いたらメインメニューへ
+            // 衣装セットなどは内部的に一旦_del_.menuが選択されるため、一時的に選択された状態をスルー
+            var menuId = holder.GetCurrentMenuFileID();
+            if (menuId != 0) {
+                if (slotDropped) {
+                    if (!changeCounter.Next()) return;
+                    SetMenu(MenuType.Main);
+                    LogUtil.Debug("select slot item dropped. return to main menu.", menuId);
+                    slotDropped = false;
                     return;
                 }
+            }
 
-                // **_del_.menuを選択の状態が続いたらメインメニューへ
-                // 衣装セットなどは内部的に一旦_del_.menuが選択されるため、一時的に選択された状態をスルー
-                var menuId = holder.GetCurrentMenuFileID();
-                if (menuId != 0) {
-                    if (slotDropped) {
-                        if (!changeCounter.Next()) return;
-                        SetMenu(MenuType.Main);
-                        LogUtil.Debug("select slot item dropped. return to main menu.", menuId);
-                        slotDropped = false;
-                        return;
-                    }
-                }
+            // ターゲットのmenuファイルが変更された場合にビューを更新
+            if (targetMenuId != menuId) {
+                title = null;
+                // .modファイルは未対応
+                var menufile = holder.GetCurrentMenuFile();
 
-                // ターゲットのmenuファイルが変更された場合にビューを更新
-                if (targetMenuId != menuId) {
-                    title = null;
-                    // .modファイルは未対応
-                    var menufile = holder.GetCurrentMenuFile();
+                LogUtil.Debug("menufile changed.", targetMenuId, "=>", menuId, " : ", menufile);
 
-                    LogUtil.Debug("menufile changed.", targetMenuId, "=>", menuId, " : ", menufile);
+                isSavable = (menufile != null)
+                    && !(menufile.ToLower().EndsWith(FileConst.EXT_MOD, StringComparison.Ordinal));
 
-                    isSavable = (menufile != null)
-                        && !(menufile.ToLower().EndsWith(FileConst.EXT_MOD, StringComparison.Ordinal));
-
-                    targetMenuId = menuId;
-                    var rendererer1 = holder.GetRenderer(slot);
-                    if (rendererer1 != null) {
-                        targetMaterials = rendererer1.materials;
+                targetMenuId = menuId;
+                var rendererer1 = holder.GetRenderer(slot);
+                if (rendererer1 != null) {
+                    targetMaterials = rendererer1.materials;
 #if COM3D2
-                        materialViews = InitMaterialView(rendererer1, menufile, (int)slot.SlotId);
+                    materialViews = InitMaterialView(rendererer1, menufile, (int)slot.SlotId);
 #else
-                        materialViews = InitMaterialView(rendererer1, menufile, slot.CategoryIdx);
+                    materialViews = InitMaterialView(rendererer1, menufile, slot.CategoryIdx);
 #endif
-                    } else {
-                        targetMaterials = EMPTY_ARRAY;
-                    }
-
-                    // slotにデータが装着されていないかを判定
-                    slotDropped = (slot.obj == null);
-                    changeCounter.Reset();
-
-                    if (isSavable) {
-                        // 保存未対応スロットを判定(身体は不可)
-                        isSavable &= (holder.CurrentSlot.Id != TBody.SlotID.body);
-                    }
+                } else {
+                    targetMaterials = EMPTY_ARRAY;
                 }
 
-                if ( GUILayout.Button("テクスチャ変更", uiParams.bStyle) ) {
-                    texViews = InitTexView(targetMaterials);
+                // slotにデータが装着されていないかを判定
+                slotDropped = (slot.obj == null);
+                changeCounter.Reset();
 
-                    SetMenu(MenuType.Texture);
-                    return;
+                if (isSavable) {
+                    // 保存未対応スロットを判定(身体は不可)
+                    isSavable &= (holder.CurrentSlot.Id != TBody.SlotID.body);
                 }
+            }
 
-                if (targetMaterials.Length <= 0) return;
+            if ( GUILayout.Button("テクスチャ変更", uiParams.bStyle) ) {
+                texViews = InitTexView(targetMaterials);
+
+                SetMenu(MenuType.Texture);
+                return;
+            }
+
+            if (targetMaterials.Length <= 0) return;
+
+            scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition,
+                GUILayout.Width(uiParams.colorRect.width),
+                GUILayout.Height(uiParams.colorRect.height));
+            try {
                 var reload = refreshCounter.Next();
                 if (reload) ClipBoardHandler.Instance.Reload();
 
@@ -1592,12 +1600,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             try {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("ボーン表示用スロット 選択", uiParams.lStyleB, titleWidth, titleHeight);
-                //GUILayout.Space(uiParams.margin);
                 GUILayout.EndHorizontal();
 
-                if (holder.CurrentMaid == null) return;
                 var maid = holder.CurrentMaid;
-                if (holder.CurrentMaid.IsBusy) {
+                if (maid == null) return;
+                if (maid.IsBusy) {
                     GUILayout.Space(100);
                     GUILayout.Label("変更中...", uiParams.lStyleB);
                     GUILayout.Space(uiParams.colorRect.height - 105);
@@ -1609,25 +1616,21 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                         boneRenderer.Clear();
                         boneVisible = false;
                     }
-                } else {
-                    boneVisible = false;
+                }
+                if (sliderHelper.setColorSlider("  色設定", ref editColor, editColor.type, SliderHelper.DEFAULT_PRESET, ref editExpand)) {
+                    boneRenderer.Color = editColor.val;
                 }
 
-                if ((int)TBody.SlotID.end - 1 > holder.CurrentMaid.body0.goSlot.Count) return;
+                if ((int)TBody.SlotID.end - 1 > maid.body0.goSlot.Count) return;
 
                 var width = uiParams.colorRect.width - 30;
-                var height = uiParams.winRect.height - uiParams.itemHeight * 2.6f - uiParams.titleBarRect.height;
+                var offset = editExpand ? uiParams.unitHeight * 5f : uiParams.itemHeight-uiParams.margin*3f;
+                var height = uiParams.winRect.height - uiParams.itemHeight * 3f - offset - uiParams.titleBarRect.height;
                 var toggleWidth = GUILayout.Width(width * 0.4f);
                 var otherWidth = GUILayout.Width(width * 0.6f);
                 GUILayout.BeginHorizontal();
                 try {
-                    TBodySkin slot = null;
-                    var selected = selectedSlotID != -1;
-                    if (selected) {
-                        slot = holder.CurrentMaid.body0.goSlot[selectedSlotID];
-                        selected = (slot.obj != null && slot.morph != null);
-                    }
-                    GUI.enabled = selected;
+                    GUI.enabled = selectedSlotID != -1 && boneRenderer.IsEnabled();
                     Color? bkBgColor = null;
                     Color? bkCntColor = null;
                     string buttonText;
@@ -1643,8 +1646,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     if (GUILayout.Button(buttonText, uiParams.bStyle, uiParams.optBtnHeight, toggleWidth)) {
                         boneVisible = !boneVisible;
                         boneRenderer.SetVisible(boneVisible);
+                        var slot = maid.body0.goSlot[selectedSlotID];
                         if (boneVisible && !boneRenderer.IsEnabled() && slot != null && slot.obj != null) {
-                            boneRenderer.Setup(slot.obj.transform);
+                            boneRenderer.Setup(slot.obj, slot.RID);
                             boneRenderer.TargetId = maid.GetInstanceID();
                         }
                     }
@@ -1667,11 +1671,27 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                             var slotEnabled = (slotItem.obj != null && slotItem.morph != null);
                             GUI.enabled = slotEnabled;
                             var selected = (i == selectedSlotID);
-                            var ret = GUILayout.Toggle(selected, slotNames[i], uiParams.tStyleS, toggleWidth);
-                            if (ret && !selected) {
-                                selectedSlotID = i;
-                                if (slotItem.obj != null) boneRenderer.Setup(slotItem.obj.transform);
-                                boneRenderer.TargetId = maid.GetInstanceID();
+                            var toggleOn = GUILayout.Toggle(selected, slotNames[i], uiParams.tStyleS, toggleWidth);
+                            if (toggleOn) {
+                                if (selected) {
+                                    if (slotItem.obj != null) {
+                                        // 既に選択済の場合、アイテム変更チェック
+                                        if (boneRenderer.ItemID != slotItem.RID) {
+                                            boneRenderer.Setup(slotItem.obj, slotItem.RID);
+                                            boneRenderer.SetVisible(boneVisible);
+                                            boneRenderer.TargetId = maid.GetInstanceID();
+                                        }
+                                    } else {
+                                        boneVisible = false;
+                                    }
+                                } else {
+                                    selectedSlotID = i;
+                                    if (slotItem.obj != null) {
+                                        boneRenderer.Setup(slotItem.obj, slotItem.RID);
+                                        boneRenderer.SetVisible(boneVisible);
+                                        boneRenderer.TargetId = maid.GetInstanceID();
+                                    }
+                                }
                             }
                             GUI.enabled = true;
 

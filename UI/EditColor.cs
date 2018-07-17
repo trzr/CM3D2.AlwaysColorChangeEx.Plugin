@@ -7,19 +7,30 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
     /// Description of EditColor.
     /// </summary>
     public class EditColor {
-        internal static readonly EditRange range  = new EditRange("F3", 0f, 2f);
-        internal static readonly EditRange range_a = new EditRange("F3", 0f, 1f);
+        internal static readonly EditRange RANGE_2  = new EditRange("F3", 0f, 2f);
+        internal static readonly EditRange RANGE = new EditRange("F3", 0f, 1f);
         private static readonly string[] empty = new string[0];
 
+        private readonly EditRange range;
+        private readonly EditRange rangeA;
         public bool hasAlpha;
         public Color val;
         public readonly ColorType type;
 
         public bool[] isSyncs;
         public string[] editVals;
-        
+
+        public EditColor(Color val1, ColorType type, EditRange range, EditRange range_a) {
+            this.type = type;
+            this.range = range;
+            rangeA = range_a;
+            Set( val1 );
+        }
+
         public EditColor(Color val1, ColorType type = ColorType.rgb) {
             this.type = type;
+            range = RANGE_2;
+            rangeA = RANGE;
             Set( val1 );
         }
 
@@ -35,10 +46,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                         c0.r.ToString(range.format),
                         c0.g.ToString(range.format),
                         c0.b.ToString(range.format),
-                        c0.a.ToString(range_a.format)};
+                        c0.a.ToString(rangeA.format)};
                 case ColorType.a:
                     return new[] {
-                        c0.a.ToString(range_a.format)};
+                        c0.a.ToString(rangeA.format)};
             }
             return empty;
         }
@@ -81,10 +92,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 case ColorType.rgb:
                     return range;
                 case ColorType.rgba:
-                    return (idx == 3)? range_a : range;
+                    return (idx == 3)? rangeA : range;
                 case ColorType.a:
                 default:
-                    return range_a;
+                    return rangeA;
             }
         }
 

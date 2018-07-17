@@ -17,6 +17,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
 
         public ACCMaterial Original {get; private set;}
         public Renderer renderer;
+        public int matIdx;
         public Material material;
         public string name;
         public ShaderType type;
@@ -50,9 +51,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         }
 
         
-        public ACCMaterial(Material m, Renderer r = null) {
+        public ACCMaterial(Material m, Renderer r = null, int idx=-1) {
             material = m;
             renderer = r;
+            matIdx = idx;
             name = m.name;
             type = ShaderType.Resolve(m.shader.name);
             if (type == ShaderType.UNKNOWN) {
@@ -96,7 +98,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
 
         public void ChangeShader(string shaderName, int shaderIdx=-1) {
             var shader = Shader.Find(shaderName);
-            if (shader == null) return;
+            if (shader == null) {
+                LogUtil.Debug("Shader not found. load resource :", shaderName);
+                shader = Resources.Load<Shader>("Shaders/" + shaderName);
+                if (shader == null) return;
+            };
 
             var rq = material.renderQueue;
             material.shader = shader;
@@ -106,28 +112,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
 
             Update(type1);
             LogUtil.Debug("selected shader updated: ", shaderName);
-
-            //} else {
-            //    // var script = CustomShaderHolder.ShaderScripts[shaderIdx];
-            //    // var matType = CustomShaderHolder.customMat[shaderIdx];
-            //    // material = new Material(script);
-            //    // // http://forum.unity3d.com/threads/setting-renderer-materials-by-index-doesnt-work.59150/
-            //    // // 一見無駄な処理だが、materialsに直接代入しなければ反映されない（Unity）
-            //    // var mats = edited.renderer.materials;
-            //    // mats[matIdx] = material;
-            //    // renderer.materials = mats;
-            //    //
-            //    // Update(matType);
-            //    
-            //    Shader selected;
-            //    if (CustomShaderHolder.customShader.TryGetValue(shaderIdx, out selected)) {
-            //        material.shader = selected;
-            //        var matType = CustomShaderHolder.customMat[shaderIdx];
-            //        Update(matType);
-            //        LogUtil.Debug("shader udated.", shaderName);
-            //    } else {
-            //        LogUtil.Debug("shader not found.", shaderName);
-            //    }
         }
 
         public void Update(ShaderType sdrType) {
@@ -178,48 +162,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             type = sdrType;
         }
 
-//        public void ReflectTo(Material m) {
-//            m.SetFloat("_SetManualRenderQueue", renderQueue.val);
-//            m.renderQueue = (int)renderQueue.val;
-//
-//            if (type1.hasColor) {
-//                m.SetColor(PROP_COLOR, color.val.Value);
-//            }
-//            if (type1.isLighted) {
-//                m.SetColor(PROP_SHADOWC, shadowColor.val.Value);
-//                m.SetFloat("_Shininess", shininess.val);
-//            }
-//            if (type1.isOutlined) {
-//                m.SetColor(PROP_OUTLINEC, outlineColor.val.Value);
-//                m.SetFloat("_OutlineWidth", outlineWidth.val);
-//            }
-//            if (type1.isToony) {
-//                m.SetColor(PROP_RIMC, rimColor.val.Value);
-//                m.SetFloat("_RimPower", rimPower.val);
-//                m.SetFloat("_RimShift", rimShift.val);
-//            }
-//            if (type1.isHair) {
-//                m.SetFloat("_HiRate", hiRate.val);
-//                m.SetFloat("_HiPow", hiPow.val);
-//            }
-//            if (type1.isHair) {
-//                m.SetFloat("_HiRate", hiRate.val);
-//                m.SetFloat("_HiPow", hiPow.val);
-//            }
-//            if (type1.hasFloat1) {
-//                m.SetFloat("_FloatValue1", floatVal1.val);
-//            }
-//            if (type1.hasFloat2) {
-//                m.SetFloat("_FloatValue2", floatVal2.val);
-//            }
-//            if (type1.hasFloat3) {
-//                m.SetFloat("_FloatValue3", floatVal3.val);
-//            }
-//            if (type1.hasCutoff) {
-//                m.SetFloat("_Cutoff", cutoff.val);
-//            }
-//        }
-
         public bool HasChanged(ACCMaterial mate) {
             // 同一シェーダを想定
             return editColors.Where((t, i) => t.val != mate.editColors[i].val).Any()
@@ -259,44 +201,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                 LogUtil.Debug("unsupported propName found:", propName, e);
             }
         }
-//        public bool hasChanged(ACCMaterial mate) {
-//            // 同一シェーダを想定
-//            if (type.hasColor) {
-//                if (color != mate.color) return true;
-//            }
-//            if (type.isLighted) {
-//                if (shadowColor != mate.shadowColor) return true;
-//                if (!NumberUtil.Equals(shininess.val, mate.shininess.val)) return true;
-//            }
-//            if (type.isOutlined) {
-//                if (outlineColor != mate.outlineColor) return true;
-//                if (!NumberUtil.Equals(outlineWidth.val, mate.outlineWidth.val)) return true;
-//            }
-//            if (type.isToony) {
-//                if (rimColor != mate.rimColor) return true;
-//                if (!NumberUtil.Equals(rimPower.val, mate.rimPower.val) || !NumberUtil.Equals(rimShift.val, mate.rimShift.val)) return true;
-//            }
-//            if (type.isHair) {
-//                if (!NumberUtil.Equals(hiRate.val, mate.hiRate.val) || !NumberUtil.Equals(hiPow.val, mate.hiPow.val)) return true;
-//            }
-//            if (type.hasFloat1) {
-//                if (!NumberUtil.Equals(floatVal1.val, mate.floatVal1.val)) return true;
-//            }
-//            if (type.hasFloat2) {
-//                if (!NumberUtil.Equals(floatVal2.val, mate.floatVal2.val)) return true;
-//            }
-//            if (type.hasFloat3) {
-//                if (!NumberUtil.Equals(floatVal3.val, mate.floatVal3.val)) return true;
-//            }
-//            if (type.hasCutoff) {
-//                if (!NumberUtil.Equals(cutoff.val, mate.cutoff.val)) return true;
-//            }
-//            return false;
-//        }
-//        public bool ShaderChanged() {
-//            return original != null && (shader != original.shader);
-//        }
     }
+
     /// <summary>
     /// エクスポート機能用の機能を拡張したデータクラス
     /// </summary>

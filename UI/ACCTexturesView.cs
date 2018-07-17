@@ -166,15 +166,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             return -1;
         }
 
-        public static List<ACCTexture> Load(Material mate, ShaderType type) {
-            
-            if (type == null) {
-                type = ShaderType.Resolve(mate.shader.name);
+        public static List<ACCTexture> Load(Material mate, ShaderType type1) {
+            if (type1 == null) {
+                type1 = ShaderType.Resolve(mate.shader.name);
             }
 
-            var ret = new List<ACCTexture>(type.texProps.Length);
+            var ret = new List<ACCTexture>(type1.texProps.Length);
             ret.AddRange(
-                type.texProps.Select(texProp => ACCTexture.Create(mate, texProp, type))
+                type1.texProps.Select(texProp => ACCTexture.Create(mate, texProp, type1))
                              .Where(tex => tex != null) );
             return ret;
         }
@@ -188,7 +187,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         public bool expand;
         private readonly Dictionary<string, ComboBoxLO> combos = new Dictionary<string, ComboBoxLO>(2);
         Material material;
-        //MaterialType matType;
 
         public ACCTexturesView(Material m, int matNo) {
             material = m;
@@ -461,6 +459,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 } else {
                     texName = filename.Substring(0, filename.Length - 4);
                 }
+                LogUtil.Debug("ChangeTex:", filename, ", propName:", propName);
                 holder.CurrentMaid.body0.ChangeTex(holder.CurrentSlot.Name, matNo1, propName, filename, null, MaidParts.PARTS_COLOR.NONE);
 
                 // ChangeTexは、Materialからロードした時と違い、nameにファイル名が設定されてしまうため、
@@ -476,12 +475,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 if (mat == null) return null;
 
                 var img = UTY.LoadImage(Path.Combine(dir, filename));
-                var tex2D = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+                var tex2D = new Texture2D(1, 1, TextureFormat.ARGB32, false);
                 tex2D.LoadImage(img);
                 slot.listDEL.Add(tex2D);
                 // tex以外は拡張子を付与したままとする
                 tex2D.name = filename;   //Path.GetFileNameWithoutExtension(filename);
 
+                LogUtil.Debug("SetTexture:", filename, ", propName:", propName, ", (", tex2D.width, ",", tex2D.height, ")");
                 mat.SetTexture(propName, tex2D);
                 changedTex = tex2D;
             }
