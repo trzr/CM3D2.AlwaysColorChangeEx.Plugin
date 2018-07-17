@@ -270,6 +270,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 plugin.StartCoroutine(DelayFrameRecall(applyDeleFrame, () => !ApplyPresetProp(targetMaid,currentPreset)) );
             }
             if (ACCTexturesView.fileBrowser != null) {
+                if (Input.GetKeyDown(settings.prevKey)) {
+                    ACCTexturesView.fileBrowser.Prev();
+                }
+                if (Input.GetKeyDown(settings.nextKey)) {
+                    ACCTexturesView.fileBrowser.Next();
+                }
+
                 ACCTexturesView.fileBrowser.Update();
             }
             // テクスチャエディットの反映
@@ -501,6 +508,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             for (var i = 0; i < delayFrame; i++) {
                 yield return null;
             }
+
             act();
         }
 
@@ -545,16 +553,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         internal class SelectMaidData {
-            public Maid maid;
-            public GUIContent content;
+            public readonly Maid maid;
+            public readonly GUIContent content;
             internal SelectMaidData(Maid maid0, GUIContent content0) {
                 maid = maid0;
                 content = content0;
             }
         }
 
-        readonly List<SelectMaidData> _maidList = new List<SelectMaidData>();
-        readonly List<SelectMaidData> _manList = new List<SelectMaidData>();
+        private readonly List<SelectMaidData> _maidList = new List<SelectMaidData>();
+        private readonly List<SelectMaidData> _manList = new List<SelectMaidData>();
 
         private void InitMaidList() {
             _maidList.Clear();

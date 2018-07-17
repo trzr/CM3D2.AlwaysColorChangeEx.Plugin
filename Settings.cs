@@ -15,6 +15,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         public KeyCode  toggleKey = KeyCode.F12;
         public EventModifiers toggleModifiers = EventModifiers.None;
         public HashSet<KeyCode> toggleKeyModifier = null;
+        public KeyCode prevKey = KeyCode.Mouse3;
+        public KeyCode nextKey = KeyCode.Mouse4;
         public string presetPath;
         public string presetDirPath;
         public float shininessMax    =  20f;
@@ -158,6 +160,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     toggleModifiers |= EventModifiers.Shift;
                 }
             }
+            GetKeyCode(getValue("PrevKey"), ref prevKey);
+            GetKeyCode(getValue("NextKey"), ref nextKey);
 
             Get(getValue("SliderShininessMax"),    ref shininessMax);
             Get(getValue("SliderShininessMin"),    ref shininessMin);
@@ -300,7 +304,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             return true;
         }
 
-        static void GetKeyCode(string keyString, ref KeyCode output) {
+        private static void GetKeyCode(string keyString, ref KeyCode output) {
             if (string.IsNullOrEmpty(keyString)) return;
             try {
                 var key = (KeyCode)Enum.Parse(typeof(KeyCode), keyString);

@@ -91,10 +91,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
         protected GUIStyle centredText;
 
-        protected string name;
         protected Rect screenRect;
         protected Vector2 scrollPosition;
-        protected FinishedCallback callback;
+        protected readonly FinishedCallback callback;
+        public readonly string name;
+        public int historySize = 20;
 
         // Browsers need at least a rect, name and callback
         public FileBrowser(Rect screenRect, string name, FinishedCallback callback) {
@@ -108,21 +109,58 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
         protected void SetNewDirectory(string directory) {
             newDir = directory;
+            nextDirs.Clear();
         }
 
         protected void SwitchDirectoryNow() {
             if (newDir == null || currentDir == newDir) return;
 
+            if (Directory.Exists(currentDir)) {
+                historyDirs.AddLast(currentDir);
+                if (historyDirs.Count > historySize) {
+                    historyDirs.RemoveFirst();
+                }
+            }
+
             currentDir = newDir;
+            reloadDir();
+        }
+
+        private void reloadDir() {
             scrollPosition = Vector2.zero;
             selectedDir = selectedNonMatchingDirs = selectedFile = -1;
             //selectedName = string.Empty;
             ReadDirectoryContents();
         }
 
+        public void Prev() {
+            if (!historyDirs.Any()) return;
+
+            nextDirs.AddFirst(currentDir);
+            var dir = historyDirs.Last();
+            historyDirs.RemoveLast();
+
+            currentDir = dir;
+            reloadDir();
+        }
+
+        public void Next() {
+            if (!nextDirs.Any()) return;
+
+            historyDirs.AddLast(currentDir);
+            var dir = nextDirs.First();
+            nextDirs.RemoveFirst();
+
+            currentDir = dir;
+            reloadDir();
+        }
+
+        private readonly LinkedList<string> historyDirs = new LinkedList<string>();
+        private readonly LinkedList<string> nextDirs = new LinkedList<string>();
+
         protected void ReadDirectoryContents() {
             if (currentDir == "/") {
-                currentDirParts = new[] { "" };
+                currentDirParts = new[] { string.Empty };
                 currentDirMatches = false;
 
             } else {
@@ -245,7 +283,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     }
 
                     GUILayout.FlexibleSpace();
+                    GUI.enabled = historyDirs.Any();
+                    if (GUILayout.Button("<")) {
+                        Prev();
+                    }
+                    GUI.enabled = nextDirs.Any();
+                    if (GUILayout.Button(">")) {
+                        Next();
+                    }
+
                 } finally {
+                    GUI.enabled = true;
                     GUILayout.EndHorizontal();
                 }
                 scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, 
@@ -289,7 +337,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                         selectedName = GUI.enabled ? dirsWithImages[selectedDir].text : string.Empty;
                     } else {
                         GUI.enabled = selectedDir > -1 ||
-                            (  currentDirMatches && selectedNonMatchingDirs == -1 && selectedFile == -1 );
+                            ( currentDirMatches && selectedNonMatchingDirs == -1 && selectedFile == -1 );
                         selectedName = selectedDir > -1 ? dirsWithImages[selectedDir].text : string.Empty;
                     }
                 }
@@ -298,11 +346,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     if (BrowserType == FileBrowserType.File) {
                         callback(Path.Combine(currentDir, files[selectedFile]));
                     } else {
-                        if (selectedDir > -1) {
-                            callback(Path.Combine(currentDir, directories[selectedDir]));
-                        } else {
-                            callback(currentDir);
-                        }
+                        callback(selectedDir > -1 ? Path.Combine(currentDir, directories[selectedDir]) : currentDir);
                     }
                 }
                 GUI.enabled = true;
@@ -327,7 +371,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
     }
 
-    public class GUILayoutx {
+    public static class GUILayoutx {
         public delegate void ClickCallback(int index);
 
         public static int SelectionList(int selected, GUIContent[] list, GUIStyle elementStyle, ClickCallback callback = null) {
