@@ -55,6 +55,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             }
         }
         public ACCTexture(Texture tex, Material mate, ShaderPropTex texProp, ShaderType type) :this(texProp.key) {
+            if (tex == null) {
+                tex = new Texture2D(2, 2) {name = string.Empty};
+            }
             this.tex = tex;
             this.type = type;
             prop = texProp;
@@ -85,7 +88,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         public static ACCTexture Create(Material mate, ShaderPropTex texProp, ShaderType type) {
             var tex = mate.GetTexture(texProp.propId);
             
-            return tex == null ? null : new ACCTexture(tex, mate, texProp, type);
+            if (tex == null) {
+                LogUtil.Debug("tex is null. ", texProp.key);
+            }
+            return new ACCTexture(tex, mate, texProp, type);
         }
 
         public ACCTexture(ACCTexture src) {

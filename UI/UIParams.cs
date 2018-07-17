@@ -105,6 +105,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             lStyle.fontStyle = FontStyle.Normal;
             lStyle.normal.textColor = textColor;
             lStyle.alignment = txtAlignment;
+            lStyle.wordWrap = false;
             //lStyle.wordWrap = false;
 
             lStyleS.fontStyle = FontStyle.Normal;
@@ -227,7 +228,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             optCategoryWidth = GUILayout.MaxWidth(fontSize * 12f * 0.47f);
 
             nodeSelectRect.Set(margin, unitHeight * 2, winRect.width - margin * 2, winRect.height - unitHeight * 4.5f);
-            colorRect.Set(margin, unitHeight * 2, winRect.width - margin, winRect.height - unitHeight * 4);
+            colorRect.Set(margin, unitHeight * 2, winRect.width - margin, winRect.height - unitHeight * 5);
             labelRect.Set(0, 0, winRect.width - margin * 2, itemHeight * 1.2f);
             subRect.Set(0, itemHeight, winRect.width - margin * 2, itemHeight);
 
@@ -237,7 +238,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         }
 
         public void InitWinRect() {
-            winRect.Set(width - FixPx(290), FixPx(48), FixPx(280), height - FixPx(150));
+            winRect.Set(width - FixPx(310), FixPx(48), FixPx(300), height - FixPx(150));
             titleBarRect.Set(0, 0, winRect.width, 24f);
         }
 
