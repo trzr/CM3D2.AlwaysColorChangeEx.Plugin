@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using CM3D2.AlwaysColorChangeEx.Plugin;
 
@@ -53,7 +54,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             return sb;
         }
 
-        private static StringBuilder CreateMessage(object[] message, string prefix=null) {
+        private static StringBuilder CreateMessage(IEnumerable<object> message, string prefix=null) {
             var sb = new StringBuilder();
             if (prefix != null) sb.Append(prefix);
             sb.Append(AlwaysColorChangeEx.PluginName).Append(':');

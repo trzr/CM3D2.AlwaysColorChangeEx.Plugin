@@ -274,17 +274,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                        c.g = Mathf.Clamp01(c.g * inputScale + inputBase);
                        c.b = Mathf.Clamp01(c.b * inputScale + inputBase);
 
-                       if (!NumberUtil.Equals(inputExp, 1f)) {
+                       if (!ColorUtil.Equals(inputExp, 1f)) {
                            c.r = Mathf.Pow(c.r, inputExp);
                            c.g = Mathf.Pow(c.g, inputExp);
                            c.b = Mathf.Pow(c.b, inputExp);
                        }
 
-                       var hsl = ColorUtil.RGBToHsl(c);
+                       var hsl = ColorUtil.RGB2HSL(ref c);
                        hsl.x = (hsl.x + hue) % 1f;
                        hsl.y *= saturation;
                        hsl.z *= lightness;
-                       c = ColorUtil.HslToRGB(hsl);
+                       c = ColorUtil.HSL2RGB(ref hsl);
 
                        c.r = c.r * outputScale + outputBase;
                        c.g = c.g * outputScale + outputBase;
@@ -638,73 +638,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             }
         }
 
-        private static class ColorUtil {
-            // RGB -> HSL 変換
-            public static Vector4 RGBToHsl(Color c) {
-                c.r = Mathf.Clamp01(c.r);
-                c.g = Mathf.Clamp01(c.g);
-                c.b = Mathf.Clamp01(c.b);
-
-                float max = Mathf.Max(c.r, Mathf.Max(c.g, c.b));
-                float min = Mathf.Min(c.r, Mathf.Min(c.g, c.b));
-
-                var h = 0f;
-                var s = 0f;
-                var l = (max + min) / 2f;
-                var d = max - min;
-
-                // FIXME float compare
-                if (NumberUtil.Equals(d, 0f)) return new Vector4(h, s, l, c.a);
-
-                s = l > 0.5f ? (d / (2f - max - min)) : (d / (max + min));
-                if (NumberUtil.Equals(max, c.r)) {
-                    h = (c.g - c.b) / d + (c.g < c.b ? 6f : 0f);
-                } else if (NumberUtil.Equals(max, c.g)) {
-                    h = (c.b - c.r) / d + 2f;
-                } else {
-                    h = (c.r - c.g) / d + 4f;
-                }
-                h /= 6f;
-                return new Vector4(h, s, l, c.a);
-            }
-
-            // HSL -> RGB 変換
-            public static Color HslToRGB(Vector4 hsl) {
-                Color c;
-                c.a = hsl.w;
-
-                var h = hsl.x;
-                var s = hsl.y;
-                var l = hsl.z;
-
-                if (NumberUtil.Equals(s, 0f)) {
-                    c.r = l;
-                    c.g = l;
-                    c.b = l;
-                } else {
-                    var y = (l < 0.5f) ? (l * (1f + s)) : ((l + s) - l * s);
-                    var x = 2f * l - y;
-                    c.r = Hue(x, y, h + 1f / 3f);
-                    c.g = Hue(x, y, h);
-                    c.b = Hue(x, y, h - 1f / 3f);
-                }
-
-                return c;
-            }
-
-            private static float Hue(float x, float y, float t) {
-                if (t < 0f) {
-                    t += 1f;
-                } else if (t > 1f) {
-                    t -= 1f;
-                } 
-
-                if (t < 1f / 6f) return x + (y - x) * 6f * t;
-                if (t < 2f / 6f) return y;
-                if (t < 4f / 6f) return x + (y - x) * 6f * (4f / 6f - t);
-                return x;
-            }
-        }
     }
 
     public class EditTarget {

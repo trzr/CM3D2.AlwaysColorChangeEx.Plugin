@@ -64,7 +64,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             var texType1t = new []{ShaderPropType.MainTex, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon, ShaderPropType.OutlineTex, ShaderPropType.OutlineToonRamp};
             var texType1a = new []{ShaderPropType.MainTexA, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon,};// ShaderPropType.MultiColTex, };
             var texTypeH  = new []{ShaderPropType.MainTex, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon, ShaderPropType.HiTex,};// ShaderPropType.MultiColTex, };
-            var texTypeHt  = new []{ShaderPropType.MainTex, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon, ShaderPropType.HiTex, ShaderPropType.OutlineTex, ShaderPropType.OutlineToonRamp}; 
+            var texTypeHt  = new []{ShaderPropType.MainTex, ShaderPropType.ToonRamp, ShaderPropType.ShadowTex, ShaderPropType.ShadowRateToon, ShaderPropType.HiTex, ShaderPropType.OutlineTex, ShaderPropType.OutlineToonRamp};
             
             var colEmpty  = new ShaderPropColor[0];
             var colC      = new []{ShaderPropType.Color, };
@@ -200,7 +200,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     case PropKey._OutlineColor:
                     case PropKey._SpecColor:
                     case PropKey._ReflectColor:
-                    case PropKey._Emission:
+                    case PropKey._EmissionColor:
                         foreach (var prop in colProps) {
                             if (prop.key == propKey) {
                                 return prop;

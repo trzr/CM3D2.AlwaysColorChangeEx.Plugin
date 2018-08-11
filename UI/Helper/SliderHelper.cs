@@ -7,6 +7,16 @@ using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
     public class SliderHelper {
+        private static GUIContent copyIcon;
+        private static GUIContent pasteIcon;
+        private static GUIContent CopyIcon {
+            get { return copyIcon ?? (copyIcon = new GUIContent(string.Empty, ResourceHolder.Instance.CopyImage, "カラーコードをクリップボードへコピーする")); }
+        }
+        private static GUIContent PasteIcon {
+            get { return pasteIcon ?? (pasteIcon = new GUIContent(string.Empty, ResourceHolder.Instance.PasteImage, "クリップボードからカラーコードを貼付ける")); }
+        }
+        private static readonly ClipBoardHandler clipHandler = ClipBoardHandler.Instance;
+
         private readonly UIParams uiParams;
         public float epsilon = 0.000001f;
         public Color textColor;
@@ -24,6 +34,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
         private GUILayoutOption bWidthTOpt;
         private GUILayoutOption optItemHeight;
         private GUILayoutOption optInputWidth;
+        private GUILayoutOption optPickerWidth;
+        private GUILayoutOption optCPWidth;
+        private GUILayoutOption optCodeWidth;
 
         public SliderHelper(UIParams uiparams) {
             uiParams = uiparams;
@@ -39,10 +52,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
             sliderMargin = uiparams.margin * 4.5f; // GUILayout.Space(uiParams.FixPx(7));
 
             buttonMargin = uiparams.margin * 3f;
-            sliderInputWidth = uiparams.fontSizeS * 0.5625f * 8; // 最大8文字分としてフォントサイズの比率
+            sliderInputWidth = uiparams.lStyleS.CalcSize(new GUIContent("zzzzzzzz")).x; // 最大8文字分の幅
 
             optInputWidth = GUILayout.Width(sliderInputWidth);
             optItemHeight = GUILayout.Height(uiparams.itemHeight);
+            optPickerWidth = GUILayout.Width(uiparams.itemHeight);
+            optCodeWidth = GUILayout.Width(uiparams.textStyleSC.CalcSize(new GUIContent("#aaaaaa ")).x);
+            optCPWidth = GUILayout.Width(20);
 
             textColor = uiparams.textStyleSC.normal.textColor;
 
@@ -128,19 +144,58 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
         public static readonly float[] DEFAULT_PRESET = {0, 0.5f, 1f};
         public static readonly float[] DEFAULT_PRESET2 = {0, 0.5f, 1f, 1.5f, 2f};
 
-        internal bool setColorSlider(string label, ref EditColor edit, ColorType colType) {
+        internal bool setColorSlider(ShaderPropColor colProp, ref EditColor edit, ColorPicker picker=null) {
             var expand = true;
-            return setColorSlider(label, ref edit, colType, DEFAULT_PRESET2, ref expand);
+            var presets = (colProp.composition) ? DEFAULT_PRESET2 : DEFAULT_PRESET;
+                
+            return setColorSlider(colProp.name, ref edit, colProp.colorType, presets, ref expand, picker);
         }
 
-        internal bool setColorSlider(string label, ref EditColor edit, ColorType colType, IEnumerable<float> vals, ref bool expand) {
+        internal bool setColorSlider(string label, ref EditColor edit, IEnumerable<float> vals, ref bool expand, ColorPicker picker = null) {
+            return setColorSlider(label, ref edit, edit.type, vals, ref expand, picker);
+        }
+
+        internal bool setColorSlider(string label, ref EditColor edit, ColorType colType, IEnumerable<float> vals, ref bool expand, ColorPicker picker=null) {
             GUILayout.BeginHorizontal();
             var c = edit.val;
             var changed = false;
             try {
+                if (picker != null) {
+                    if (GUILayout.Button(picker.ColorTex, uiParams.lStyle, optItemHeight, optPickerWidth, GUILayout.ExpandWidth(false))) {
+                        picker.expand = !picker.expand;
+                    }
+                }
                 if (GUILayout.Button(label, uiParams.lStyle, optItemHeight)) {
                     expand = !expand;
                 }
+                if (picker != null && picker.ColorCode != null) {
+                    if (GUILayout.Button(CopyIcon, uiParams.lStyle, optCPWidth, optItemHeight)) {
+                        clipHandler.SetClipboard(picker.ColorCode);
+                    }
+
+                    var clip = clipHandler.GetClipboard();
+                    GUI.enabled &= ColorPicker.IsColorCode(clip);
+                    try {
+                        if (GUILayout.Button(PasteIcon, uiParams.lStyle, optCPWidth, optItemHeight)) {
+                            try {
+                                if (picker.SetColorCode(clip)) {
+                                    c = picker.Color;
+                                    changed = true;
+                                }
+                            } catch (Exception e) {
+                                LogUtil.Error("failed to import color-code", e);
+                            }
+                        }
+                    } finally {
+                        GUI.enabled = true;
+                    }
+
+                    var code = GUILayout.TextField(picker.ColorCode, 7, uiParams.textStyleSC, optCodeWidth);
+                    if (code != picker.ColorCode) {
+                        
+                    }
+                }
+                
                 if (!expand) return false;
 
                 foreach (var val in vals) {
@@ -162,11 +217,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
                 }
 
                 if (GUILayout.Button("+", bStyleSS, bWidthOpt)) {
-                    if (c.r + DELTA > 2.0f) c.r = 2;
+                    if (c.r + DELTA > edit.GetRange(0).editMax) c.r = edit.GetRange(0).editMax;
                     else c.r += DELTA;
-                    if (c.g + DELTA > 2.0f) c.g = 2;
+                    if (c.g + DELTA > edit.GetRange(1).editMax) c.g = edit.GetRange(1).editMax;
                     else c.g += DELTA;
-                    if (c.b + DELTA > 2.0f) c.b = 2;
+                    if (c.b + DELTA > edit.GetRange(2).editMax) c.b = edit.GetRange(2).editMax;
                     else c.b += DELTA;
                     changed = true;
                 }
@@ -183,13 +238,48 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
             if (colType == ColorType.rgba || colType == ColorType.a) {
                 changed |= DrawValueSlider("A", ref edit, idx, ref c.a);
             }
+            if (picker != null) {
+                picker.Color = c;
+                if (picker.expand && picker.DrawLayout()) {
+                    c = picker.Color;
+                    changed = true;
+                }
+            }
             if (changed) {
                 edit.Set(c);
             }
 
             return changed;
         }
+
+        public bool DrawValueSlider(string label, EditValue edit) {
+            return DrawValueSlider(label, edit, edit.range.editMin, edit.range.editMax);
+        }
+        public bool DrawValueSlider(string label, EditIntValue edit) {
+            return DrawValueSlider(label, edit,
+                () => {
+                    var sliderVal = edit.val;
+                    if (DrawSlider(ref sliderVal, edit.range.editMin, edit.range.editMax)) {
+                        edit.Set(sliderVal);
+                        return true;
+                    }
+                    return false;
+                });
+        }
+
         public bool DrawValueSlider(string label, EditValue edit, float sliderMin, float sliderMax) {
+            return DrawValueSlider(label, edit,
+                () => {
+                    var sliderVal = edit.val;
+                    if (DrawSlider(ref sliderVal, sliderMin, sliderMax)) {
+                        edit.Set(sliderVal);
+                        return true;
+                    }
+                    return false;
+                });
+        }
+
+        public bool DrawValueSlider<T>(string label, EditValueBase<T> edit, Func<bool> drawSlider) where T : IComparable, IFormattable {
             var changed = false;
             var fontChanged = false;
             GUILayout.BeginHorizontal(optItemHeight);
@@ -207,11 +297,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
                     changed |= edit.isSync; // テキスト値書き換え、かつ値が同期⇒変更とみなす
                 }
 
-                var sliderVal = edit.val;
-                if (DrawSlider(ref sliderVal, sliderMin, sliderMax)) {
-                    edit.Set(sliderVal);
-                    changed = true;
-                }
+                changed |= drawSlider();
                 GUILayout.Space(buttonMargin);
 
             } finally {
@@ -222,7 +308,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
             }
             return changed;
         }
-
         public bool DrawValueSlider(string label, ref EditColor edit, int idx, ref float sliderVal) {
             var changed = false;
             var fontChanged = false;
@@ -259,7 +344,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
 
         private void DrawLabel(ref string label) {
             if (label != null) {
-                var lWidth = uiParams.fontSizeS * label.Length;
+                var size = uiParams.lStyleS.CalcSize(new GUIContent(label));
+                var lWidth = size.x;
                 var space = labelWidth - sliderInputWidth - lWidth;  //- uiParams.labelSpace ;
                 if (space > 0) GUILayout.Space(space);
                 GUILayout.Label(label, uiParams.lStyleS, GUILayout.Width(lWidth));
@@ -268,30 +354,60 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
             }
         }
         private bool DrawSlider(ref float sliderVal, float min, float max) {
+            var val = sliderVal;
+            var changed = DrawSlider(() => {
+                var slidVal = GUILayout.HorizontalSlider(val, min, max, GUILayout.ExpandWidth(true));
+                if (!NumberUtil.Equals(slidVal, val, epsilon)) { // スライダー変更時のみ
+                    if (val < min || max < val) {
+                        // スライダーの範囲外の場合：スライダーを移動したケースを検知
+                        if (min < slidVal && slidVal < max) {
+                            val = slidVal;
+                            return true;
+                        }
+                    } else {
+                        val = slidVal;
+                        return true;
+                    }
+                }
+                return false;
+            });
+            if (changed) sliderVal = val;
+            return changed;
+        }
+        private bool DrawSlider(ref int sliderVal, int min, int max) {
+            var val = sliderVal;
+            var changed = DrawSlider(() => {
+                var slidVal = (int)GUILayout.HorizontalSlider(val, min, max, GUILayout.ExpandWidth(true));
+                if (slidVal !=  val) { // スライダー変更時のみ
+                    if (val < min || max < val) {
+                        // スライダーの範囲外の場合：スライダーを移動したケースを検知
+                        if (min < slidVal && slidVal < max) {
+                            val = slidVal;
+                            return true;
+                        }
+                    } else {
+                        val = slidVal;
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+            if (changed) sliderVal = val;
+            return changed;
+        }
+
+        private bool DrawSlider(Func<bool> func) {
             var changed = false;
             GUILayout.BeginVertical();
             try {
                 GUILayout.Space(sliderMargin);
-                var opt = GUILayout.ExpandWidth(true);//GUILayout.Width(uiParams.colorRect.width * 0.65f);
-                var slidVal = GUILayout.HorizontalSlider(sliderVal, min, max, opt);
-                if (!NumberUtil.Equals(slidVal, sliderVal, epsilon)) { // スライダー変更時のみ
-                    if (sliderVal > max || sliderVal < min) {
-                        // スライダーの範囲外の場合：スライダーを移動したケースを検知
-                        if (slidVal < max && slidVal > min) {
-                            sliderVal = slidVal;
-                            changed = true;
-                        }
-                    } else {
-                        sliderVal = slidVal;
-                        changed = true;
-                    }
-                }
+                changed |= func();
             } finally {
                 GUILayout.EndVertical();
             }
             return changed;
         }
-
         private void SetTextColor(GUIStyle style, ref Color c) {
             style.normal.textColor = c;
             style.focused.textColor = c;

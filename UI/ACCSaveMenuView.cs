@@ -79,6 +79,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         public ACCSaveMenuView(UIParams up) {
             Init(up);
         }
+
         public Dictionary<TBody.SlotID, Item> Load(string filename) {
             trgtMenu = ACCMenu.Load(filename);
             nameInterlocked = false;

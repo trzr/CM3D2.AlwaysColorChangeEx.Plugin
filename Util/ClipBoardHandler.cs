@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
@@ -15,10 +16,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
         private const int MIN_LENGTH = 20;
         private const int MAX_LENGTH = 3333;
 
-        private static readonly ClipBoardHandler INSTANCE = new ClipBoardHandler();
-        public static ClipBoardHandler Instance {
-            get { return INSTANCE;  }
-        }
+        public static readonly ClipBoardHandler Instance = new ClipBoardHandler();
         
         public string mateText;
         public bool isMateText;

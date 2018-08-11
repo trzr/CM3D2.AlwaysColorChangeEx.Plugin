@@ -8,13 +8,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
     /// リソースのロードユーティリティ
     /// </summary>
     public sealed class ResourceHolder {
-        private static readonly ResourceHolder INSTANCE = new ResourceHolder();
-        public static ResourceHolder Instance {
-            get {
-                return INSTANCE;
-            }
-        }
-        private static readonly FileUtilEx outUtil = FileUtilEx.Instance;
+        public static readonly ResourceHolder Instance = new ResourceHolder();
+
+        private readonly FileUtilEx fileUtil = FileUtilEx.Instance;
         private readonly Assembly asmbl = Assembly.GetExecutingAssembly();
         private ResourceHolder() {}
         private Texture2D dirImage;
@@ -27,49 +23,31 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
         private Texture2D checkonImage;
         private Texture2D checkoffImage;
         public Texture2D PictImage {
-            get {
-                if (pictImage == null) pictImage = LoadTex("picture");
-                return pictImage;
-            }
+            get { return pictImage ? pictImage : (pictImage = LoadTex("picture")); }
         }
         public Texture2D FileImage {
-            get {
-                if (fileImage == null) fileImage = LoadTex("file");
-                return fileImage;
-            }
+            get { return fileImage ? dirImage : (fileImage = LoadTex("file")); }
         }
         public Texture2D DirImage {
-            get {
-                if (dirImage == null) dirImage = LoadTex("folder");
-                return dirImage;
-            }
+            get { return dirImage ? dirImage : (dirImage = LoadTex("folder")); }
         }
         public Texture2D CopyImage {
-            get {
-                if (copyImage == null) copyImage = LoadTex("copy");
-                return copyImage;
-            }
+            get { return copyImage ? copyImage : (copyImage = LoadTex("copy")); }
         }
         public Texture2D PasteImage {
-            get {
-                if (pasteImage == null) pasteImage = LoadTex("paste");
-                return pasteImage;
-            }
+            get { return pasteImage ? pasteImage : (pasteImage = LoadTex("paste")); }
         }
         public Texture2D PlusImage {
-            get {
-                if (plusImage == null) plusImage = LoadTex("plus");
-                return plusImage;
-            }
+            get { return plusImage ? plusImage : (plusImage = LoadTex("plus")); }
         }
         public Texture2D MinusImage {
-            get { return minusImage ?? (minusImage = LoadTex("minus")); }
+            get { return minusImage ? minusImage : (minusImage = LoadTex("minus")); }
         }
         public Texture2D CheckonImage {
-            get { return checkonImage ?? (checkonImage = LoadTex("checkon")); }
+            get { return checkonImage ? checkonImage : (checkonImage = LoadTex("checkon")); }
         }
         public Texture2D CheckoffImage {
-            get { return checkoffImage ?? (checkoffImage = LoadTex("checkoff")); }
+            get { return checkoffImage ? checkoffImage : (checkoffImage = LoadTex("checkoff")); }
         }
 
         private GUIContent checkon;
@@ -81,10 +59,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             get { return checkoff ?? (checkoff = new GUIContent(CheckoffImage)); }
         }
 
-        private Texture2D LoadTex(string name) {
+        public Texture2D LoadTex(string name) {
             try {
                 using (var fs = asmbl.GetManifestResourceStream(name + ".png")) {
-                    var tex2d = outUtil.LoadTexture(fs);
+                    var tex2d = fileUtil.LoadTexture(fs);
                     tex2d.name = name;
                     LogUtil.Debug("resource file image loaded :", name);
                     return tex2d;

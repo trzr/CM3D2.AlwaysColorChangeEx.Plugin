@@ -22,9 +22,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         public string name;
         public ShaderType type;
 
-        public EditValue renderQueue  = new EditValue(2000f, EditRange.renderQueue);
+        public readonly EditValue renderQueue  = new EditValue(2000, EditRange.renderQueue);
 
         public EditColor[] editColors;
+        public ColorPicker[] pickers;
         public EditValue[] editVals;
 
         public string rqEdit;
@@ -47,6 +48,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             
             // TODO 配列の中身はディープコピーとする 
             editColors = src.editColors;
+            pickers = src.pickers;
             editVals = src.editVals;
         }
 
@@ -73,11 +75,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             // Color生成
             var colProps = type.colProps;
             editColors = new EditColor[colProps.Length];
+            pickers = new ColorPicker[colProps.Length];
+            var size = UIParams.Instance.itemHeight;
             for (var i=0; i<colProps.Length; i++) {
                 var colProp = colProps[i];
                 var color = material != null ? material.GetColor(colProp.propId) : colProp.defaultVal;
-                var ec = new EditColor(color, colProp.colorType);
+                var ec = new EditColor(color, colProp.colorType, colProp.composition);
                 editColors[i] = ec;
+                var picker = new ColorPicker {ColorTex = new Texture2D(size, size, TextureFormat.RGB24, false)};
+                picker.SetTexColor(ref color);
+                pickers[i] = picker;
             }
 
             // float生成
@@ -122,6 +129,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             // 同一長の場合でも更新（Alphaの有無が異なるケースがある）
             var colProps = sdrType.colProps;
             var createdColors = new EditColor[colProps.Length];
+            var createdPickers = new ColorPicker[colProps.Length];
+            var size = UIParams.Instance.itemHeight;
             for (var i=0; i<colProps.Length; i++) {
                 var colProp = colProps[i];
                 if (i < editColors.Length) {
@@ -129,8 +138,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     if (editColors[i].type == colProp.colorType) {
                         createdColors[i] = editColors[i];
                     } else {
-                        createdColors[i] = new EditColor(editColors[i].val, colProp.colorType); 
+                        createdColors[i] = new EditColor(editColors[i].val, colProp.colorType, colProp.composition); 
                     }
+                    createdPickers[i] = pickers[i];
+
                 } else {
                     Color color;
                     if (material != null) {
@@ -138,10 +149,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     } else {
                         color = (Original != null)? Original.GetColor(i): colProp.defaultVal;
                     }
-                    createdColors[i] = new EditColor(color, colProp.colorType);
+                    createdColors[i] = new EditColor(color, colProp.colorType, colProp.composition);
+                    createdPickers[i] = new ColorPicker {ColorTex = new Texture2D(size, size, TextureFormat.RGB24, false)};
+                    createdPickers[i].SetTexColor(ref createdColors[i].val);
                 }
             }
             editColors = createdColors;
+            pickers = createdPickers;
 
             var props = sdrType.fProps;
             var createdVals = new EditValue[props.Length];
@@ -176,6 +190,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     if (colProp.key != propKey) continue;
 
                     editColors[i].Set ( c );
+                    pickers[i].SetTexColor(ref c);
                     return;
                 }
                 LogUtil.Debug("propName mismatched:", propName);
@@ -255,7 +270,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             //created.shader = created.type1.shader;
             
             var shaderName2 = reader.ReadString();
-
             while(true) {
                 var type = reader.ReadString();
                 if (type == "end") break;

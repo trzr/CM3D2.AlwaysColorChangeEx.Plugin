@@ -238,6 +238,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 for (var i = 0; i < sdType.colProps.Length; i++) {
                     var colProp = sdType.colProps[i];
                     var editColor = edited.editColors[i];
+                    var picker = edited.pickers[i];
                     if (reload) {
                         editColor.Set(material.GetColor(colProp.propId));
 //                    } else {
@@ -248,7 +249,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 //                        }
                     }
 
-                    if (sliderHelper.setColorSlider(colProp.name, ref editColor, colProp.colorType)) {
+                    if (sliderHelper.setColorSlider(colProp, ref editColor, picker)) {
                         material.SetColor(colProp.propId, editColor.val);
                     }
                 }

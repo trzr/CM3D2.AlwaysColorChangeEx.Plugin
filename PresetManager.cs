@@ -315,8 +315,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         public void ApplyPresetPartsColor(Maid maid, PresetData preset) {
             foreach (var pc in preset.partsColors) {
                 try {
-                    var partsColor = (MaidParts.PARTS_COLOR)Enum.Parse(typeof(MaidParts.PARTS_COLOR), pc.Key);
-                    maid.Parts.SetPartsColor(partsColor, pc.Value.ToStruct());
+                    MaidParts.PARTS_COLOR partsColor;
+                    if (EnumUtil.TryParse(pc.Key, true, out partsColor)) {
+                        maid.Parts.SetPartsColor(partsColor, pc.Value.ToStruct());
+                    }
                 } catch (ArgumentException e) {
                     LogUtil.Debug(e);
                 }

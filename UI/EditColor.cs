@@ -1,5 +1,4 @@
-﻿
-using CM3D2.AlwaysColorChangeEx.Plugin.Data;
+﻿using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
@@ -7,12 +6,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
     /// Description of EditColor.
     /// </summary>
     public class EditColor {
-        internal static readonly EditRange RANGE_2  = new EditRange("F3", 0f, 2f);
-        internal static readonly EditRange RANGE = new EditRange("F3", 0f, 1f);
+        internal static readonly EditRange<float> RANGE_2  = new EditRange<float>("F3", 0f, 2f);
+        internal static readonly EditRange<float> RANGE = new EditRange<float>("F3", 0f, 1f);
         private static readonly string[] empty = new string[0];
 
-        private readonly EditRange range;
-        private readonly EditRange rangeA;
+        private readonly EditRange<float> range;
+        private readonly EditRange<float> rangeA;
         public bool hasAlpha;
         public Color val;
         public readonly ColorType type;
@@ -20,16 +19,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         public bool[] isSyncs;
         public string[] editVals;
 
-        public EditColor(Color val1, ColorType type, EditRange range, EditRange range_a) {
+        public EditColor(Color val1, ColorType type, EditRange<float> range, EditRange<float> range_a) {
             this.type = type;
             this.range = range;
             rangeA = range_a;
             Set( val1 );
         }
 
-        public EditColor(Color val1, ColorType type = ColorType.rgb) {
+        public EditColor(Color val1, ColorType type = ColorType.rgb, bool rangeOver=true) {
             this.type = type;
-            range = RANGE_2;
+            range = (rangeOver)? RANGE_2 : RANGE;
             rangeA = RANGE;
             Set( val1 );
         }
@@ -87,7 +86,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             return 0;
         }
 
-        public EditRange GetRange(int idx) {
+        public EditRange<float> GetRange(int idx) {
             switch(type) {
                 case ColorType.rgb:
                     return range;
@@ -99,7 +98,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             }
         }
 
-        public void Set(int idx, string editVal1, EditRange er = null) {
+        public void Set(int idx, string editVal1, EditRange<float> er = null) {
             if (idx >= editVals.Length) return;
             editVals[idx] = editVal1;
 
