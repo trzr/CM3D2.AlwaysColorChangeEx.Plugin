@@ -141,7 +141,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 GUILayout.Label(FileConst.EXT_MENU, uiParams.lStyleS, _optExtLabelWidth);
 
                 var src = nameInterlocked;
-                nameInterlocked = GUILayout.Toggle(nameInterlocked, "名前連動", uiParams.tStyleS, uiParams.optSLabelWidth);
+                nameInterlocked = GUILayout.Toggle(nameInterlocked, "名前連動", uiParams.tStyleS, uiParams.optToggleSWidth);
                 if (nameInterlocked && src != nameInterlocked) {
                     nameChanged = true;
                 }
@@ -456,7 +456,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             
             GUILayout.BeginHorizontal();
             GUILayout.Space(uiParams.marginL);
-            ignoreExist = !GUILayout.Toggle(!ignoreExist, "登録済確認", uiParams.tStyleS, uiParams.optSLabelWidth);
+            ignoreExist = !GUILayout.Toggle(!ignoreExist, "登録済確認", uiParams.tStyleS, uiParams.optToggleSWidth);
             if (GUILayout.Button("保存", uiParams.bStyle)) {
                 if (IsWritable(trgtMenu, ignoreExist)) {
                     if (SaveFiles(trgtMenu)) {

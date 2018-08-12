@@ -198,7 +198,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                         if (epc.HasMainChanged(ref part)) {
                             epc.SetMain(part);
                         }
-                        if (sliderHelper.setColorSlider("色", ref epc.main, SliderHelper.DEFAULT_PRESET, ref epc.mainExpand, epc.mainPicker)) {
+                        if (sliderHelper.DrawColorSlider("色", ref epc.main, SliderHelper.DEFAULT_PRESET, ref epc.mainExpand, epc.mainPicker)) {
                             epc.ReflectMain();
                             maid.Parts.SetPartsColor(pcEnum, epc.parts);
                         }
@@ -212,7 +212,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                         if (epc.HasShadowChanged(ref part)) {
                             epc.SetShadow(part);
                         }
-                        if (sliderHelper.setColorSlider("影色", ref epc.shadow, SliderHelper.DEFAULT_PRESET, ref epc.shadowExpand, epc.shadowPicker)) {
+                        if (sliderHelper.DrawColorSlider("影色", ref epc.shadow, SliderHelper.DEFAULT_PRESET, ref epc.shadowExpand, epc.shadowPicker)) {
                             epc.ReflectShadow();
                             maid.Parts.SetPartsColor(pcEnum, epc.parts);
                         }

@@ -69,6 +69,8 @@
 @set OPTS=%OPTS% /resource:Resource\minus16.png,minus.png
 @set OPTS=%OPTS% /resource:Resource\check_on16.png,checkon.png
 @set OPTS=%OPTS% /resource:Resource\check_off16.png,checkoff.png
+@set OPTS=%OPTS% /resource:Resource\circle16.png,circle.png
+@set OPTS=%OPTS% /resource:Resource\cross16.png,cross.png
 
 @rem @set CSC=%windir%\Microsoft.NET\Framework\v3.5\csc
 @set CSC=%windir%\Microsoft.NET\Framework\v4.0.30319\csc

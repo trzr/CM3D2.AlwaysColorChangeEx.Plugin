@@ -71,7 +71,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                         boneVisible = false;
                     }
                 }
-                if (sliderHelper.setColorSlider("色設定", ref editColor, SliderHelper.DEFAULT_PRESET, ref editExpand, picker)) {
+                if (sliderHelper.DrawColorSlider("色設定", ref editColor, SliderHelper.DEFAULT_PRESET, ref editExpand, picker)) {
                     boneRenderer.Color = editColor.val;
                 }
 

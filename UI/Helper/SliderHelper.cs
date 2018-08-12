@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using UnityEngine;
@@ -27,14 +28,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
         float labelWidth;
         float sliderInputWidth;
         
-        private readonly GUIStyle bStyleSS      = new GUIStyle("button");
-        private float baseWidth;
+        private readonly GUIStyle bStyleSS = new GUIStyle("button");
+        private readonly GUIStyle iconStyleSS = new GUIStyle("label");
         private GUILayoutOption bWidthOpt;
         private GUILayoutOption bWidthWOpt;
         private GUILayoutOption bWidthTOpt;
         private GUILayoutOption optItemHeight;
         private GUILayoutOption optInputWidth;
-        private GUILayoutOption optPickerWidth;
         private GUILayoutOption optCPWidth;
         private GUILayoutOption optCodeWidth;
 
@@ -56,20 +56,32 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
 
             optInputWidth = GUILayout.Width(sliderInputWidth);
             optItemHeight = GUILayout.Height(uiparams.itemHeight);
-            optPickerWidth = GUILayout.Width(uiparams.itemHeight);
-            optCodeWidth = GUILayout.Width(uiparams.textStyleSC.CalcSize(new GUIContent("#aaaaaa ")).x);
-            optCPWidth = GUILayout.Width(20);
+            optCodeWidth = GUILayout.Width(uiparams.textStyleSC.CalcSize(new GUIContent("#dddddd")).x);
+            if (optCPWidth == null) optCPWidth = GUILayout.Width(17);
 
             textColor = uiparams.textStyleSC.normal.textColor;
 
-            baseWidth = 22f;
-            bWidthOpt  = GUILayout.Width(baseWidth*0.8f);
-            bWidthWOpt = GUILayout.Width(baseWidth*1.2f);
-            bWidthTOpt = GUILayout.Width(baseWidth*1.6f);
+            bWidthOpt  = GUILayout.Width( bStyleSS.CalcSize(new GUIContent("x")).x ); //GUILayout.Width(baseWidth*0.8f);
+            bWidthWOpt = GUILayout.Width( bStyleSS.CalcSize(new GUIContent("xx")).x ); //baseWidth*1.2f);
+            bWidthTOpt = GUILayout.Width( bStyleSS.CalcSize(new GUIContent("xxx")).x ); //baseWidth*1.6f);
 
             bStyleSS.normal.textColor = uiparams.bStyleSC.normal.textColor;
             bStyleSS.alignment = TextAnchor.MiddleCenter;
             bStyleSS.fontSize = uiparams.fontSizeSS;
+            bStyleSS.contentOffset = new Vector2(0, 1);
+            bStyleSS.margin.left = 1;
+            bStyleSS.margin.right = 1;
+            bStyleSS.padding.left = 1;
+            bStyleSS.padding.right = 1;
+
+            iconStyleSS.normal.textColor = uiparams.lStyleS.normal.textColor;
+            iconStyleSS.alignment = TextAnchor.MiddleCenter;
+            iconStyleSS.fontSize = uiparams.fontSizeSS;
+            iconStyleSS.contentOffset = new Vector2(0, 1);
+            iconStyleSS.margin.left  = 0;
+            iconStyleSS.margin.right = 0;
+            iconStyleSS.padding.left = 1;
+            iconStyleSS.padding.right = 1;
         }
 
         public void SetupFloatSlider(string label, EditValue edit, float sliderMin, float sliderMax,
@@ -91,9 +103,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
             var changed = false;
 
             Action<float> preset = (val) => {
-                var blabel = val.ToString(CultureInfo.InvariantCulture);
-                GUILayoutOption opt = getWidthOpt(blabel.Length);
-                if (!GUILayout.Button(blabel, bStyleSS, opt)) return;
+                var cont = new GUIContent(val.ToString(CultureInfo.InvariantCulture));
+                if (!GUILayout.Button(cont, bStyleSS, getWidthOpt(cont))) return;
 
                 edit.Set(val);
                 changed = true;
@@ -111,8 +122,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
 
             if (presetOprs != null) {
                 foreach (var pset in presetOprs) {
-                    var widthOpt = getWidthOpt(pset.label.Length);
-                    if (!GUILayout.Button(pset.label, bStyleSS, widthOpt)) continue;
+                    var cont = new GUIContent(pset.label);
+                    if (!GUILayout.Button(cont, bStyleSS, getWidthOpt(cont))) continue;
 
                     edit.SetWithCheck(pset.func(edit.val));
                     changed = true;
@@ -126,8 +137,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
             }
         }
 
-        private GUILayoutOption getWidthOpt(int length) {
-            switch (length) {
+        private GUILayoutOption getWidthOpt(GUIContent cont) {
+            switch (cont.text.Length) {
             case 0:
             case 1:
                 return bWidthOpt;
@@ -136,7 +147,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
             case 3:
                 return bWidthTOpt;
             default:
-                return GUILayout.Width(baseWidth * 0.45f * (length + 1));
+                return GUILayout.Width( bStyleSS.CalcSize(cont).x + 2 ); //baseWidth * 0.45f * (length + 1));
             }
         }
 
@@ -144,31 +155,32 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
         public static readonly float[] DEFAULT_PRESET = {0, 0.5f, 1f};
         public static readonly float[] DEFAULT_PRESET2 = {0, 0.5f, 1f, 1.5f, 2f};
 
-        internal bool setColorSlider(ShaderPropColor colProp, ref EditColor edit, ColorPicker picker=null) {
+        internal bool DrawColorSlider(ShaderPropColor colProp, ref EditColor edit, ColorPicker picker=null) {
             var expand = true;
             var presets = (colProp.composition) ? DEFAULT_PRESET2 : DEFAULT_PRESET;
                 
-            return setColorSlider(colProp.name, ref edit, colProp.colorType, presets, ref expand, picker);
+            return DrawColorSlider(colProp.name, ref edit, colProp.colorType, presets, ref expand, picker);
         }
 
-        internal bool setColorSlider(string label, ref EditColor edit, IEnumerable<float> vals, ref bool expand, ColorPicker picker = null) {
-            return setColorSlider(label, ref edit, edit.type, vals, ref expand, picker);
+        internal bool DrawColorSlider(string label, ref EditColor edit, IEnumerable<float> vals, ref bool expand, ColorPicker picker = null) {
+            return DrawColorSlider(label, ref edit, edit.type, vals, ref expand, picker);
         }
 
-        internal bool setColorSlider(string label, ref EditColor edit, ColorType colType, IEnumerable<float> vals, ref bool expand, ColorPicker picker=null) {
+        internal bool DrawColorSlider(string label, ref EditColor edit, ColorType colType, IEnumerable<float> vals, ref bool expand, ColorPicker picker=null) {
             GUILayout.BeginHorizontal();
             var c = edit.val;
             var changed = false;
             try {
                 if (picker != null) {
-                    if (GUILayout.Button(picker.ColorTex, uiParams.lStyle, optItemHeight, optPickerWidth, GUILayout.ExpandWidth(false))) {
+                    picker.Color = c;
+                    if (GUILayout.Button(picker.ColorTex, uiParams.lStyleS, optItemHeight, picker.IconWidth, GUILayout.ExpandWidth(false))) {
                         picker.expand = !picker.expand;
                     }
                 }
                 if (GUILayout.Button(label, uiParams.lStyle, optItemHeight)) {
                     expand = !expand;
                 }
-                if (picker != null && picker.ColorCode != null) {
+                if (picker != null && ColorPicker.IsColorCode(picker.ColorCode)) {
                     if (GUILayout.Button(CopyIcon, uiParams.lStyle, optCPWidth, optItemHeight)) {
                         clipHandler.SetClipboard(picker.ColorCode);
                     }
@@ -191,16 +203,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
                     }
 
                     var code = GUILayout.TextField(picker.ColorCode, 7, uiParams.textStyleSC, optCodeWidth);
-                    if (code != picker.ColorCode) {
-                        
+                    if (code != picker.ColorCode && picker.SetColorCode(code)) {
+                        c = picker.Color;
+                        changed = true;
                     }
                 }
                 
                 if (!expand) return false;
 
                 foreach (var val in vals) {
-                    var blabel = val.ToString(CultureInfo.InvariantCulture);
-                    if (!GUILayout.Button(blabel, bStyleSS, getWidthOpt(blabel.Length))) continue;
+                    var cont = new GUIContent(val.ToString(CultureInfo.InvariantCulture));
+                    if (!GUILayout.Button(cont, bStyleSS, getWidthOpt(cont))) continue;
                     c.r = c.g = c.b = val;
                     changed = true;
                 }
@@ -212,7 +225,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
                     else c.g -= DELTA;
                     if (c.b < DELTA) c.b = 0;
                     else c.b -= DELTA;
-
                     changed = true;
                 }
 
@@ -239,7 +251,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
                 changed |= DrawValueSlider("A", ref edit, idx, ref c.a);
             }
             if (picker != null) {
-                picker.Color = c;
                 if (picker.expand && picker.DrawLayout()) {
                     c = picker.Color;
                     changed = true;

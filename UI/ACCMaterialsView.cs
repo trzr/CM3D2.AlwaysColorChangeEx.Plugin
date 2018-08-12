@@ -40,7 +40,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         private static GUIContent plusIcon;
         private static GUIContent minusIcon;
         private static GUIContent copyIcon;
-        private static GUIContent[] pasteIcon;
+        private static GUIContent[] pasteIcons;
 
         private static GUIContent PlusIcon {
             get { return plusIcon ?? (plusIcon = new GUIContent(resHolder.PlusImage)); }
@@ -54,9 +54,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             get { return copyIcon ?? (copyIcon = new GUIContent("コピー", resHolder.CopyImage, "マテリアル情報をクリップボードへコピーする")); }
         }
 
-        private static GUIContent[] PasteIcon {
+        private static GUIContent[] PasteIcons {
             get {
-                return pasteIcon ?? (pasteIcon = new[] {
+                return pasteIcons ?? (pasteIcons = new[] {
                     new GUIContent("全貼付", resHolder.PasteImage, "クリップボードからマテリアル情報を貼付ける"),
                     new GUIContent("指定貼付", resHolder.PasteImage, "クリップボードからマテリアル情報を貼付ける"),
                 });
@@ -160,7 +160,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     }
 
                     GUI.enabled &= clipHandler.isMateText;
-                    var icons = PasteIcon;
+                    var icons = PasteIcons;
                     if (GUILayout.Button(icons[0], optUnitHeight, optButonWidthS)) {
                         try {
                             MateHandler.Instance.Write(edited, clipHandler.mateText);
@@ -249,7 +249,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 //                        }
                     }
 
-                    if (sliderHelper.setColorSlider(colProp, ref editColor, picker)) {
+                    if (sliderHelper.DrawColorSlider(colProp, ref editColor, picker)) {
                         material.SetColor(colProp.propId, editColor.val);
                     }
                 }

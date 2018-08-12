@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
     /// <summary>

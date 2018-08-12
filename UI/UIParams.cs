@@ -84,7 +84,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         public GUILayoutOption optBtnWidth;
         public GUILayoutOption optCategoryWidth;
         public GUILayoutOption optDBtnWidth;
-        public GUILayoutOption optSLabelWidth;
+        public GUILayoutOption optToggleSWidth;
 
         public GUILayoutOption optContentWidth;
 
@@ -207,15 +207,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             optSubConHeight = GUILayout.Height(winRect.height - unitHeight * 3f);
             optSubCon6Height = GUILayout.Height(winRect.height - unitHeight * 6.6f);
             optSubConHalfWidth = GUILayout.Width((winRect.width - marginL * 2) * 0.5f); // margin値が小さい前提になってしまっている
-            optSLabelWidth = GUILayout.Width(fontSizeS * 6f);
+            optToggleSWidth = GUILayout.Width(tStyleS.CalcSize(new GUIContent("ＸＸＸＸＸ")).x); // 全角５文字
 
             mainRect.Set(margin, unitHeight * 5 + margin, winRect.width - margin * 2, winRect.height - unitHeight * 6.5f);
             textureRect.Set(margin, unitHeight, winRect.width - margin * 2, winRect.height - unitHeight * 2.5f);
             var baseWidth = subConWidth - 20;
             optBtnWidth = GUILayout.Width(baseWidth * 0.09f);
-            optDBtnWidth = GUILayout.Width(fontSizeS * 5f * 0.6f);
+            optDBtnWidth = GUILayout.Width(bStyle.CalcSize(new GUIContent("ＸＸ")).x); // 全角2文字
             optContentWidth = GUILayout.MaxWidth(baseWidth * 0.69f);
-            optCategoryWidth = GUILayout.MaxWidth(fontSize * 12f * 0.47f);
+            optCategoryWidth = GUILayout.MaxWidth(lStyleS.CalcSize(new GUIContent("xxxxxxxxxxxx")).x); // 12文字
 
             nodeSelectRect.Set(margin, unitHeight * 2, winRect.width - margin * 2, winRect.height - unitHeight * 4.5f);
             colorRect.Set(margin, unitHeight * 2, winRect.width - margin, winRect.height - unitHeight * 5);
@@ -228,7 +228,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         }
 
         public void InitWinRect() {
-            winRect.Set(width - FixPx(310), FixPx(48), FixPx(300), height - FixPx(150));
+            winRect.Set(width - FixPx(360), FixPx(48), FixPx(350), height - FixPx(150));
             titleBarRect.Set(0, 0, winRect.width, 24f);
         }
 

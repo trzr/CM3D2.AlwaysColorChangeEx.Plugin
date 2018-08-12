@@ -88,14 +88,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         }
 
         private Texture2D mapTex;
-        private Texture2D MapTex {
+        public Texture2D MapTex {
             get {
                 if (mapTex == null) {
                     var baseTex = MapBaseTex;
                     mapTex = new Texture2D(baseTex.width, baseTex.height, baseTex.format, false);
+                    Transfer(MapBaseTex, mapTex, _light);
                 }
                 return mapTex;
             }
+        }
+
+        private GUILayoutOption iconWidth;
+        public GUILayoutOption IconWidth {
+            get { return iconWidth ?? (iconWidth = GUILayout.Width(ColorTex.width)); }
         }
 
         private Color GetMapColor(int x, int y) {
@@ -203,6 +209,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         private const float RANGE_UNIT = 3f / Mathf.PI;
         #endregion
 
+        public ColorPicker() {
+            ColorCode = string.Empty;
+        }
+
         private void ToColorCode() {
             var r = (int)(_color.r * 255);
             var g = (int)(_color.g * 255);
@@ -210,9 +220,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
             colorCode.Length = 0;
             colorCode.Append('#')
-                .Append(r.ToString("X2"))
-                .Append(g.ToString("X2"))
-                .Append(b.ToString("X2"));
+                .Append(r.ToString("x2")) // Uppercase:X2
+                .Append(g.ToString("x2"))
+                .Append(b.ToString("x2"));
             ColorCode = colorCode.ToString();
         }
 

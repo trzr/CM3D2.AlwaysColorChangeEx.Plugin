@@ -105,6 +105,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private bool bPresetApplyWear = true;
         private bool bPresetApplyBodyProp   = true;
         private bool bPresetApplyPartsColor = true;
+        private bool bPresetSavable;
         private Maid toApplyPresetMaid;
 
         private bool isSavable;
@@ -119,6 +120,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private Vector2 scrollViewPosition = Vector2.zero;
         // 表示名切り替え
         private bool nameSwitched;
+
+        // thumcache等
+        private readonly Dictionary<int, GUIContent> _contentDic = new Dictionary<int, GUIContent>();
+
+        private readonly List<SelectMaidData> _maidList = new List<SelectMaidData>();
+        private readonly List<SelectMaidData> _manList = new List<SelectMaidData>();
 
         // テクスチャ変更用
         //  現在のターゲットのslotに関するメニューが変更されたらGUIを更新。それ以外は更新しない
@@ -136,6 +143,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private Maid selectedMaid;
         private string selectedName;
 
+        private GUIContent title;
         // TIPS
         private const int TIPS_MARGIN = 24;
         private bool displayTips;
@@ -145,7 +153,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         // BoneRender
         private SliderHelper sliderHelper;
         private CheckboxHelper cbHelper;
-//        private SlotCache[] slotCaches;
         #endregion
 
         public AlwaysColorChangeEx() {
@@ -183,8 +190,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
             // Initialize
             ShaderPropType.Initialize();
-            //var go = new GameObject("BoneRenderer");
-            //boneRenderer = go.AddComponent<CustomBoneRenderer>();
             
             sliderHelper = new SliderHelper(uiParams);
             cbHelper = new CheckboxHelper(uiParams);
@@ -195,10 +200,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             saveView = new ACCSaveMenuView(uiParams);
             boneSlotView = new ACCBoneSlotView(uiParams, sliderHelper);
             partsColorView = new ACCPartsColorView(uiParams, sliderHelper);
-            // for (var i = 0; i < SceneManager.sceneCountInBuildSettings; ++i) {
-            //     var scene = SceneUtility.GetScenePathByBuildIndex(i);
-            //     LogUtil.Debug(i, ":", scene);
-            // }
+
         }
 
         public void Start() {
@@ -324,7 +326,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             if (settings.SSWithoutUI && !IsEnabledUICamera()) return; // UI無し撮影
 
             try {
-                if (Event.current.type != EventType.Layout) return;
+                if (Event.current.type == EventType.Repaint) return;
                 if (!holder.CurrentActivated()) {
                     // メイド未選択、あるいは選択中のメイドが無効化された場合
                     UpdateSelectMaid();
@@ -362,7 +364,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                         uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectBoneSlot, Version, uiParams.winStyle);
                         break;
                     case MenuType.PartsColor:
-                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoChangePartsColor, Version, uiParams.winStyle);
+                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoEditPartsColor, Version, uiParams.winStyle);
                         break;
                     case MenuType.MaidSelect:
                         uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectMaid, Version, uiParams.winStyle);
@@ -542,9 +544,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
         #endregion
 
-        // thumcache等
-        private readonly Dictionary<int, GUIContent> _contentDic = new Dictionary<int, GUIContent>();
-
         private GUIContent GetOrAddMaidInfo(Maid m, int idx=-1) {
             GUIContent content;
             var id = m.gameObject.GetInstanceID();
@@ -570,9 +569,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 content = content0;
             }
         }
-
-        private readonly List<SelectMaidData> _maidList = new List<SelectMaidData>();
-        private readonly List<SelectMaidData> _manList = new List<SelectMaidData>();
 
         private void InitMaidList() {
             _maidList.Clear();
@@ -743,7 +739,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 GUILayout.Space(uiParams.margin);
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("マテ情報変更 スロット選択", uiParams.lStyleC);
-                nameSwitched = GUILayout.Toggle(nameSwitched, "表示切替", uiParams.tStyleS, uiParams.optSLabelWidth);
+                nameSwitched = GUILayout.Toggle(nameSwitched, "表示切替", uiParams.tStyleS, uiParams.optToggleSWidth);
                 GUILayout.EndHorizontal();
                 scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition, 
                                                                GUILayout.Width(uiParams.mainRect.width),
@@ -824,7 +820,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             return ret;
         }
 
-        private GUIContent title;
         private void DoColorMenu(int winID) {
             var slot = holder.GetCurrentSlot();
             if (title == null) {
@@ -899,7 +894,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 GUILayout.Width(uiParams.colorRect.width),
                 GUILayout.Height(uiParams.colorRect.height));
             try {
-                var reload = refreshCounter.Next();
+                var reload = Event.current.type == EventType.Layout && refreshCounter.Next();
                 if (reload) ClipBoardHandler.Instance.Reload();
 
                 foreach (var view in materialViews) {
@@ -1055,7 +1050,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 // falseがマスクの模様
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("マスクアイテム選択", uiParams.lStyleB, titleWidth);
-                nameSwitched = GUILayout.Toggle(nameSwitched, "表示切替", uiParams.tStyleS, uiParams.optSLabelWidth);
+                nameSwitched = GUILayout.Toggle(nameSwitched, "表示切替", uiParams.tStyleS, uiParams.optToggleSWidth);
                 GUILayout.EndHorizontal();
 
                 if (holder.CurrentMaid == null) return ;
@@ -1233,7 +1228,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("表示ノード選択", uiParams.lStyleB, titleWidth);
                 GUILayout.Space(uiParams.margin);
-                nameSwitched = GUILayout.Toggle(nameSwitched, "表示切替", uiParams.tStyleS, uiParams.optSLabelWidth);
+                nameSwitched = GUILayout.Toggle(nameSwitched, "表示切替", uiParams.tStyleS, uiParams.optToggleSWidth);
                 GUILayout.EndHorizontal();
 
                 if (holder.CurrentMaid == null) return ;
@@ -1354,7 +1349,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             }
         }
 
-        bool bPresetSavable;
         private void DoSaveMenu(int winID) {
             GUILayout.BeginVertical();
             try {
@@ -1594,7 +1588,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             }
         }
 
-        private void DoChangePartsColor(int winId) {
+        private void DoEditPartsColor(int winId) {
             try {
                 partsColorView.Show();
             } finally {
@@ -1604,6 +1598,5 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 GUI.DragWindow(uiParams.titleBarRect);
             }
         }
-
    }
 }

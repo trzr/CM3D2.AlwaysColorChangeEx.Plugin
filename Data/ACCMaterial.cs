@@ -14,6 +14,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// </summary>
     public class ACCMaterial {
         internal static Settings settings = Settings.Instance;
+        public const int ICON_SIZE = 16;
 
         public ACCMaterial Original {get; private set;}
         public Renderer renderer;
@@ -76,13 +77,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             var colProps = type.colProps;
             editColors = new EditColor[colProps.Length];
             pickers = new ColorPicker[colProps.Length];
-            var size = UIParams.Instance.itemHeight;
             for (var i=0; i<colProps.Length; i++) {
                 var colProp = colProps[i];
                 var color = material != null ? material.GetColor(colProp.propId) : colProp.defaultVal;
                 var ec = new EditColor(color, colProp.colorType, colProp.composition);
                 editColors[i] = ec;
-                var picker = new ColorPicker {ColorTex = new Texture2D(size, size, TextureFormat.RGB24, false)};
+                var picker = new ColorPicker {ColorTex = new Texture2D(ICON_SIZE, ICON_SIZE, TextureFormat.RGB24, false)};
                 picker.SetTexColor(ref color);
                 pickers[i] = picker;
             }
