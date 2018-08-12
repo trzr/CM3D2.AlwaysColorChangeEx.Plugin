@@ -728,7 +728,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     if (GUILayout.Button("ボーン表示", uiParams.bStyle, uiParams.optSubConHalfWidth)) {
                         SetMenu(MenuType.BoneSlotSelect);
                     }
-                    if (GUILayout.Button("パートカラー変更", uiParams.bStyle, uiParams.optSubConHalfWidth)) {
+                    if (GUILayout.Button("パーツカラー変更", uiParams.bStyle, uiParams.optSubConHalfWidth)) {
                         SetMenu(MenuType.PartsColor);
                     }
                 } finally {

@@ -146,7 +146,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             var titleHeight = GUILayout.Height(uiParams.titleBarRect.height);
             try {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("パートカラー", uiParams.lStyleB, titleWidth, titleHeight);
+                GUILayout.Label("パーツカラー", uiParams.lStyleB, titleWidth, titleHeight);
                 GUILayout.EndHorizontal();
 
                 var maid = holder.CurrentMaid;
