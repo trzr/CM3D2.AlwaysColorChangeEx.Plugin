@@ -105,7 +105,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         }
 
         private Color GetMapColor(int x, int y) {
-            return MapTex.GetPixel(x, MapTex.height - 1 - y);
+            return MapTex.GetPixel(x, MapTex.height - y);
         }
         
         private GUIStyle texStyle;
@@ -154,7 +154,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             }
             get {
                 if (mapBaseTex == null) {
-                    mapBaseTex = CreateRGBMapTex(size, size);
+                    mapBaseTex = CreateRGBMapTex(size+1, size+1);
                 }
                 return mapBaseTex;
             }
@@ -286,15 +286,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             if (e.button == 0 && (e.type == EventType.MouseDown || e.type == EventType.MouseDrag)) {
 
                 var mousePos = e.mousePosition;
-                var contains = rect.Contains(mousePos);
-                if (e.type == EventType.MouseDown && contains) mapDragging = true; // ここでのフラグ判定は、透過色でのドラッグも含まれる
-                if (contains || mapDragging) {
+                if (mapDragging || rect.Contains(mousePos)) {
                     var x = (int) (mousePos.x - rect.x);
                     var y = (int) (mousePos.y - rect.y);
+
                     Color col;
                     if (mapDragging) {
                         var centerX = mapTex.width / 2;
-                        var centerY = mapTex.height / 2;
+                        var centerY = Mathf.CeilToInt(mapTex.height/ 2f); // Y軸反転のため、奇数の場合は切り上げ
                         var radius = Math.Min(centerX, centerY);
                         var dist = Distance(x, y, centerX, centerY);
                         if (dist <= radius) {
@@ -308,12 +307,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                             x = (int)((x-centerX) * mul) + centerX;
                             y = (int)((y-centerY) * mul) + centerY;
                         }
-                    } else {
+
+                    } else if (e.type == EventType.MouseDown) {
                         col = GetMapColor(x, y);
                         // 透過色の場合は無視
                         if (Equals(col.a, 0f)) return false;
-                    }
+                        mapDragging = true;
 
+                    } else {
+                        return false;
+                    }
                     _color = col;
                     SetTexColor(ref _color, texEdgeSize);
                     ToColorCode();
@@ -345,9 +348,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             if (e.button == 0 && (e.type == EventType.MouseDown || e.type == EventType.MouseDrag)) {
 
                 var mousePos = e.mousePosition;
-                var contains = rect.Contains(mousePos);
-                if (e.type == EventType.MouseDown && contains) lightDragging = true;
-                if (contains || lightDragging) {
+                if (e.type == EventType.MouseDown && rect.Contains(mousePos)) lightDragging = true;
+                if (lightDragging) {
                     var light1 = 1f - (mousePos.y - rect.y - 1)/size;
                     if (1f < light1) light1 = 1f;
                     else if (light1 < 0f) light1 = 0f;
@@ -371,7 +373,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         }
 
         private static Texture2D CreateLightTex(int width, int height, int frameWidth) {
-            var tex = new Texture2D(width+frameWidth*2, height+frameWidth*2, TextureFormat.ARGB32, false);
+            var tex = new Texture2D(width+frameWidth*2, height+frameWidth*2, TextureFormat.RGB24, false);
             var denom = height - 1;
             var frameCol = Color.gray;
             for (var y = frameWidth; y < height+frameWidth; y++) {
@@ -411,7 +413,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         private static Texture2D CreateRGBMapTex(int width, int height) {
             var tex = new Texture2D(width, height, TextureFormat.ARGB32, false);
             var centerX = width/2;
-            var centerY = height/2;
+            var centerY = height/2;　//　Mathf.FloorToInt(height/2f);
             var radius = Math.Min(centerX, centerY);
             var centerCol = Color.white;
             for (var y = 0; y < height; y++) {
