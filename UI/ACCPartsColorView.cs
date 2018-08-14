@@ -167,31 +167,33 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                         if (epc.HasMainChanged(ref part)) {
                             epc.SetMain(part);
                         }
-                        if (sliderHelper.DrawColorSlider("色", ref epc.main, SliderHelper.DEFAULT_PRESET, ref epc.mainExpand, epc.mainPicker)) {
-                            epc.ReflectMain();
-                            maid.Parts.SetPartsColor(pcEnum, epc.parts);
+                        if (epc.HasShadowChanged(ref part)) {
+                            epc.SetShadow(part);
                         }
                         if (part.m_nMainContrast != epc.c.val) epc.c.Set(part.m_nMainContrast);
-                        if (sliderHelper.DrawValueSlider("C", epc.c)) {
+                        if (sliderHelper.DrawValueSlider("主C", epc.c)) {
                             part.m_nMainContrast = epc.c.val;
                             maid.Parts.SetPartsColor(pcEnum, part);
                             epc.SetParts(part);
                         }
 
-                        if (epc.HasShadowChanged(ref part)) {
-                            epc.SetShadow(part);
+                        if (part.m_nShadowContrast != epc.shadowC.val) epc.shadowC.Set(part.m_nShadowContrast);
+                        if (sliderHelper.DrawValueSlider("影C", epc.shadowC)) {
+                            part.m_nShadowContrast = epc.shadowC.val;
+                            maid.Parts.SetPartsColor(pcEnum, part);
+                            epc.SetParts(part);
                         }
+
+                        if (sliderHelper.DrawColorSlider("主色", ref epc.main, SliderHelper.DEFAULT_PRESET, ref epc.mainExpand, epc.mainPicker)) {
+                            epc.ReflectMain();
+                            maid.Parts.SetPartsColor(pcEnum, epc.parts);
+                        }
+
                         if (sliderHelper.DrawColorSlider("影色", ref epc.shadow, SliderHelper.DEFAULT_PRESET, ref epc.shadowExpand, epc.shadowPicker)) {
                             epc.ReflectShadow();
                             maid.Parts.SetPartsColor(pcEnum, epc.parts);
                         }
 
-                        if (part.m_nShadowContrast != epc.shadowC.val) epc.shadowC.Set(part.m_nShadowContrast);
-                        if (sliderHelper.DrawValueSlider("C", epc.shadowC)) {
-                            part.m_nShadowContrast = epc.shadowC.val;
-                            maid.Parts.SetPartsColor(pcEnum, part);
-                            epc.SetParts(part);
-                        }
                     }
 
                 } finally {
