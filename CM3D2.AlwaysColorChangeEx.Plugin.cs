@@ -14,7 +14,7 @@ using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 
-[assembly: AssemblyVersion("3.1.1")]
+[assembly: AssemblyVersion("3.1.2")]
 namespace CM3D2.AlwaysColorChangeEx.Plugin {
 #if COM3D2
     [PluginFilter("COM3D2x64"),
@@ -27,7 +27,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
      PluginFilter("CM3D2OHVRx64"),
 #endif
      PluginName("CM3D2_ACCex"),
-     PluginVersion("0.3.1.1")]
+     PluginVersion("0.3.1.2")]
     class AlwaysColorChangeEx : PluginBase {
 
         public static volatile string PluginName;
