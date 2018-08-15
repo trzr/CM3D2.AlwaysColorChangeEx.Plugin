@@ -101,8 +101,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render {
                 parentBone = go.transform;
                 foreach (Transform child in parentBone) {
                     if (child.childCount == 0) continue;
-                    _rootBone = child;
+
+                    var before = _lineDict.Count;
                     SetupBone(child);
+                    _rootBone = child;
+
+                    if (_lineDict.Count - before > 1) break; // 有効な子ノードを抽出した場合に終了
                 }
             }
 
