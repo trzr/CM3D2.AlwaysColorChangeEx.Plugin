@@ -13,7 +13,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// スライダー操作中のデータを保持する.
     /// </summary>
     public class ACCMaterial {
-        internal static Settings settings = Settings.Instance;
+        internal static readonly Settings settings = Settings.Instance;
         public const int ICON_SIZE = 16;
 
         public ACCMaterial Original {get; private set;}
@@ -30,6 +30,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         public EditValue[] editVals;
 
         public string rqEdit;
+
         protected ACCMaterial(ShaderType type) {
             this.type = type;
             InitType();

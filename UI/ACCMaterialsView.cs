@@ -12,7 +12,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         private static GUIContent[] ShaderNames {
             get {
                 if (shaderNames != null) return shaderNames;
-//                    CustomShaderHolder.InitShader();
                 var length = ShaderType.shaders.Length;
                 shaderNames = new GUIContent[length];
                 foreach (var shaderType in ShaderType.shaders) {
@@ -31,8 +30,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         }
 
         public static void Clear() {
-            //changeShaders.Clear();
-
             if (uiParams != null) uiParams.Remove(updateUI);
         }
 

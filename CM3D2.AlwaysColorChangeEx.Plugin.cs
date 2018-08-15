@@ -150,7 +150,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private Rect tipRect;
         private string tips;
 
-        // BoneRender
         private SliderHelper sliderHelper;
         private CheckboxHelper cbHelper;
         #endregion

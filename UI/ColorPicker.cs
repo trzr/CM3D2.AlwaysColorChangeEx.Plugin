@@ -10,6 +10,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
     public class ColorPicker {
         #region Fields/Properties
+
+        public bool expand;
+        // 色テクスチャの縁サイズ
+        public int texEdgeSize = 0;
+
+        private Vector2 pos;
+        private bool mapDragging;
+        private bool lightDragging;
+
         private Color _color;
         public Color Color {
             set {
@@ -73,8 +82,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             dstTex.Apply();
         }
 
-        // 色テクスチャの縁サイズ
-        public int texEdgeSize = 0;
         // 色テクスチャ(透過を含まないRGBのみの色を表示)
         private Texture2D colorTex;
         public Texture2D ColorTex {
@@ -129,20 +136,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             var g = Uri.FromHex(code[3]) * 16 + Uri.FromHex(code[4]);
             var b = Uri.FromHex(code[5]) * 16 + Uri.FromHex(code[6]);
             Color = new Color(r/255f, g/255f, b/255f);
-            LogUtil.Debug("ColorCode:", code, "->", _color);
+            // LogUtil.Debug("ColorCode:", code, "->", _color);
 
             return true;
         }
-
-        public bool expand;
-        private Vector2 pos;
-        private bool mapDragging;
-        private bool lightDragging;
         #endregion
 
         #region Static Fields/Properties
         private static readonly GUIStyle labelStyle = new GUIStyle("label");
         private static readonly GUILayoutOption labelWidth = GUILayout.Width(16f);
+        private static readonly Color Empty = Color.clear;
+
+        private const int FRAME_WIDTH = 1;
+        private const float RANGE_UNIT = 3f / Mathf.PI;
+        public static int size = 256;
 
         private static Texture2D mapBaseTex;
         public static Texture2D MapBaseTex {
@@ -188,6 +195,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 return crossTex;
             }
         }
+
         public static bool HasColorCodeClip() {
             var clip = ClipBoardHandler.Instance.GetClipboard();
             return IsColorCode(clip);
@@ -203,10 +211,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             return false;
         }
 
-        public static int size = 256;
-        private static readonly Color Empty = Color.clear;
-        private const int FRAME_WIDTH = 1;
-        private const float RANGE_UNIT = 3f / Mathf.PI;
+
         #endregion
 
         public ColorPicker() {
@@ -235,12 +240,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             var bloclWidth  = tex.width - frame * 2;
             var blockHeight = tex.height - frame * 2;
             var pixels = tex.GetPixels(frame, frame, bloclWidth, blockHeight, 0);
-//            var pixels = tex.GetPixels32(0);
             for (var i = 0; i< pixels.Length; i++) {
                 pixels[i] = col;
             }
             tex.SetPixels(frame, frame, bloclWidth, blockHeight, pixels);
-//            tex.SetPixels32(pixels);
             tex.Apply();
         }
 
@@ -256,7 +259,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 GUI.DrawTexture(new Rect(lastRect.x + pos.x - offset, lastRect.y + pos.y - offset, tex.width, tex.height), tex);
                 var changed = MapPickerEvent(ref lastRect);
 
-                GUILayout.Space(30f);
+                GUILayout.Space(20f);
                 GUILayout.Label(string.Empty, TexLightStyle, GUILayout.Width(lightTex.width), GUILayout.Height(lightTex.height));
                 lastRect = GUILayoutUtility.GetLastRect();
                 tex = CircleTex;
