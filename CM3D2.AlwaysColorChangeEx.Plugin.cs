@@ -13,7 +13,6 @@ using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
-using CM3D2.AlwaysColorChangeEx.Plugin.Render;
 
 [assembly: AssemblyVersion("3.1.1")]
 namespace CM3D2.AlwaysColorChangeEx.Plugin {
@@ -150,6 +149,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private Rect tipRect;
         private string tips;
 
+        private ColorPresetManager colorPresetMgr;
         private SliderHelper sliderHelper;
         private CheckboxHelper cbHelper;
         #endregion
@@ -192,6 +192,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             
             sliderHelper = new SliderHelper(uiParams);
             cbHelper = new CheckboxHelper(uiParams);
+            colorPresetMgr = ColorPresetManager.Instance;
+            var colorPresetFile = Path.Combine(settings.presetDirPath, "_ColorPreset.csv");
+            colorPresetMgr.Count = 40;
+            colorPresetMgr.SetPath(colorPresetFile);
             
 #if UNITY_5_5_OR_NEWER
             SceneManager.sceneLoaded += SceneLoaded;
@@ -200,6 +204,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             boneSlotView = new ACCBoneSlotView(uiParams, sliderHelper);
             partsColorView = new ACCPartsColorView(uiParams, sliderHelper);
 
+            uiParams.Add(UpdateUIParams);
+        }
+
+        private void UpdateUIParams(UIParams uParams) {
+            colorPresetMgr.BtnStyle.fontSize = uParams.fontSizeS;
+            colorPresetMgr.BtnWidth = GUILayout.Width(colorPresetMgr.BtnStyle.CalcSize(new GUIContent("Update")).x);
         }
 
         public void Start() {
@@ -211,6 +221,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             Dispose();
             presetNames.Clear();
 
+            uiParams.Remove(UpdateUIParams);
             //detector.Clear();
 #if UNITY_5_5_OR_NEWER
             SceneManager.sceneLoaded -= SceneLoaded;

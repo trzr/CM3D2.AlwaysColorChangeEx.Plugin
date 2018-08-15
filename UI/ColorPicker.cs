@@ -6,15 +6,15 @@ using Color = UnityEngine.Color;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
-    // TODO color preset
-
     public class ColorPicker {
         #region Fields/Properties
+        private readonly ColorPresetManager presetMgr;
 
         public bool expand;
         // 色テクスチャの縁サイズ
         public int texEdgeSize = 0;
 
+        private int selectedPreset = -1;
         private Vector2 pos;
         private bool mapDragging;
         private bool lightDragging;
@@ -211,11 +211,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             return false;
         }
 
+        public static Color GetColor(string code) {
+            if (!IsColorCode(code)) return Empty;
+
+            var r = Uri.FromHex(code[1]) * 16 + Uri.FromHex(code[2]);
+            var g = Uri.FromHex(code[3]) * 16 + Uri.FromHex(code[4]);
+            var b = Uri.FromHex(code[5]) * 16 + Uri.FromHex(code[6]);
+            return new Color(r/255f, g/255f, b/255f);
+        }
 
         #endregion
 
-        public ColorPicker() {
+        public ColorPicker(ColorPresetManager presetMgr=null) {
             ColorCode = string.Empty;
+            this.presetMgr = presetMgr;
         }
 
         private void ToColorCode() {
@@ -225,9 +234,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
             colorCode.Length = 0;
             colorCode.Append('#')
-                .Append(r.ToString("x2")) // Uppercase:X2
-                .Append(g.ToString("x2"))
-                .Append(b.ToString("x2"));
+                .Append(r.ToString("X2")) // Uppercase:X2
+                .Append(g.ToString("X2"))
+                .Append(b.ToString("X2"));
             ColorCode = colorCode.ToString();
         }
 
@@ -267,10 +276,87 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
                 changed |= LightSliderEvent(ref lastRect);
 
+                if (presetMgr != null) {
+                    GUILayout.Space(5f);
+                    changed |= DrawPresetLayout();
+                }
                 return changed;
             } finally {
                 GUILayout.EndHorizontal();
             }
+        }
+
+        public bool DrawPresetLayout() {
+            var changed = false;
+            var e = Event.current;
+            GUILayout.BeginVertical();
+            GUILayout.BeginHorizontal();
+            try {
+                var startIdx = 0;
+                while (startIdx < presetMgr.Count) {
+                    GUILayout.BeginVertical();
+                    try {
+                        var endIdx = (startIdx + 10 < presetMgr.Count) ? startIdx + 10 : presetMgr.Count;
+                        for (var i = startIdx; i < endIdx; i++) {
+                            var presetIcon = presetMgr.presetIcons[i];
+                            GUILayout.Label(presetIcon, presetMgr.IconStyle);
+
+                            if (selectedPreset == i) {
+                                var lastRect = GUILayoutUtility.GetLastRect();
+                                var tex = ColorPresetManager.PresetFocusIcon;
+                                GUI.DrawTexture(new Rect(lastRect.x + 1, lastRect.y + 2, tex.width, tex.height), tex);
+                            }
+
+                            if (e.type == EventType.MouseDown && (e.button == 0 || e.button == 1)) {
+                                var mousePos = e.mousePosition;
+                                if (GUILayoutUtility.GetLastRect().Contains(mousePos)) {
+                                    switch (e.button) {
+                                    case 1: // right click
+                                        presetMgr.ClearColor(selectedPreset);
+                                        selectedPreset = i;
+                                        break;
+                                    case 0: // left click
+                                        if (selectedPreset == i) {
+                                            var code = presetMgr.presetCodes[i];
+                                            SetColorCode(code);
+                                            changed = true;
+                                        } else {
+                                            selectedPreset = i;
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } finally {
+                        GUILayout.EndVertical();
+                    }
+                    startIdx += 10;
+                }
+            } finally {
+                GUILayout.EndHorizontal();
+            }
+
+            GUILayout.BeginHorizontal();
+            try {
+                GUI.enabled = selectedPreset != -1;
+                try {
+                    if (GUILayout.Button("Save", presetMgr.BtnStyle, presetMgr.BtnWidth)) {
+                        presetMgr.SetColor(selectedPreset, ColorCode, ref _color);
+                    }
+
+                    if (GUILayout.Button("Delete", presetMgr.BtnStyle, presetMgr.BtnWidth)) {
+                        presetMgr.ClearColor(selectedPreset);
+                    }
+                } finally {
+                    GUI.enabled = true;
+                }
+            } finally {
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.EndVertical();
+
+            return changed;
         }
 
         public bool DrawPicker(ref Rect rect) {

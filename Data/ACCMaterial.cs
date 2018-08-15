@@ -14,6 +14,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// </summary>
     public class ACCMaterial {
         internal static readonly Settings settings = Settings.Instance;
+        internal static readonly ColorPresetManager presetMgr = ColorPresetManager.Instance;
         public const int ICON_SIZE = 16;
 
         public ACCMaterial Original {get; private set;}
@@ -83,7 +84,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                 var color = material != null ? material.GetColor(colProp.propId) : colProp.defaultVal;
                 var ec = new EditColor(color, colProp.colorType, colProp.composition);
                 editColors[i] = ec;
-                var picker = new ColorPicker {ColorTex = new Texture2D(ICON_SIZE, ICON_SIZE, TextureFormat.RGB24, false)};
+                var picker = new ColorPicker(presetMgr) {ColorTex = new Texture2D(ICON_SIZE, ICON_SIZE, TextureFormat.RGB24, false)};
                 picker.SetTexColor(ref color);
                 pickers[i] = picker;
             }
@@ -151,7 +152,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                         color = (Original != null)? Original.GetColor(i): colProp.defaultVal;
                     }
                     createdColors[i] = new EditColor(color, colProp.colorType, colProp.composition);
-                    createdPickers[i] = new ColorPicker {ColorTex = new Texture2D(size, size, TextureFormat.RGB24, false)};
+                    createdPickers[i] = new ColorPicker(presetMgr) {ColorTex = new Texture2D(size, size, TextureFormat.RGB24, false)};
                     createdPickers[i].SetTexColor(ref createdColors[i].val);
                 }
             }

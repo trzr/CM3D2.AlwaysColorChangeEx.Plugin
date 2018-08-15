@@ -9,6 +9,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
     public class ACCPartsColorView {
         private readonly UIParams uiParams;
         private readonly SliderHelper sliderHelper;
+        private readonly ColorPresetManager presetMgr = ColorPresetManager.Instance;
         private readonly MaidHolder holder = MaidHolder.Instance;
 
         private Vector2 scrollViewPosition = Vector2.zero;
@@ -29,20 +30,24 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             public MaidParts.PartsColor parts;
             public EditColor main   = new EditColor(Color.white, ColorType.rgb, false);
             public bool mainExpand = true;
-            public readonly ColorPicker mainPicker = new ColorPicker();
+            public readonly ColorPicker mainPicker;
             public EditColor shadow = new EditColor(Color.white, ColorType.rgb, false);
             public bool shadowExpand = true;
-            public readonly ColorPicker shadowPicker = new ColorPicker();
+            public readonly ColorPicker shadowPicker;
 
-            public EditIntValue c = new EditIntValue(100, EditRange.contrast);
-            public EditIntValue shadowC = new EditIntValue(100, EditRange.contrast);
-            public EditIntValue shadowRate = new EditIntValue(128, EditRange.rate);
+            public readonly EditIntValue c = new EditIntValue(100, EditRange.contrast);
+            public readonly EditIntValue shadowC = new EditIntValue(100, EditRange.contrast);
+            public readonly EditIntValue shadowRate = new EditIntValue(128, EditRange.rate);
             public bool expand;
-            public EditParts(ref MaidParts.PartsColor pc) {
-                mainPicker.ColorTex = new Texture2D(32, 20, TextureFormat.RGB24, false);
-                shadowPicker.ColorTex = new Texture2D(32, 20, TextureFormat.RGB24, false);
-                mainPicker.texEdgeSize = 2;
-                shadowPicker.texEdgeSize = 2;
+            public EditParts(ref MaidParts.PartsColor pc, ColorPresetManager presetMgr) {
+                mainPicker = new ColorPicker(presetMgr) {
+                    ColorTex = new Texture2D(32, 20, TextureFormat.RGB24, false),
+                    texEdgeSize = 2
+                };
+                shadowPicker = new ColorPicker(presetMgr) {
+                    ColorTex = new Texture2D(32, 20, TextureFormat.RGB24, false),
+                    texEdgeSize = 2
+                };
                 var frameCol = Color.white;
                 mainPicker.SetTexColor(ref frameCol, 0);
                 shadowPicker.SetTexColor(ref frameCol, 0);
@@ -135,7 +140,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     if (!editPartColors.Any()) {
                         for (var pcEnum = MaidParts.PARTS_COLOR.NONE + 1; pcEnum < MaidParts.PARTS_COLOR.MAX; pcEnum++) {
                             var part = maid.Parts.GetPartsColor(pcEnum);
-                            editPartColors.Add(new EditParts(ref part));
+                            editPartColors.Add(new EditParts(ref part, presetMgr));
                         }
                     }
 

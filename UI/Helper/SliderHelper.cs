@@ -56,7 +56,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
 
             optInputWidth = GUILayout.Width(sliderInputWidth);
             optItemHeight = GUILayout.Height(uiparams.itemHeight);
-            optCodeWidth = GUILayout.Width(uiparams.textStyleSC.CalcSize(new GUIContent("#dddddd")).x);
+            optCodeWidth = GUILayout.Width(uiparams.textStyleSC.CalcSize(new GUIContent("#DDDDDD")).x);
             if (optCPWidth == null) optCPWidth = GUILayout.Width(17);
 
             textColor = uiparams.textStyleSC.normal.textColor;

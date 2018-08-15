@@ -20,17 +20,19 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         private int selectedSlotID;
         private bool boneVisible;
         private bool skipEmptySlot = true;
-        private readonly ColorPicker picker = new ColorPicker();
+        private readonly ColorPicker picker;
 
         public ACCBoneSlotView(UIParams uiParams, SliderHelper sliderHelper) {
             this.uiParams = uiParams;
             boneRenderer = new CustomBoneRenderer();
             this.sliderHelper = sliderHelper;
-
-            slotNames = CreateSlotNames();
-            picker.ColorTex = new Texture2D(32, uiParams.itemHeight, TextureFormat.RGB24, false);
+            picker = new ColorPicker(ColorPresetManager.Instance) {
+                ColorTex = new Texture2D(32, uiParams.itemHeight, TextureFormat.RGB24, false)
+            };
             var col = Color.white;
             picker.SetTexColor(ref col);
+
+            slotNames = CreateSlotNames();
         }
 
         public void Update() {
