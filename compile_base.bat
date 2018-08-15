@@ -60,17 +60,20 @@
 @rem @set OPTS=%OPTS% /r:%MANAGED%\UnityEngine.dll
 @rem @set OPTS=%OPTS% /r:%MANAGED%\UnityEngine.UI.dll
 
-@set OPTS=%OPTS% /resource:Resource\Folder16.png,folder.png
-@set OPTS=%OPTS% /resource:Resource\Picture16.png,picture.png
-@set OPTS=%OPTS% /resource:Resource\File16.png,file.png
-@set OPTS=%OPTS% /resource:Resource\copy16.png,copy.png
-@set OPTS=%OPTS% /resource:Resource\paste16.png,paste.png
-@set OPTS=%OPTS% /resource:Resource\plus16.png,plus.png
-@set OPTS=%OPTS% /resource:Resource\minus16.png,minus.png
+@set OPTS=%OPTS% /resource:Resource\ref\Folder16.png,folder.png
+@set OPTS=%OPTS% /resource:Resource\ref\Picture16.png,picture.png
+@set OPTS=%OPTS% /resource:Resource\ref\File16.png,file.png
+@set OPTS=%OPTS% /resource:Resource\ref\copy16.png,copy.png
+@set OPTS=%OPTS% /resource:Resource\ref\paste16.png,paste.png
+@set OPTS=%OPTS% /resource:Resource\ref\plus16.png,plus.png
+@set OPTS=%OPTS% /resource:Resource\ref\minus16.png,minus.png
 @set OPTS=%OPTS% /resource:Resource\check_on16.png,checkon.png
 @set OPTS=%OPTS% /resource:Resource\check_off16.png,checkoff.png
 @set OPTS=%OPTS% /resource:Resource\circle16.png,circle.png
 @set OPTS=%OPTS% /resource:Resource\cross16.png,cross.png
+@set OPTS=%OPTS% /resource:Resource\circle20.png,preset_base.png
+@set OPTS=%OPTS% /resource:Resource\empty20.png,preset_empty.png
+@set OPTS=%OPTS% /resource:Resource\focus20.png,preset_focus.png
 
 @rem @set CSC=%windir%\Microsoft.NET\Framework\v3.5\csc
 @set CSC=%windir%\Microsoft.NET\Framework\v4.0.30319\csc
