@@ -78,7 +78,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 dst[i].b = (byte)(src[i].b * ratio);
                 dst[i].a = src[i].a;
             }
-            dstTex.SetPixels32(dst);
+            dstTex.SetPixels32(dst, 0);
             dstTex.Apply();
         }
 
@@ -135,8 +135,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             var r = Uri.FromHex(code[1]) * 16 + Uri.FromHex(code[2]);
             var g = Uri.FromHex(code[3]) * 16 + Uri.FromHex(code[4]);
             var b = Uri.FromHex(code[5]) * 16 + Uri.FromHex(code[6]);
-            Color = new Color(r/255f, g/255f, b/255f);
-            // LogUtil.Debug("ColorCode:", code, "->", _color);
+            Color = new Color(r/255f, g/255f, b/255f, _color.a);
 
             return true;
         }
@@ -246,13 +245,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
         public void SetTexColor(ref Color col, int frame) {
             var tex = (colorTex == null) ? ColorTex : colorTex;
-            var bloclWidth  = tex.width - frame * 2;
+            var blockWidth  = tex.width - frame * 2;
             var blockHeight = tex.height - frame * 2;
-            var pixels = tex.GetPixels(frame, frame, bloclWidth, blockHeight, 0);
+            var pixels = tex.GetPixels(frame, frame, blockWidth, blockHeight, 0);
             for (var i = 0; i< pixels.Length; i++) {
                 pixels[i] = col;
             }
-            tex.SetPixels(frame, frame, bloclWidth, blockHeight, pixels);
+            tex.SetPixels(frame, frame, blockWidth, blockHeight, pixels);
             tex.Apply();
         }
 
@@ -271,7 +270,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 GUILayout.Space(20f);
                 GUILayout.Label(string.Empty, TexLightStyle, GUILayout.Width(lightTex.width), GUILayout.Height(lightTex.height));
                 lastRect = GUILayoutUtility.GetLastRect();
-                tex = CircleTex;
                 GUI.DrawTexture(new Rect(lastRect.x+FRAME_WIDTH, lastRect.y + (size-1)*(1-_light) - offset+FRAME_WIDTH, tex.width, tex.height), tex);
 
                 changed |= LightSliderEvent(ref lastRect);

@@ -97,7 +97,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 listStyle.active.textColor = listStyle.onActive.textColor = Color.white;
             listStyle.focused.textColor = listStyle.onFocused.textColor = Color.blue;
 
-            TextAnchor txtAlignment = TextAnchor.MiddleLeft;
+            var txtAlignment = TextAnchor.MiddleLeft;
             // Bold
             lStyleB.fontStyle = FontStyle.Bold;
             lStyleB.alignment = txtAlignment;

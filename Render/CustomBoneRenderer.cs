@@ -40,7 +40,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render {
         private Transform _rootBone;
         private readonly HashSet<string> _boneNames = new HashSet<string>();
         private bool _isVisible;
-        private bool _skipVisble;
+        private bool _skipVisible;
         #endregion
 
         ~CustomBoneRenderer() {
@@ -54,7 +54,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render {
             return _meshRenderer != null && _rootBone != null;
         }
 
-        public bool IsVisibled() {
+        public bool IsVisible() {
             return _isVisible;
         }
 
@@ -136,9 +136,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render {
         }
 
         private void UpdateVisible(bool visible) {
-            if (_skipVisble != visible) return;
+            if (_skipVisible != visible) return;
 
-            _skipVisble = !visible;
+            _skipVisible = !visible;
             SetVisibleAll(visible);
         }
 

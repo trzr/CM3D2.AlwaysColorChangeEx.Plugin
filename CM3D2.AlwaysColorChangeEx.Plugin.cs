@@ -166,9 +166,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         
             // リダイレクトで存在しないパスが渡されてしまうケースがあるため、
             // Sybarisチェックを先に行う (リダイレクトによるパスではディレクトリ作成・削除が動作しない）
-            var dllpath = Path.Combine(DataPath, @"..\..\opengl32.dll");
+            var dllPath = Path.Combine(DataPath, @"..\..\opengl32.dll");
             var dirPath = Path.Combine(DataPath, @"..\..\Sybaris");
-            if (File.Exists(dllpath) && Directory.Exists(dirPath)) {
+            if (File.Exists(dllPath) && Directory.Exists(dirPath)) {
                 dirPath = Path.GetFullPath(dirPath);
                 settings.presetDirPath = Path.Combine(dirPath, @"Plugins\UnityInjector\Config\ACCPresets");
             } else {

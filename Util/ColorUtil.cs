@@ -10,6 +10,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             return Mathf.Abs(f1 - f2) < EPSILON;
         }
 
+        public static bool IsColorCode(string code) {
+            if (code.Length == 7 && code[0] == '#') {
+                for (var i = 1; i < 7; i++) {
+                    if (!Uri.IsHexDigit(code[i])) return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
         /// <summary>
         /// RGB -> HSL変換
         /// Vector4:(H, S, L, Alpha)

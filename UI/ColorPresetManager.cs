@@ -98,6 +98,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         }
 
         public void ClearColor(int idx) {
+            if (idx < 0 && presetCodes.Count <= idx) return;
+
             presetCodes[idx] = string.Empty;
             presetIcons[idx].SetPixels32(PresetEmptyIcon.GetPixels32(0), 0);
             presetIcons[idx].Apply();
@@ -135,11 +137,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     var presets = File.ReadAllText(PresetPath, Encoding.UTF8);
                     var codes = presets.Split(',');
                     foreach (var code in codes) {
-                        var trimedCode = code.Trim();
-                        var col = ColorPicker.GetColor(trimedCode);
+                        var trimmedCode = code.Trim();
+                        var col = ColorPicker.GetColor(trimmedCode);
                         Texture2D tex;
                         if (col.a > 0f) {
-                            presetCodes.Add(trimedCode);
+                            presetCodes.Add(trimmedCode);
                             var baseTex = PresetBaseIcon;
                             tex = new Texture2D(baseTex.width, baseTex.height, baseTex.format, false);
                             SetTexColor(ref col, baseTex, tex);
