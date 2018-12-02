@@ -1,14 +1,13 @@
-﻿
-using System;
+﻿using System;
 using System.Globalization;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
+namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Data {
     public abstract class EditValueBase<T> where T: IComparable, IFormattable {
         public T val;
         public bool isSync;
         public string editVal;
         public readonly EditRange<T> range;
-        
+
         protected EditValueBase(T val1, EditRange<T> attr) {
             range = attr;
             Set( val1 );

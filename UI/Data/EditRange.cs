@@ -1,4 +1,4 @@
-﻿namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
+﻿namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Data {
     public class EditRange<T> {
         public readonly T editMin;
         public readonly T editMax;

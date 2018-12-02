@@ -1,4 +1,5 @@
 ﻿using System;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using UnityEngine;
 using UnityEngine.Rendering;

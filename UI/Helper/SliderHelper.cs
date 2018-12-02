@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using UnityEngine;
 
@@ -48,7 +49,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
 
         private void updateUI(UIParams uiparams)  {
             // 幅の28%
-            labelWidth = uiparams.colorRect.width * 0.28f;
+            labelWidth = uiparams.colorRect.width * 0.2f;
             sliderMargin = uiparams.margin * 4.5f; // GUILayout.Space(uiParams.FixPx(7));
 
             buttonMargin = uiparams.margin * 3f;
@@ -84,6 +85,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
             iconStyleSS.padding.right = 1;
         }
 
+        public void SetupFloatSlider(NamedEditValue edit, float[] vals1, float[] vals2) {
+            SetupFloatSlider(edit.name, edit, edit.range.editMin, edit.range.editMax, edit.act, null, vals1, vals2);
+        }
+
         public void SetupFloatSlider(string label, EditValue edit, float sliderMin, float sliderMax,
             Action<float> func, float[] vals1, float[] vals2) {
             SetupFloatSlider(label, edit, sliderMin, sliderMax, func, null, vals1, vals2);
@@ -110,15 +115,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
                 changed = true;
             };
 
-            if (vals1 != null)
-                foreach (var val in vals1) {
-                    preset(val);
-                }
+            if (vals1 != null) {
+                foreach (var val in vals1) preset(val);
+            }
 
-            if (vals2 != null)
-                foreach (var val in vals2) {
-                    preset(val);
-                }
+            if (vals2 != null) {
+                foreach (var val in vals2) preset(val);
+            }
 
             if (presetOprs != null) {
                 foreach (var pset in presetOprs) {
@@ -278,11 +281,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper {
                 });
         }
 
-        public bool DrawValueSlider(string label, EditValue edit, float sliderMin, float sliderMax) {
+        public bool DrawValueSlider(string label, EditValue edit, float min, float max) {
             return DrawValueSlider(label, edit,
                 () => {
                     var sliderVal = edit.val;
-                    if (DrawSlider(ref sliderVal, sliderMin, sliderMax)) {
+                    if (DrawSlider(ref sliderVal, min, max)) {
                         edit.Set(sliderVal);
                         return true;
                     }

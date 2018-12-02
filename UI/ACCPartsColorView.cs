@@ -1,16 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
-    public class ACCPartsColorView {
-        private readonly UIParams uiParams;
+    public class ACCPartsColorView : BaseView {
         private readonly SliderHelper sliderHelper;
         private readonly ColorPresetManager presetMgr = ColorPresetManager.Instance;
-        private readonly MaidHolder holder = MaidHolder.Instance;
 
         private Vector2 scrollViewPosition = Vector2.zero;
         private readonly List<EditParts> editPartColors = new List<EditParts>(); 
@@ -19,12 +18,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             this.uiParams = uiParams;
             this.sliderHelper = sliderHelper;
         }
+        private GUILayoutOption titleWidth;
+        private GUILayoutOption titleHeight;
+        private float viewHeight;
+        public override void UpdateUI(UIParams uParams) {
+            uiParams = uParams;
+            titleWidth = GUILayout.Width(uiParams.fontSize * 20f);
+            titleHeight = GUILayout.Height(uiParams.titleBarRect.height);
+
+            viewHeight = uiParams.winRect.height - uiParams.unitHeight - uiParams.margin*2f - uiParams.titleBarRect.height;
+        }
 
         public void Update() {}
-
-        public void Clear() {}
-
-        public void Dispose() {}
 
         private class EditParts {
             public MaidParts.PartsColor parts;
@@ -116,8 +121,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
         public void Show() {
             GUILayout.BeginVertical();
-            var titleWidth = GUILayout.Width(uiParams.fontSize * 20f);
-            var titleHeight = GUILayout.Height(uiParams.titleBarRect.height);
             try {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("パーツカラー", uiParams.lStyleB, titleWidth, titleHeight);
@@ -132,10 +135,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     return;
                 }
 
-                var height = uiParams.winRect.height - uiParams.unitHeight - uiParams.margin*2f - uiParams.titleBarRect.height;
                 scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition,
                                                                GUILayout.Width(uiParams.colorRect.width),
-                                                               GUILayout.Height(height));
+                                                               GUILayout.Height(viewHeight));
                 try {
                     if (!editPartColors.Any()) {
                         for (var pcEnum = MaidParts.PARTS_COLOR.NONE + 1; pcEnum < MaidParts.PARTS_COLOR.MAX; pcEnum++) {

@@ -19,7 +19,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
         private NumberUtil() { }
 
         public static bool Equals(float f1, float f2, float epsilon=ConstantValues.EPSILON) {
-            return Math.Abs(f1-f2) < epsilon;
+            return (f1 < f2 ? f2 - f1 : f1 - f2) < epsilon;
+//            return Math.Abs(f1-f2) < epsilon;
         }
     }
 }

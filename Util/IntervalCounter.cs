@@ -8,7 +8,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
     /// </summary>
     public class IntervalCounter {
         public IntervalCounter(int interval0) {
-            interval = interval0;
+            var interval = interval0;
             if (interval < 0) {
                 Next = () => false; 
             } else if (interval == 0) {
@@ -21,7 +21,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
                 };
             }
         }
-        private int interval;
         private int nextCount;
         public readonly Func<bool> Next;
 

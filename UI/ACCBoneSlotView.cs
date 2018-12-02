@@ -1,18 +1,24 @@
 ﻿using System;
+using System.Collections.Generic;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.Render;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI.Data;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
-    public class ACCBoneSlotView {
-        private readonly UIParams uiParams;
+    public class ACCBoneSlotView : BaseView {
         private readonly CustomBoneRenderer boneRenderer;
         private readonly SliderHelper sliderHelper;
         private readonly GUIColorStore colorStore = new GUIColorStore();
-        private readonly MaidHolder holder = MaidHolder.Instance;
         private readonly string[] slotNames;
+
+        private GUILayoutOption titleWidth;
+        private GUILayoutOption titleHeight;
+        private GUILayoutOption toggleWidth;
+        private GUILayoutOption otherWidth;
+        private float baseHeight;
 
         private EditColor editColor = new EditColor(Color.white, ColorType.rgba, EditColor.RANGE, EditColor.RANGE);
         private bool editExpand;
@@ -35,23 +41,32 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             slotNames = CreateSlotNames();
         }
 
+        public override void UpdateUI(UIParams uParams) {
+            uiParams = uParams;
+            titleWidth = GUILayout.Width(uiParams.fontSize * 20f);
+            titleHeight = GUILayout.Height(uiParams.titleBarRect.height);
+
+            var width = uiParams.colorRect.width - 30;
+            toggleWidth = GUILayout.Width(width * 0.4f);
+            otherWidth = GUILayout.Width(width * 0.6f);
+            baseHeight = uiParams.winRect.height - uiParams.itemHeight * 3f - uiParams.titleBarRect.height;
+        }
+
         public void Update() {
             boneRenderer.Update();
         }
 
-        public void Clear() {
+        public override void Clear() {
             boneRenderer.Clear();
         }
 
-        public void Dispose() {
+        public override void Dispose() {
             boneRenderer.Clear();
             //UnityEngine.Object.Destroy(boneRenderer);
         }
 
         public void Show() {
             GUILayout.BeginVertical();
-            var titleWidth = GUILayout.Width(uiParams.fontSize * 20f);
-            var titleHeight = GUILayout.Height(uiParams.titleBarRect.height);
             try {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("ボーン表示用スロット 選択", uiParams.lStyleB, titleWidth, titleHeight);
@@ -79,12 +94,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
                 if ((int)TBody.SlotID.end - 1 > maid.body0.goSlot.Count) return;
 
-                var width = uiParams.colorRect.width - 30;
                 var offset = editExpand ? uiParams.unitHeight * 5f : uiParams.itemHeight-uiParams.margin*3f;
                 if (editExpand && picker.expand) offset += ColorPicker.LightTex.height + uiParams.margin*2f;
-                var height = uiParams.winRect.height - uiParams.itemHeight * 3f - offset - uiParams.titleBarRect.height;
-                var toggleWidth = GUILayout.Width(width * 0.4f);
-                var otherWidth = GUILayout.Width(width * 0.6f);
+                var height = baseHeight - offset;
                 GUILayout.BeginHorizontal();
                 try {
                     GUI.enabled = selectedSlotID != -1 && boneRenderer.IsEnabled();
@@ -95,16 +107,20 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     } else {
                         buttonText = "ボーン非表示";
                     }
-                    if (GUILayout.Button(buttonText, uiParams.bStyle, uiParams.optBtnHeight, toggleWidth)) {
-                        boneVisible = !boneVisible;
-                        boneRenderer.SetVisible(boneVisible);
-                        var slot = maid.body0.goSlot[selectedSlotID];
-                        if (boneVisible && !boneRenderer.IsEnabled() && slot != null && slot.obj != null) {
-                            boneRenderer.Setup(slot.obj, slot.RID);
-                            boneRenderer.TargetId = maid.GetInstanceID();
+
+                    try {
+                        if (GUILayout.Button(buttonText, uiParams.bStyle, uiParams.optBtnHeight, toggleWidth)) {
+                            boneVisible = !boneVisible;
+                            boneRenderer.SetVisible(boneVisible);
+                            var slot = maid.body0.goSlot[selectedSlotID];
+                            if (boneVisible && !boneRenderer.IsEnabled() && slot != null && slot.obj != null) {
+                                boneRenderer.Setup(slot.obj, slot.RID);
+                                boneRenderer.TargetId = maid.GetInstanceID();
+                            }
                         }
+                    } finally {
+                        colorStore.Restore();
                     }
-                    colorStore.Restore();
                     GUI.enabled = true;
                     if (skipEmptySlot) {
                         colorStore.SetColor(Color.white, Color.green);
@@ -112,10 +128,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     } else {
                         buttonText = "全スロット表示";
                     }
-                    if (GUILayout.Button(buttonText, uiParams.bStyle, uiParams.optBtnHeight, toggleWidth)) {
-                        skipEmptySlot = !skipEmptySlot;
+
+                    try {
+                        if (GUILayout.Button(buttonText, uiParams.bStyle, uiParams.optBtnHeight, toggleWidth)) {
+                            skipEmptySlot = !skipEmptySlot;
+                        }
+                    } finally {
+                        colorStore.Restore();
                     }
-                    colorStore.Restore();
+
                 } finally {
                     GUILayout.EndHorizontal();
                 }
@@ -125,7 +146,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 try {
                     for (var i = 0; i < slotNames.Length; i++) {
                         var slotItem = maid.body0.goSlot[i];
-                        var slotEnabled = (slotItem.obj != null && slotItem.morph != null);
+                        var slotEnabled = (slotItem.obj != null && slotItem.morph != null && slotItem.obj.activeSelf);
                         if (skipEmptySlot && !slotEnabled) continue;
 
                         GUILayout.BeginHorizontal();
@@ -166,7 +187,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     }
 
                 } finally {
-                    GUI.EndScrollView();
+                    GUILayout.EndScrollView();
                 }
             } finally {
                 GUILayout.EndVertical();

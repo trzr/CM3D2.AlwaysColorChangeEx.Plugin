@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI;
+using CM3D2.AlwaysColorChangeEx.Plugin.UI.Data;
 using UnityEngine;
 using UnityEngine.Rendering;
 

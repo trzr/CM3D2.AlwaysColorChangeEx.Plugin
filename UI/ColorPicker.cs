@@ -2,22 +2,21 @@
 using System.Text;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
 using UnityEngine;
-using Color = UnityEngine.Color;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
     public class ColorPicker {
         #region Fields/Properties
-        private readonly ColorPresetManager presetMgr;
+        private readonly ColorPresetManager _presetMgr;
 
         public bool expand;
         // 色テクスチャの縁サイズ
         public int texEdgeSize = 0;
 
-        private int selectedPreset = -1;
-        private Vector2 pos;
-        private bool mapDragging;
-        private bool lightDragging;
+        private int _selectedPreset = -1;
+        private Vector2 _pos;
+        private bool _mapDragging;
+        private bool _lightDragging;
 
         private Color _color;
         public Color Color {
@@ -25,7 +24,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 if (_color != value) {
                     _color = value;
                     Light = Math.Max(_color.r, Math.Max(_color.g, _color.b));
-                    SearchPos(MapTex, ref _color, out pos);
+                    SearchPos(MapTex, ref _color, out _pos);
                     SetTexColor(ref _color);
                     ToColorCode();
                 }
@@ -83,50 +82,50 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         }
 
         // 色テクスチャ(透過を含まないRGBのみの色を表示)
-        private Texture2D colorTex;
+        private Texture2D _colorTex;
         public Texture2D ColorTex {
-            set { colorTex = value; }
+            set { _colorTex = value; }
             get {
-                if (colorTex == null) {
-                    colorTex = new Texture2D(16, 16, TextureFormat.RGB24, false);
+                if (_colorTex == null) {
+                    _colorTex = new Texture2D(16, 16, TextureFormat.RGB24, false);
                 }
-                return colorTex;
+                return _colorTex;
             }
         }
 
-        private Texture2D mapTex;
+        private Texture2D _mapTex;
         public Texture2D MapTex {
             get {
-                if (mapTex == null) {
+                if (_mapTex == null) {
                     var baseTex = MapBaseTex;
-                    mapTex = new Texture2D(baseTex.width, baseTex.height, baseTex.format, false);
-                    Transfer(MapBaseTex, mapTex, _light);
+                    _mapTex = new Texture2D(baseTex.width, baseTex.height, baseTex.format, false);
+                    Transfer(MapBaseTex, _mapTex, _light);
                 }
-                return mapTex;
+                return _mapTex;
             }
         }
 
-        private GUILayoutOption iconWidth;
+        private GUILayoutOption _iconWidth;
         public GUILayoutOption IconWidth {
-            get { return iconWidth ?? (iconWidth = GUILayout.Width(ColorTex.width)); }
+            get { return _iconWidth ?? (_iconWidth = GUILayout.Width(ColorTex.width)); }
         }
 
         private Color GetMapColor(int x, int y) {
             return MapTex.GetPixel(x, MapTex.height - y);
         }
         
-        private GUIStyle texStyle;
+        private GUIStyle _texStyle;
         public GUIStyle TexStyle {
-            set { texStyle = value; }
-            get { return texStyle ?? (texStyle = new GUIStyle {normal = {background = MapTex}}); }
+            set { _texStyle = value; }
+            get { return _texStyle ?? (_texStyle = new GUIStyle {normal = {background = MapTex}}); }
         }
-        private GUIStyle texLightStyle;
+        private GUIStyle _texLightStyle;
         public GUIStyle TexLightStyle {
-            set { texLightStyle = value; }
-            get { return texLightStyle ?? (texLightStyle = new GUIStyle {normal = {background = LightTex}}); }
+            set { _texLightStyle = value; }
+            get { return _texLightStyle ?? (_texLightStyle = new GUIStyle {normal = {background = LightTex}}); }
         }
 
-        private readonly StringBuilder colorCode = new StringBuilder(7);
+        private readonly StringBuilder _colorCode = new StringBuilder(7);
         public string ColorCode { get; private set; }
 
         public bool SetColorCode(string code) {
@@ -223,7 +222,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
         public ColorPicker(ColorPresetManager presetMgr=null) {
             ColorCode = string.Empty;
-            this.presetMgr = presetMgr;
+            this._presetMgr = presetMgr;
         }
 
         private void ToColorCode() {
@@ -231,12 +230,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             var g = (int)(_color.g * 255);
             var b = (int)(_color.b * 255);
 
-            colorCode.Length = 0;
-            colorCode.Append('#')
+            _colorCode.Length = 0;
+            _colorCode.Append('#')
                 .Append(r.ToString("X2")) // Uppercase:X2
                 .Append(g.ToString("X2"))
                 .Append(b.ToString("X2"));
-            ColorCode = colorCode.ToString();
+            ColorCode = _colorCode.ToString();
         }
 
         public void SetTexColor(ref Color col) {
@@ -244,7 +243,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         }
 
         public void SetTexColor(ref Color col, int frame) {
-            var tex = (colorTex == null) ? ColorTex : colorTex;
+            var tex = (_colorTex == null) ? ColorTex : _colorTex;
             var blockWidth  = tex.width - frame * 2;
             var blockHeight = tex.height - frame * 2;
             var pixels = tex.GetPixels(frame, frame, blockWidth, blockHeight, 0);
@@ -260,11 +259,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             try {
                 if (GUILayout.Button(CrossTex, labelStyle, labelWidth)) expand = false;
 
-                GUILayout.Label(string.Empty, TexStyle, GUILayout.Width(mapTex.width), GUILayout.Height(mapTex.height));
+                GUILayout.Label(string.Empty, TexStyle, GUILayout.Width(_mapTex.width), GUILayout.Height(_mapTex.height));
                 var lastRect = GUILayoutUtility.GetLastRect();
                 var tex = CircleTex;
                 var offset = tex.width * 0.5f;
-                GUI.DrawTexture(new Rect(lastRect.x + pos.x - offset, lastRect.y + pos.y - offset, tex.width, tex.height), tex);
+                GUI.DrawTexture(new Rect(lastRect.x + _pos.x - offset, lastRect.y + _pos.y - offset, tex.width, tex.height), tex);
                 var changed = MapPickerEvent(ref lastRect);
 
                 GUILayout.Space(20f);
@@ -274,7 +273,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
                 changed |= LightSliderEvent(ref lastRect);
 
-                if (presetMgr != null) {
+                if (_presetMgr != null) {
                     GUILayout.Space(5f);
                     changed |= DrawPresetLayout();
                 }
@@ -291,15 +290,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             GUILayout.BeginHorizontal();
             try {
                 var startIdx = 0;
-                while (startIdx < presetMgr.Count) {
+                while (startIdx < _presetMgr.Count) {
                     GUILayout.BeginVertical();
                     try {
-                        var endIdx = (startIdx + 10 < presetMgr.Count) ? startIdx + 10 : presetMgr.Count;
+                        var endIdx = (startIdx + 10 < _presetMgr.Count) ? startIdx + 10 : _presetMgr.Count;
                         for (var i = startIdx; i < endIdx; i++) {
-                            var presetIcon = presetMgr.presetIcons[i];
-                            GUILayout.Label(presetIcon, presetMgr.IconStyle);
+                            var presetIcon = _presetMgr.presetIcons[i];
+                            GUILayout.Label(presetIcon, _presetMgr.IconStyle);
 
-                            if (selectedPreset == i) {
+                            if (_selectedPreset == i) {
                                 var lastRect = GUILayoutUtility.GetLastRect();
                                 var tex = ColorPresetManager.PresetFocusIcon;
                                 GUI.DrawTexture(new Rect(lastRect.x + 1, lastRect.y + 2, tex.width, tex.height), tex);
@@ -310,16 +309,16 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                                 if (GUILayoutUtility.GetLastRect().Contains(mousePos)) {
                                     switch (e.button) {
                                     case 1: // right click
-                                        presetMgr.ClearColor(selectedPreset);
-                                        selectedPreset = i;
+                                        _presetMgr.ClearColor(_selectedPreset);
+                                        _selectedPreset = i;
                                         break;
                                     case 0: // left click
-                                        if (selectedPreset == i) {
-                                            var code = presetMgr.presetCodes[i];
+                                        if (_selectedPreset == i) {
+                                            var code = _presetMgr.presetCodes[i];
                                             SetColorCode(code);
                                             changed = true;
                                         } else {
-                                            selectedPreset = i;
+                                            _selectedPreset = i;
                                         }
                                         break;
                                     }
@@ -337,14 +336,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
 
             GUILayout.BeginHorizontal();
             try {
-                GUI.enabled = selectedPreset != -1;
+                GUI.enabled = _selectedPreset != -1;
                 try {
-                    if (GUILayout.Button("Save", presetMgr.BtnStyle, presetMgr.BtnWidth)) {
-                        presetMgr.SetColor(selectedPreset, ColorCode, ref _color);
+                    if (GUILayout.Button("Save", _presetMgr.BtnStyle, _presetMgr.BtnWidth)) {
+                        _presetMgr.SetColor(_selectedPreset, ColorCode, ref _color);
                     }
 
-                    if (GUILayout.Button("Delete", presetMgr.BtnStyle, presetMgr.BtnWidth)) {
-                        presetMgr.ClearColor(selectedPreset);
+                    if (GUILayout.Button("Delete", _presetMgr.BtnStyle, _presetMgr.BtnWidth)) {
+                        _presetMgr.ClearColor(_selectedPreset);
                     }
                 } finally {
                     GUI.enabled = true;
@@ -361,26 +360,26 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             GUI.Label(rect, string.Empty, TexStyle);
             var tex = CircleTex;
             var offset = tex.width * 0.5f;
-            GUI.DrawTexture(new Rect(rect.x + pos.x-offset, rect.y + pos.y-offset, tex.width, tex.height), tex);
+            GUI.DrawTexture(new Rect(rect.x + _pos.x-offset, rect.y + _pos.y-offset, tex.width, tex.height), tex);
 
             return MapPickerEvent(ref rect);
         }
 
         private bool MapPickerEvent(ref Rect rect) {
-            if (lightDragging) return false;
+            if (_lightDragging) return false;
 
             var e = Event.current;
             if (e.button == 0 && (e.type == EventType.MouseDown || e.type == EventType.MouseDrag)) {
 
                 var mousePos = e.mousePosition;
-                if (mapDragging || rect.Contains(mousePos)) {
+                if (_mapDragging || rect.Contains(mousePos)) {
                     var x = (int) (mousePos.x - rect.x);
                     var y = (int) (mousePos.y - rect.y);
 
                     Color col;
-                    if (mapDragging) {
-                        var centerX = mapTex.width / 2;
-                        var centerY = Mathf.CeilToInt(mapTex.height/ 2f); // Y軸反転のため、奇数の場合は切り上げ
+                    if (_mapDragging) {
+                        var centerX = _mapTex.width / 2;
+                        var centerY = Mathf.CeilToInt(_mapTex.height/ 2f); // Y軸反転のため、奇数の場合は切り上げ
                         var radius = Math.Min(centerX, centerY);
                         var dist = Distance(x, y, centerX, centerY);
                         if (dist <= radius) {
@@ -399,7 +398,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                         col = GetMapColor(x, y);
                         // 透過色の場合は無視
                         if (Equals(col.a, 0f)) return false;
-                        mapDragging = true;
+                        _mapDragging = true;
 
                     } else {
                         return false;
@@ -407,13 +406,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     _color = col;
                     SetTexColor(ref _color, texEdgeSize);
                     ToColorCode();
-                    pos.x = x;
-                    pos.y = y;
+                    _pos.x = x;
+                    _pos.y = y;
                     e.Use();
                     return true;
                 }
-            } else if (mapDragging && e.type == EventType.MouseUp) {
-                mapDragging = false;
+            } else if (_mapDragging && e.type == EventType.MouseUp) {
+                _mapDragging = false;
             }
             return false;
         }
@@ -429,14 +428,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         }
 
         private bool LightSliderEvent(ref Rect rect) {
-            if (mapDragging) return false;
+            if (_mapDragging) return false;
 
             var e = Event.current;
             if (e.button == 0 && (e.type == EventType.MouseDown || e.type == EventType.MouseDrag)) {
 
                 var mousePos = e.mousePosition;
-                if (e.type == EventType.MouseDown && rect.Contains(mousePos)) lightDragging = true;
-                if (lightDragging) {
+                if (e.type == EventType.MouseDown && rect.Contains(mousePos)) _lightDragging = true;
+                if (_lightDragging) {
                     var light1 = 1f - (mousePos.y - rect.y - 1)/size;
                     if (1f < light1) light1 = 1f;
                     else if (light1 < 0f) light1 = 0f;
@@ -444,7 +443,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     if (!Equals(_light, light1)) {
                         Light = light1;
 
-                        _color = GetMapColor((int)pos.x, (int)pos.y);
+                        _color = GetMapColor((int)_pos.x, (int)_pos.y);
                         SetTexColor(ref _color, texEdgeSize);
                         ToColorCode();
                         e.Use();
@@ -452,8 +451,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     }
                     e.Use();
                 }
-            } else if (lightDragging && e.type == EventType.MouseUp) {
-                lightDragging = false;
+            } else if (_lightDragging && e.type == EventType.MouseUp) {
+                _lightDragging = false;
             }
 
             return false;

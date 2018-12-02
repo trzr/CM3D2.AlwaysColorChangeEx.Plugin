@@ -111,7 +111,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private bool isActive;
         private bool texSliderUpped;
 
-        private const int applyDeleFrame = 10;
+        private const int applyDelayFrame = 10;
         private const int tipsSecond = 2;
         private readonly IntervalCounter changeCounter = new IntervalCounter(15);
         // ゲーム上の表示データの再ロード間隔
@@ -137,6 +137,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private ACCSaveMenuView saveView;
         private ACCBoneSlotView boneSlotView;
         private ACCPartsColorView partsColorView;
+        private readonly List<BaseView> views = new List<BaseView>();
 
         // 選択画面の一時選択状態のメイド情報
         private Maid selectedMaid;
@@ -173,9 +174,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 settings.presetDirPath = Path.Combine(dirPath, @"Plugins\UnityInjector\Config\ACCPresets");
             } else {
                 settings.presetDirPath = Path.Combine(DataPath, "ACCPresets");
-                // string dllPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-                // string dllDir = Path.GetDirectoryName(dllPath);
-                // settings.presetDirPath = Path.Combine(dllDir, @"Config\ACCPresets");
             }
 
             ReloadConfig();
@@ -202,7 +200,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 #endif
             saveView = new ACCSaveMenuView(uiParams);
             boneSlotView = new ACCBoneSlotView(uiParams, sliderHelper);
+            views.Add(boneSlotView);
             partsColorView = new ACCPartsColorView(uiParams, sliderHelper);
+            views.Add(partsColorView);
 
             uiParams.Add(UpdateUIParams);
         }
@@ -210,6 +210,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private void UpdateUIParams(UIParams uParams) {
             colorPresetMgr.BtnStyle.fontSize = uParams.fontSizeS;
             colorPresetMgr.BtnWidth = GUILayout.Width(colorPresetMgr.BtnStyle.CalcSize(new GUIContent("Update")).x);
+
+            foreach (var view in views) {
+                view.UpdateUI(uParams);
+            }
         }
 
         public void Start() {
@@ -244,8 +248,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         public void OnSceneLoaded(int level) {
             fPassedTime = 0f;
             bUseStockMaid = false;
-            boneSlotView.Clear();
-            partsColorView.Clear();
+            foreach (var view in views) {
+                view.Clear();
+            }
 
             if ( !checker.IsTarget(level) ) {
                 if (!isActive) return;
@@ -289,7 +294,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             if (toApplyPresetMaid != null && !toApplyPresetMaid.IsBusy) {
                 var targetMaid = toApplyPresetMaid;
                 toApplyPresetMaid = null;
-                plugin.StartCoroutine(DelayFrameRecall(applyDeleFrame, () => !ApplyPresetProp(targetMaid,currentPreset)) );
+                plugin.StartCoroutine(DelayFrameRecall(applyDelayFrame, () => !ApplyPresetProp(targetMaid,currentPreset)) );
             }
             if (ACCTexturesView.fileBrowser != null) {
                 if (Input.GetKeyDown(settings.prevKey)) {
@@ -496,8 +501,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             ResourceHolder.Instance.Clear();
             //OnDestroy();
 
-            boneSlotView.Dispose();
-            partsColorView.Dispose();
+            foreach (var view in views) {
+                view.Dispose();
+            }
             initialized = false;
         }
 
@@ -814,7 +820,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         private List<ACCMaterialsView> InitMaterialView(Renderer r, string menufile, int slotIdx) {
-            // TODO menufile
             var materials = r.materials;
             var idx = 0;
             var ret = new List<ACCMaterialsView>(materials.Length);
@@ -837,15 +842,15 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             }
 
             GUILayout.Label(title, uiParams.lStyleB);
-            // TODO 選択アイテム名、説明等を表示 可能であればアイコンも 
-
+            // TODO 選択アイテム名、説明等を表示 可能であればアイコンも
             if (holder.CurrentMaid.IsBusy) {
                 GUILayout.Space(100);
                 GUILayout.Label("変更中...", uiParams.lStyleB);
                 return;
             }
-            // **_del_.menuを選択の状態が続いたらメインメニューへ
-            // 衣装セットなどは内部的に一旦_del_.menuが選択されるため、一時的に選択された状態をスルー
+
+            // **_del.menuを選択の状態が続いたらメインメニューへ
+            // 衣装セットなどは内部的に一旦_del.menuが選択されるため、一時的に選択された状態をスルー
             var menuId = holder.GetCurrentMenuFileID();
             if (menuId != 0) {
                 if (slotDropped) {
@@ -862,20 +867,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 title = null;
                 // .modファイルは未対応
                 var menufile = holder.GetCurrentMenuFile();
-
                 LogUtil.Debug("menufile changed.", targetMenuId, "=>", menuId, " : ", menufile);
 
-                isSavable = (menufile != null)
-                    && !(menufile.ToLower().EndsWith(FileConst.EXT_MOD, StringComparison.Ordinal));
+                isSavable = (menufile != null) && !(menufile.ToLower().EndsWith(FileConst.EXT_MOD, StringComparison.Ordinal));
 
                 targetMenuId = menuId;
-                var rendererer1 = holder.GetRenderer(slot);
-                if (rendererer1 != null) {
-                    targetMaterials = rendererer1.materials;
+                var renderer1 = holder.GetRenderer(slot);
+                if (renderer1 != null) {
+                    targetMaterials = renderer1.materials;
 #if COM3D2
-                    materialViews = InitMaterialView(rendererer1, menufile, (int)slot.SlotId);
+                    materialViews = InitMaterialView(renderer1, menufile, (int)slot.SlotId);
 #else
-                    materialViews = InitMaterialView(rendererer1, menufile, slot.CategoryIdx);
+                    materialViews = InitMaterialView(renderer1, menufile, slot.CategoryIdx);
 #endif
                 } else {
                     targetMaterials = EMPTY_ARRAY;
@@ -954,7 +957,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                         List<ACCMaterial> edited;
                         if (targetSlot == holder.CurrentSlot.Id) {
                             // カレントスロットの場合は、作成済のマテリアル情報を渡す
-                            edited   = new List<ACCMaterial>(materialViews.Count);
+                            edited = new List<ACCMaterial>(materialViews.Count);
                             foreach ( var matView in materialViews ) {
                                 edited.Add(matView.edited);
                             }
@@ -1001,7 +1004,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             try {
                 var menuId = holder.GetCurrentMenuFileID();
                 if (targetMenuId != menuId) {
-                    LogUtil.DebugF("manufile changed. {0}=>{1}", targetMenuId, menuId);
+                    LogUtil.DebugF("menu file changed. {0}=>{1}", targetMenuId, menuId);
                     targetMenuId = menuId;
                     targetMaterials = holder.GetMaterials();
                     texViews = InitTexView(targetMaterials);
@@ -1365,13 +1368,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 GUILayout.Label("プリセット保存", uiParams.lStyleB);
 
                 GUILayout.Label("プリセット名", uiParams.lStyle);
-                var pname = GUILayout.TextField(presetName, uiParams.textStyle, GUILayout.ExpandWidth(true));
-                if (pname != presetName) {
-                    bPresetSavable = !FileConst.HasInvalidChars(pname);
-                    presetName = pname;
+                var editText = GUILayout.TextField(presetName, uiParams.textStyle, GUILayout.ExpandWidth(true));
+                if (editText != presetName) {
+                    bPresetSavable = !FileConst.HasInvalidChars(editText);
+                    presetName = editText;
                 }
                 if (bPresetSavable) {
-                    bPresetSavable &= pname.Trim().Length != 0;
+                    bPresetSavable &= editText.Trim().Length != 0;
                 }
 
                 scrollViewPosition = GUILayout.BeginScrollView(scrollViewPosition, uiParams.optSubConWidth, uiParams.optSubCon6Height);
@@ -1547,7 +1550,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 }
 
             } finally {
-                LogUtil.Debug("Preset applyed");
+                LogUtil.Debug("Preset applied");
             }
 
             return true;

@@ -41,33 +41,33 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         public readonly List<Texture2D> presetIcons = new List<Texture2D>();
         public readonly List<string> presetCodes = new List<string>();
         
-        private GUIStyle iconStyle;
+        private GUIStyle _iconStyle;
         public GUIStyle IconStyle {
             get {
-                return iconStyle ?? (iconStyle = new GUIStyle("label") {
+                return _iconStyle ?? (_iconStyle = new GUIStyle("label") {
                     contentOffset = new Vector2(0, 1),
                     margin = new RectOffset(1, 1, 1, 1),
                     padding = new RectOffset(1, 1, 1, 1)
                 });
             }
-            set { iconStyle = value; }
+            set { _iconStyle = value; }
         }
 
-        private GUILayoutOption btnWidth;
+        private GUILayoutOption _btnWidth;
         public GUILayoutOption BtnWidth {
-            get { return btnWidth ?? (btnWidth = GUILayout.Width(BtnStyle.CalcSize(new GUIContent("Delete")).x)); }
-            set { btnWidth = value; }
+            get { return _btnWidth ?? (_btnWidth = GUILayout.Width(BtnStyle.CalcSize(new GUIContent("Delete")).x)); }
+            set { _btnWidth = value; }
         }
-        private GUIStyle btnStyle;
+        private GUIStyle _btnStyle;
         public GUIStyle BtnStyle {
             get {
-                return btnStyle ?? (btnStyle = new GUIStyle("button") {
+                return _btnStyle ?? (_btnStyle = new GUIStyle("button") {
                     margin = new RectOffset(2, 2, 1, 1),
                     padding = new RectOffset(1, 1, 1, 1),
                     alignment = TextAnchor.MiddleCenter,
                 });
             }
-            set { btnStyle = value; }
+            set { _btnStyle = value; }
         }
 
         public int Count = 20;

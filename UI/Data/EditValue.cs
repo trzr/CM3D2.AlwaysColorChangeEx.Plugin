@@ -1,5 +1,5 @@
 ﻿
-namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
+namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Data {
     /// <summary>
     /// float用エディット値クラス
     /// </summary>

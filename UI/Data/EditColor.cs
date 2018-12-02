@@ -1,7 +1,7 @@
 ﻿using CM3D2.AlwaysColorChangeEx.Plugin.Data;
 using UnityEngine;
 
-namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
+namespace CM3D2.AlwaysColorChangeEx.Plugin.UI.Data {
     /// <summary>
     /// Description of EditColor.
     /// </summary>
