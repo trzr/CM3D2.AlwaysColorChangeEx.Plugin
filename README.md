@@ -14,8 +14,16 @@ CM3D2.AlwaysColorChangeEx.Plugin
 UnityInjectorが導入済みであること
 
 #### ◇動作確認環境
-  - バージョン：**1.55**  (CM3D2), **1.19.1** (COM3D2)
-  - プラグイン：UnityInjector
+
+| env    | version | plugin version    |
+| -------| ------- | ----------------- |
+| CM3D2  | 1.58    | ? - 0.3.1.3       |
+| COM3D2 | 1.21.1  | ? - 0.3.1.3       |
+|        | 1.23    | 0.3.1.4-          |
+
+  - 前提プラグイン：UnityInjector/Sybaris  
+
+プラグインバージョン 0.3.1.4～は COM3D2 1.23以降のみサポートとなります。
 
 #### ◇インストール  
 
