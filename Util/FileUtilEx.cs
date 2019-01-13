@@ -236,7 +236,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             writer.Write(count);  // num (bone_count)
             for(var i=0; i< count; i++) {
                 writer.Write(reader.ReadString()); // ボーン名
-                writer.Write(reader.ReadByte());   // フラグ　(_SCL_追加の有無等)
+                writer.Write(reader.ReadByte());   // フラグ(_SCL_追加の有無等)
             }
 
             for(var i=0; i< count; i++) {
@@ -367,7 +367,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             var shaderName2 = reader.ReadString();
             if (trgtMat.shaderChanged) {
                 shaderName1 = trgtMat.ShaderNameOrDefault(shaderName1);
-                shaderName2 = ShaderType.GetShader2(shaderName1);
+                shaderName2 = ShaderType.GetMateName(shaderName1);
             }
             writer.Write(shaderName1);
             writer.Write(shaderName2);

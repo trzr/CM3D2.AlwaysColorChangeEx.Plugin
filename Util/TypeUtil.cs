@@ -3,12 +3,28 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
     /// <summary>
     /// </summary>
     public static class TypeUtil {
-        public const int BODY_START = (int)MPN_TYPE_RANGE.BODY_START;
-        public const int BODY_END   = (int)MPN_TYPE_RANGE.BODY_END;
-        public const int WEAR_START = (int)MPN_TYPE_RANGE.WEAR_START;
-        public const int WEAR_END   = (int)MPN_TYPE_RANGE.WEAR_END;
-        public const int PARTS_COLOR_START = (int)MaidParts.PARTS_COLOR.NONE + 1;
-        public const int PARTS_COLOR_END   = (int)MaidParts.PARTS_COLOR.MAX - 1;
+        static TypeUtil() {
+            BODY_START = PrivateAccessor.Get<int>(typeof(MPN_TYPE_RANGE), "BODY_START");
+            BODY_END   = PrivateAccessor.Get<int>(typeof(MPN_TYPE_RANGE), "BODY_END");
+            FOLDER_BODY_START = PrivateAccessor.Get<int>(typeof(MPN_TYPE_RANGE), "FOLDER_BODY_START");
+            FOLDER_BODY_END   = PrivateAccessor.Get<int>(typeof(MPN_TYPE_RANGE), "FOLDER_BODY_END");
+            WEAR_START = PrivateAccessor.Get<int>(typeof(MPN_TYPE_RANGE), "WEAR_START");
+            WEAR_END   = PrivateAccessor.Get<int>(typeof(MPN_TYPE_RANGE), "WEAR_END");
+            SET_START  = PrivateAccessor.Get<int>(typeof(MPN_TYPE_RANGE), "SET_START");
+            SET_END    = PrivateAccessor.Get<int>(typeof(MPN_TYPE_RANGE), "SET_END");
+            PARTS_COLOR_START = PrivateAccessor.Get<MaidParts.PARTS_COLOR>(typeof(MaidParts.PARTS_COLOR), "NONE") + 1;
+            PARTS_COLOR_END   = PrivateAccessor.Get<MaidParts.PARTS_COLOR>(typeof(MaidParts.PARTS_COLOR), "MAX") - 1;
+        }
+        public static readonly int BODY_START;
+        public static readonly int BODY_END;
+        public static readonly int FOLDER_BODY_START;
+        public static readonly int FOLDER_BODY_END;
+        public static readonly int WEAR_START;
+        public static readonly int WEAR_END;
+        public static readonly int SET_START;
+        public static readonly int SET_END;
+        public static readonly MaidParts.PARTS_COLOR PARTS_COLOR_START;
+        public static readonly MaidParts.PARTS_COLOR PARTS_COLOR_END;
 
         public static bool IsBody(MPN mpn) {
             var mpnNo = (int)mpn;

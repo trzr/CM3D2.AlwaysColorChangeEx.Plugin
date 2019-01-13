@@ -203,7 +203,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             buff.Append(target.name).Append("\r\n");
             var shaderName = target.type.name;
             buff.Append(shaderName).Append("\r\n");
-            buff.Append(ShaderType.GetShader2(shaderName)).Append("\r\n\r\n");
+            buff.Append(ShaderType.GetMateName(shaderName)).Append("\r\n\r\n");
             
             var type = target.type;
             // tex

@@ -308,7 +308,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         private class FilterParams {
-            private readonly Dictionary<string, FilterParam> _params =　new Dictionary<string, FilterParam>();
+            private readonly Dictionary<string, FilterParam> _params = new Dictionary<string, FilterParam>();
 
             public void Clear() {
                 _params.Clear();

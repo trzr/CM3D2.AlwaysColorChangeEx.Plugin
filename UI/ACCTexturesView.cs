@@ -216,6 +216,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 foreach (var editTex in edited) {
                     var bTargetElement = (matNo == editTarget.matNo && editTex.propKey == editTarget.propKey);
     
+                    if (editTex.prop.Keyword != Keyword.NONE) {
+                        if (!material.IsKeywordEnabled(editTex.prop.KeywordString)) continue;
+                    }
+
                     GUILayout.BeginHorizontal();
                     try {
                         // エディット用スライダーの開閉

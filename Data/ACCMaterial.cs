@@ -331,7 +331,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
 
             var shaderName1 = mate.type.name;
             writer.Write(shaderName1);
-            var shaderName2 = ShaderType.GetShader2(shaderName1);
+            var shaderName2 = ShaderType.GetMateName(shaderName1);
             writer.Write(shaderName2);
 
             // tex

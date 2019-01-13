@@ -263,13 +263,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                 var lastRect = GUILayoutUtility.GetLastRect();
                 var tex = CircleTex;
                 var offset = tex.width * 0.5f;
-                GUI.DrawTexture(new Rect(lastRect.x + _pos.x - offset, lastRect.y + _pos.y - offset, tex.width, tex.height), tex);
+                GUI.DrawTexture(new Rect(lastRect.x + _pos.x - offset, lastRect.y + _pos.y - offset, tex.width, tex.height), tex, ScaleMode.StretchToFill, true, 0f);
                 var changed = MapPickerEvent(ref lastRect);
 
                 GUILayout.Space(20f);
                 GUILayout.Label(string.Empty, TexLightStyle, GUILayout.Width(lightTex.width), GUILayout.Height(lightTex.height));
                 lastRect = GUILayoutUtility.GetLastRect();
-                GUI.DrawTexture(new Rect(lastRect.x+FRAME_WIDTH, lastRect.y + (size-1)*(1-_light) - offset+FRAME_WIDTH, tex.width, tex.height), tex);
+                GUI.DrawTexture(new Rect(lastRect.x+FRAME_WIDTH, lastRect.y + (size-1)*(1-_light) - offset+FRAME_WIDTH, tex.width, tex.height), tex, ScaleMode.StretchToFill, true, 0f);
 
                 changed |= LightSliderEvent(ref lastRect);
 
@@ -301,7 +301,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                             if (_selectedPreset == i) {
                                 var lastRect = GUILayoutUtility.GetLastRect();
                                 var tex = ColorPresetManager.PresetFocusIcon;
-                                GUI.DrawTexture(new Rect(lastRect.x + 1, lastRect.y + 2, tex.width, tex.height), tex);
+                                GUI.DrawTexture(new Rect(lastRect.x + 1, lastRect.y + 2, tex.width, tex.height), tex, ScaleMode.StretchToFill, true, 0f);
                             }
 
                             if (e.type == EventType.MouseDown && (e.button == 0 || e.button == 1)) {
@@ -360,7 +360,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             GUI.Label(rect, string.Empty, TexStyle);
             var tex = CircleTex;
             var offset = tex.width * 0.5f;
-            GUI.DrawTexture(new Rect(rect.x + _pos.x-offset, rect.y + _pos.y-offset, tex.width, tex.height), tex);
+            GUI.DrawTexture(new Rect(rect.x + _pos.x-offset, rect.y + _pos.y-offset, tex.width, tex.height), tex, ScaleMode.StretchToFill, true, 0f);
 
             return MapPickerEvent(ref rect);
         }
@@ -422,7 +422,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
             var tex = CircleTex;
             var offset = tex.width * 0.5f;
             var circlePos = new Rect(rect.x+FRAME_WIDTH, rect.y + (size-1)*(1-_light)-offset+FRAME_WIDTH, tex.width, tex.height);
-            GUI.DrawTexture(circlePos, tex);
+            GUI.DrawTexture(circlePos, tex, ScaleMode.StretchToFill, true, 0f);
 
             LightSliderEvent(ref rect);
         }
@@ -499,7 +499,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         private static Texture2D CreateRGBMapTex(int width, int height) {
             var tex = new Texture2D(width, height, TextureFormat.ARGB32, false);
             var centerX = width/2;
-            var centerY = height/2;　//　Mathf.FloorToInt(height/2f);
+            var centerY = height/2; // Mathf.FloorToInt(height/2f);
             var radius = Math.Min(centerX, centerY);
             var centerCol = Color.white;
             for (var y = 0; y < height; y++) {

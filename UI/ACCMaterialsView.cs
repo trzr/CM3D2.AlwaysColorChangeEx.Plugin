@@ -102,15 +102,18 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
         internal static readonly RQResolver rqResolver = RQResolver.Instance;
 
         //public ACCMaterial original;
-        private readonly ClipBoardHandler clipHandler = ClipBoardHandler.Instance;
+        private static readonly ClipBoardHandler clipHandler = ClipBoardHandler.Instance;
+
+        // private readonly StandardShaderUI standardView;
+        internal readonly SliderHelper sliderHelper;
+        internal readonly CheckboxHelper cbHelper;
+
         public readonly ACCMaterial edited;
         public ComboBoxLO shaderCombo;
         public bool expand;
         private int matIdx;
         internal int slotIdx;
         public Action<string> tipsCall;
-        internal readonly SliderHelper sliderHelper;
-        internal readonly CheckboxHelper cbHelper;
 
         public ACCMaterialsView(Renderer r, Material m, int slotIdx, int idx, SliderHelper sliderHelper, CheckboxHelper cbHelper) {
             //original = new ACCMaterial(m, r);

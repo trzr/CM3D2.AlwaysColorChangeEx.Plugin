@@ -490,7 +490,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         public bool   editfileExist { get; set;}  // マテリアルファイルの存在チェック
         public string editname = string.Empty;    // マテリアル名
         public string worksuffix;
-        public bool pmatExport       { get; set;}　// pmatを出力するか
+        public bool pmatExport       { get; set;} // pmatを出力するか
         public bool uiTexViewed      { get; set;}
 
         public bool needPmat             { get; set;} // 優先度設定が必要であるか
@@ -607,7 +607,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         public string editname;
         public bool   editnameExist;
 
-        public string worksuffix;　  // 出力時に状況に応じて付与する接尾辞
+        public string worksuffix;    // 出力時に状況に応じて付与する接尾辞
         public string workfilename;  // 出力時に状況に応じて変わる、変更前のファイル名
         
         public TargetTexture(bool color, bool file, Texture tex) {
@@ -769,7 +769,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         public bool HasSlot() {
             return slot != null;
         }
-        //　同一モデルファイルを参照する場合のリンク
+        // 同一モデルファイルを参照する場合のリンク
         public bool HasLink() {
             return link != null;
         }

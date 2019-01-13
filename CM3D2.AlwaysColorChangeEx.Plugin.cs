@@ -65,9 +65,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             PartsColor,
         }
         private const string TITLE_LABEL = "ACCex : ";
-        private const int WINID_MAIN   = 20201;
-        private const int WINID_DIALOG = WINID_MAIN+1;
-        private const int WINID_TIPS   = WINID_MAIN+2;
+        private const int WIN_ID_MAIN   = 20201;
+        private const int WIN_ID_DIALOG = WIN_ID_MAIN+1;
+        private const int WIN_ID_TIPS   = WIN_ID_MAIN+2;
 
         private const EventModifiers modifierKey = EventModifiers.Shift | EventModifiers.Control | EventModifiers.Alt;
 
@@ -77,9 +77,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private bool initialized;
 
         private bool bUseStockMaid;
-        private bool cmrCtrlChanged;
         private bool mouseDowned;
-        private bool cursorContains;
 
         private readonly Settings settings = Settings.Instance;
         private readonly UIParams uiParams = UIParams.Instance;
@@ -150,6 +148,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private Rect tipRect;
         private string tips;
 
+        private readonly UIHelper uiHelper = new UIHelper();
         private ColorPresetManager colorPresetMgr;
         private SliderHelper sliderHelper;
         private CheckboxHelper cbHelper;
@@ -221,7 +220,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         public void OnDestroy() {
-            SetCameraControl(true);
+            uiHelper.SetCameraControl(true);
             Dispose();
             presetNames.Clear();
 
@@ -255,7 +254,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             if ( !checker.IsTarget(level) ) {
                 if (!isActive) return;
 
-                SetCameraControl(true);
+                uiHelper.SetCameraControl(true);
                 initialized = false;
                 isActive = false;
                 return;
@@ -264,7 +263,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             bUseStockMaid = checker.IsStockTarget(level);
             menuType = MenuType.None;
             mouseDowned    = false;
-            cursorContains = false;
+            uiHelper.cursorContains = false;
             isActive = true;
         }
 
@@ -331,14 +330,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 SetMenu(MenuType.Main);
             } else {
                 SetMenu(MenuType.MaidSelect);
-                uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectMaid, Version, uiParams.winStyle);
+                uiParams.winRect = GUI.Window(WIN_ID_MAIN, uiParams.winRect, DoSelectMaid, Version, uiParams.winStyle);
             }
         }
 
         public void OnGUI() {
             if (!isActive) return;
             if (menuType == MenuType.None) return;
-            if (settings.SSWithoutUI && !IsEnabledUICamera()) return; // UI無し撮影
+            if (settings.SSWithoutUI && !uiHelper.IsEnabledUICamera()) return; // UI無し撮影
 
             try {
                 if (Event.current.type == EventType.Repaint) return;
@@ -347,42 +346,42 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     UpdateSelectMaid();
     
                 } else if (ACCTexturesView.fileBrowser != null) {
-                    uiParams.fileBrowserRect = GUI.Window(WINID_DIALOG, uiParams.fileBrowserRect, DoFileBrowser, Version, uiParams.winStyle);
+                    uiParams.fileBrowserRect = GUI.Window(WIN_ID_DIALOG, uiParams.fileBrowserRect, DoFileBrowser, Version, uiParams.winStyle);
 
                 } else if (saveView.showDialog) {
-                    uiParams.modalRect = GUI.ModalWindow(WINID_MAIN, uiParams.modalRect, DoSaveModDialog, "menuエクスポート", uiParams.dialogStyle);
+                    uiParams.modalRect = GUI.ModalWindow(WIN_ID_MAIN, uiParams.modalRect, DoSaveModDialog, "menuエクスポート", uiParams.dialogStyle);
 
                 } else {
                     switch (menuType) {
                     case MenuType.Main:
-                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoMainMenu, Version, uiParams.winStyle);
+                        uiParams.winRect = GUI.Window(WIN_ID_MAIN, uiParams.winRect, DoMainMenu, Version, uiParams.winStyle);
                         break;
                     case MenuType.Color:
-                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoColorMenu, Version, uiParams.winStyle);
+                        uiParams.winRect = GUI.Window(WIN_ID_MAIN, uiParams.winRect, DoColorMenu, Version, uiParams.winStyle);
                         break;
                     case MenuType.MaskSelect:
-                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoMaskSelectMenu, Version, uiParams.winStyle);
+                        uiParams.winRect = GUI.Window(WIN_ID_MAIN, uiParams.winRect, DoMaskSelectMenu, Version, uiParams.winStyle);
                         break;
                     case MenuType.NodeSelect:
-                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoNodeSelectMenu, Version, uiParams.winStyle);
+                        uiParams.winRect = GUI.Window(WIN_ID_MAIN, uiParams.winRect, DoNodeSelectMenu, Version, uiParams.winStyle);
                         break;
                     case MenuType.Save:
-                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSaveMenu, Version, uiParams.winStyle);
+                        uiParams.winRect = GUI.Window(WIN_ID_MAIN, uiParams.winRect, DoSaveMenu, Version, uiParams.winStyle);
                         break;
                     case MenuType.PresetSelect:
-                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectPreset, Version, uiParams.winStyle);
+                        uiParams.winRect = GUI.Window(WIN_ID_MAIN, uiParams.winRect, DoSelectPreset, Version, uiParams.winStyle);
                         break;
                     case MenuType.Texture:
-                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectTexture, Version, uiParams.winStyle);
+                        uiParams.winRect = GUI.Window(WIN_ID_MAIN, uiParams.winRect, DoSelectTexture, Version, uiParams.winStyle);
                         break;
                     case MenuType.BoneSlotSelect:
-                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectBoneSlot, Version, uiParams.winStyle);
+                        uiParams.winRect = GUI.Window(WIN_ID_MAIN, uiParams.winRect, DoSelectBoneSlot, Version, uiParams.winStyle);
                         break;
                     case MenuType.PartsColor:
-                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoEditPartsColor, Version, uiParams.winStyle);
+                        uiParams.winRect = GUI.Window(WIN_ID_MAIN, uiParams.winRect, DoEditPartsColor, Version, uiParams.winStyle);
                         break;
                     case MenuType.MaidSelect:
-                        uiParams.winRect = GUI.Window(WINID_MAIN, uiParams.winRect, DoSelectMaid, Version, uiParams.winStyle);
+                        uiParams.winRect = GUI.Window(WIN_ID_MAIN, uiParams.winRect, DoSelectMaid, Version, uiParams.winStyle);
                         break;
                     default:
                         break;
@@ -398,7 +397,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                     }
                     mouseDowned = false;
                 }
-                mouseDowned |= cursorContains && Input.GetMouseButtonDown(0);
+                mouseDowned |= uiHelper.cursorContains && Input.GetMouseButtonDown(0);
             } finally {
             }
         }
@@ -406,7 +405,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
         private void OnTips() {
             if (displayTips && tips != null) {
-                GUI.Window(WINID_TIPS, tipRect, DoTips, tips, uiParams.tipsStyle);
+                GUI.Window(WIN_ID_TIPS, tipRect, DoTips, tips, uiParams.tipsStyle);
             }
         }
 
@@ -435,10 +434,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             GUI.BringWindowToFront(winID);
         }
 
-        bool IsEnabledUICamera() { 
-            return UICamera.currentCamera != null && UICamera.currentCamera.enabled; 
-        }
-
         private bool InputModifierKey() {
             var em = Event.current.modifiers;
             if (settings.toggleModifiers == EventModifiers.None) {
@@ -449,52 +444,29 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             return (em & settings.toggleModifiers) != EventModifiers.None;
         }
 
-        private void SetCameraControl(bool enable) {
-            if (cmrCtrlChanged != enable) return;
-            GameMain.Instance.MainCamera.SetControl(enable);
-            UICamera.InputEnable = enable;
-            cmrCtrlChanged = !enable;
-        }
-
         /// <summary>
         /// カーソル位置のチェックを行い、カメラコントロールの有効化/無効化を行う
         /// </summary>
         private void UpdateCameraControl() {
-            cursorContains = false;
-            if (ACCTexturesView.fileBrowser != null) {
+            var cursorContains = false;
+            if (ACCTexturesView.fileBrowser != null || menuType != MenuType.None) {
                 var cursor = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-                cursorContains = uiParams.fileBrowserRect.Contains(cursor);
-                if (!cursorContains) {
-                    if (saveView.showDialog) {
-                        cursorContains = uiParams.modalRect.Contains(cursor);
-                    }
-                }
-            } else if (menuType != MenuType.None) {
-                var cursor = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-                cursorContains = uiParams.winRect.Contains(cursor);
+                var rect = ACCTexturesView.fileBrowser != null ? uiParams.fileBrowserRect : uiParams.winRect;
+                cursorContains = rect.Contains(cursor);
                 if (!cursorContains) {
                     if (saveView.showDialog) {
                         cursorContains = uiParams.modalRect.Contains(cursor);
                     }
                 }
             }
-
-            // カメラコントロールの有効化/無効化 (Windowの範囲外では、自身がコントロールを変更したケース以外は更新しない)
-            if (cursorContains) {
-                if (GameMain.Instance.MainCamera.GetControl()) {
-                    SetCameraControl(false);
-                }
-            } else {
-                SetCameraControl(true);
-            }
+            uiHelper.UpdateCameraControl(cursorContains);
         }
 
         #region Private methods
         private void Dispose() {
             ClearMaidData();
-            SetCameraControl(true);
+            uiHelper.SetCameraControl(true);
             mouseDowned    = false;
-            cursorContains = false;
 
             // テクスチャキャッシュを開放する
             ACCTexturesView.Clear();
@@ -867,7 +839,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 title = null;
                 // .modファイルは未対応
                 var menufile = holder.GetCurrentMenuFile();
-                LogUtil.Debug("menufile changed.", targetMenuId, "=>", menuId, " : ", menufile);
+                // LogUtil.Debug("menufile changed.", targetMenuId, "=>", menuId, " : ", menufile);
 
                 isSavable = (menufile != null) && !(menufile.ToLower().EndsWith(FileConst.EXT_MOD, StringComparison.Ordinal));
 

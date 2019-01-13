@@ -4,7 +4,6 @@ using UnityEngine;
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Render {
     ///
     /// ボーン描画クラス.
-    ///  オリジナルのオブジェクトへのアタッチを避け、
     ///  Updateにより位置を適宜更新する.
     ///
     public class CustomBoneRenderer {//: MonoBehaviour {
@@ -88,6 +87,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Render {
             }
 
             foreach (var bone in _meshRenderer.bones) {
+                if (bone == null) continue;
                 // 名前の末尾に‗_SCL_がついていた場合は、_SCL_を省略
                 _boneNames.Add(bone.name.EndsWith(NAME_SCL)
                     ? bone.name.Substring(0, bone.name.Length - NAME_SCL.Length)

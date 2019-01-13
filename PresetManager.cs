@@ -101,7 +101,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 preset.slots.Add(slotItem);
             }
 
-            for (var i = MPN_TYPE_RANGE.BODY_START; i <= MPN_TYPE_RANGE.BODY_END; i++) {
+            for (var i = TypeUtil.BODY_START; i <= TypeUtil.BODY_END; i++) {
                 var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
                 var mp = maid.GetProp(mpn);
                 if (mp == null) continue;
@@ -123,7 +123,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             //     if (mp == null || mp.nFileNameRID == 0) continue;
             //     preset.mpns.Add(new CCMPN(mpn, mp.strFileName));
             // }
-            for (var i = MPN_TYPE_RANGE.WEAR_START; i <= MPN_TYPE_RANGE.WEAR_END; i++) {
+            for (var i = TypeUtil.WEAR_START; i <= TypeUtil.WEAR_END; i++) {
                 var mpn = (MPN)Enum.ToObject(typeof(MPN), i);
                 var mp = maid.GetProp(mpn);
                 if (mp != null && mp.nFileNameRID != 0) {
@@ -132,7 +132,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             }
 
             // 無限色
-            for (var pcEnum = MaidParts.PARTS_COLOR.NONE+1; pcEnum < MaidParts.PARTS_COLOR.MAX; pcEnum++) {
+            for (var pcEnum = TypeUtil.PARTS_COLOR_START; pcEnum <= TypeUtil.PARTS_COLOR_END; pcEnum++) {
                 var part = maid.Parts.GetPartsColor(pcEnum);
                 preset.partsColors[pcEnum.ToString()] = new CCPartsColor(part);
             }

@@ -205,7 +205,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     foreach (var pair in trgtMenu.slotMaterials) {
                         GUILayout.Label("マテリアル情報 (" + pair.Key + ")", uiParams.lStyle);
                         foreach (var trgtMat in pair.Value.materials) {
-                            if (trgtMat == null)　continue;
+                            if (trgtMat == null) continue;
 
                             GUILayout.BeginHorizontal();
                             try {
@@ -392,9 +392,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                                 if (nameInterlocked && nameChanged) {
                                     var suffix = FileConst.GetModelSuffix(item.slot);
                                     if (trgtMenu.editfile.Contains(suffix)) {
-                                        item.editname　= trgtMenu.editfile ;
+                                        item.editname = trgtMenu.editfile ;
                                     } else {
-                                        item.editname　= trgtMenu.editfile + suffix;
+                                        item.editname = trgtMenu.editfile + suffix;
                                     }
                                 }
                                 item.editname = GUILayout.TextField(item.editname, uiParams.textStyle);
