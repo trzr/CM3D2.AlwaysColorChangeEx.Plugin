@@ -21,12 +21,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.TexAnim {
             if (changeInfos == null) return;
             var hasTarget = false;
             foreach (var changeInfo in changeInfos) {
-                LogUtil.Debug("change item:", changeInfo.slot, ", matInfos:", changeInfo.matInfos.Count);
-
                 TBody.SlotID slotID;
                 if (!EnumUtil.TryParse(changeInfo.slot, true, out slotID)) continue;
                 var slot = maid.body0.GetSlot((int) slotID);
-                if (slot.obj == null) continue;
+                if (slot == null || slot.obj == null) continue;
 
                 var animator = slot.obj.transform.GetComponentInChildren<TexAnimator>(false);
                 if (animator == null) {
