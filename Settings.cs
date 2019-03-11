@@ -64,6 +64,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         public string floatVal2Fmt    = "F3";
         public string floatVal3Fmt    = "F3";
 
+        public bool enableStandard = false;
 
         // for TexAnimator feature
         public bool enableTexAnim;
@@ -264,6 +265,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             listStr = string.Empty;
             Get(getValue("DisableOHScenes"),  ref listStr);
             if (listStr.Length > 0) ParseList(listStr, ref disableOHScenes);
+
+            Get(getValue("EnableStandardShader"),  ref enableStandard);
 
             Get(getValue("TextureScaleRestore"),  ref backScale);
             Get(getValue("EnableTexAnimator"),  ref enableTexAnim);

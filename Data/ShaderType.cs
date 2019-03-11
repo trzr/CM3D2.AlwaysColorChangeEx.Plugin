@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
+using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// <summary>
@@ -8,9 +9,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// </summary>
     public class ShaderType {
         public static readonly int SHADER_TYPE_CM3D2_MAX;
-        // public static readonly int SHADER_TYPE_STANDARD;
+        public static readonly int SHADER_TYPE_STANDARD;
         public static readonly ShaderType UNKNOWN = new ShaderType();
-        // public static ShaderType STANDARD;
+        public static ShaderType STANDARD;
 
         /// <summary>標準シェーダタイプ</summary>
         public static readonly ShaderType[] shaders;
@@ -66,7 +67,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                 ShaderPropType.DetailMask, ShaderPropType.DetailAlbedoMap, ShaderPropType.DetailNormalMap,
                 ShaderPropType.SpecGlossMap
             };
-            var texTypeMir  = new []{ShaderPropType.MainTex, ShaderPropType.ReflectionTex};
+            // var texTypeMir  = new []{ShaderPropType.MainTex, ShaderPropType.ReflectionTex};
             
             var colEmpty  = new ShaderPropColor[0];
             var colC      = new []{ShaderPropType.Color, };
@@ -99,7 +100,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                 ShaderPropType.BumpScale, ShaderPropType.DetailNormalMapScale,
             };
             count = 0;
-            shaders = new[] {
+            var shaderList = new List<ShaderType> {
                 new ShaderType("CM3D2/Toony_Lighted", "トゥーン",                          texType1,  colTL,   propTL ),
                 new ShaderType("CM3D2/Toony_Lighted_Trans", "トゥーン 透過",              texType1a, colTLa,  propTLC1, true ),
                 new ShaderType("CM3D2/Toony_Lighted_Trans_NoZ", "トゥーン 透過 NoZ",      texType1a, colTLa,  propTL,  true ),
@@ -129,12 +130,38 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                 new ShaderType("CM3D2/Mosaic","モザイク",               texTypeR, colEmpty, new[]{ShaderPropType.FloatValue1}),
                 new ShaderType("CM3D2/Man","ご主人様",                  texTypeEmpty, colC, new[]{ShaderPropType.FloatValue2, ShaderPropType.FloatValue3}),
                 new ShaderType("CM3D2_Debug/Debug_CM3D2_Normal2Color","法線", texTypeEmpty, colC, propEmpty), // Emission
-                // new ShaderType("Standard","Standard", texTypeStd, colC, propStd),
+                new ShaderType("Standard","Standard", texTypeStd, colC, propStd),
             };
-            // SHADER_TYPE_STANDARD = shaders.Length - 1; // 末尾にStandardシェーダが設定される想定
-            // SHADER_TYPE_CM3D2_MAX = SHADER_TYPE_STANDARD - 1;
-            // STANDARD = shaders[SHADER_TYPE_STANDARD];
-            SHADER_TYPE_CM3D2_MAX = shaders.Length - 1;
+            IList<ShaderType> toRemoves = null;
+            STANDARD = shaderList[shaderList.Count - 1];
+            // ゲーム中で参照できるシェーダに限定
+            foreach (var shaderType in shaderList) {
+                var shader = Shader.Find(shaderType.name);
+                if (shader == null) {
+                    if (toRemoves == null) toRemoves = new List<ShaderType>();
+                    toRemoves.Add(shaderType);
+                }
+            }
+
+            if (!Settings.Instance.enableStandard) {
+                shaderList.Remove(STANDARD);
+            }
+            if (toRemoves != null) {
+                foreach (var toRemove in toRemoves) {
+                    shaderList.Remove(toRemove);
+                }
+            }
+
+            shaders = shaderList.ToArray();
+            for (var i=0; i<shaders.Length; i++) {
+                shaders[i].idx = i;
+            }
+
+            var idx = shaderList.IndexOf(STANDARD);
+            if (idx != -1) {
+                SHADER_TYPE_STANDARD = idx;
+                SHADER_TYPE_CM3D2_MAX = SHADER_TYPE_STANDARD - 1;
+            }
 
             shaderMap = new Dictionary<string, ShaderType>(shaders.Length + 2);
             foreach (var s in shaders) {
@@ -175,7 +202,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
                     break;
                 }
             }
-            idx = count++;
         }
 
         public int KeyCount() {
