@@ -220,7 +220,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         public void Start() {
-            LogUtil.Debug("Start");
         }
 
         public void OnDestroy() {
@@ -341,8 +340,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         }
 
         public void OnGUI() {
-            if (!isActive) return;
-            if (menuType == MenuType.None) return;
+            if (!isActive || menuType == MenuType.None) return;
             if (settings.SSWithoutUI && !uiHelper.IsEnabledUICamera()) return; // UI無し撮影
 
             try {
@@ -544,7 +542,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             if (_contentDic.TryGetValue(id, out content)) return content;
             LogUtil.Debug("maid:", m.name);
 
-            var maidName = (!m.boMAN) ? MaidHelper.GetName(m) : "男"+ (idx+1);
+            var maidName = !m.boMAN ? MaidHelper.GetName(m) : "男"+ (idx+1);
             var icon = m.GetThumIcon();
             content = new GUIContent(maidName, icon);
             _contentDic[id] = content;

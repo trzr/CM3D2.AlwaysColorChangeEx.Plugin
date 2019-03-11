@@ -218,7 +218,6 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                     edited.ChangeShader(shaderName0, selectedIdx);
                 }
 
-                // MaterialType mat = edited.type;
                 if (reload) {
                     edited.renderQueue.Set(material.renderQueue);
                 }
