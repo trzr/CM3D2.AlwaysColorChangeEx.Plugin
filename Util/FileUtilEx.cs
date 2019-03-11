@@ -375,7 +375,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             //var matType = trgtMat.editedMat.type1;
             var shaderType = trgtMat.editedMat.type;
             var writed = new HashSet<PropKey>();
-            while(reader.PeekChar() != -1) {
+            while(true) {
                 var type = reader.ReadString();
                 //writer.Write(type);
                 if (type == "end") break;

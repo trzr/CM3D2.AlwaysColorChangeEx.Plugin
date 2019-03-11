@@ -96,7 +96,9 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             using (var dataStream = new MemoryStream())
                 using (var dataWriter = new BinaryWriter(dataStream)) {
                 var num2 = (int)reader.ReadInt32();
-                while (reader.PeekChar() != -1) {
+
+                while (true) {
+//                while (reader.PeekChar() != -1) {
                     var size = (int) reader.ReadByte();
                     if (size == 0) {
                         dataWriter.Write((byte)0);
@@ -116,6 +118,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
                     foreach (var param in sparams) {
                         dataWriter.Write(param);
                     }
+
+                    if (key == "end") break;
                 }
                 writer.Write((int)dataStream.Length);
                 writer.Write(dataStream.ToArray());
