@@ -11,10 +11,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
     /// 編集中のメイド情報を扱うデータホルダクラス
     /// </summary>
     public sealed class MaidHolder {
-        private static readonly MaidHolder INSTANCE = new MaidHolder();
-        public static MaidHolder Instance {
-            get { return INSTANCE;  }
-        }
+        public static readonly MaidHolder Instance = new MaidHolder();
         private readonly int _slotCount;
 
         private readonly Material[] _emptyList = new Material[0];
@@ -178,7 +175,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
         /// 
         /// <param name="slotName">スロット名(列挙型の名前)</param>
         /// <param name="matNo">マテリアル番号</param>
-        /// <returns>マテリアル. ただし、見つからない場合はnullを返す</returns>
+        /// <returns>マテリアル ただし、見つからない場合はnullを返す</returns>
         public Material GetMaterial(string slotName, int matNo) {
             var slot = CurrentMaid.body0.GetSlot(slotName);
             if (slot.obj == null) return null;

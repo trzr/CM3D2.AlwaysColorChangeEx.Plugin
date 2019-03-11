@@ -104,17 +104,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
                     }
 
                     var key = reader.ReadString();
-                    var param = new string[size-1];
+                    var sparams = new string[size-1];
                     for (var i = 0; i < size-1; i++) {
-                        param[i] = reader.ReadString();
+                        sparams[i] = reader.ReadString();
                     }
-                    param = replace(key, param);
+                    sparams = replace(key, sparams);
 
-                    if (param == null) continue;
-                    dataWriter.Write((byte) (param.Length+1));
+                    if (sparams == null) continue;
+                    dataWriter.Write((byte) (sparams.Length+1));
                     dataWriter.Write(key);
-                    foreach (var wparam in param) {
-                        dataWriter.Write(wparam);
+                    foreach (var param in sparams) {
+                        dataWriter.Write(param);
                     }
                 }
                 writer.Write((int)dataStream.Length);

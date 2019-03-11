@@ -14,11 +14,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
         public static MateHandler Instance {
             get { return INSTANCE;  }
         }
-        public const int MATE_SHADER = 0x1;
-        public const int MATE_COLOR  = 0x2;
-        public const int MATE_FLOAT  = 0x4;
-        public const int MATE_TEX    = 0x8;
-        public const int MATE_ALL    = 0xf;
+        public static readonly int MATE_SHADER = 0x1;
+        public static readonly int MATE_COLOR  = 0x2;
+        public static readonly int MATE_FLOAT  = 0x4;
+        public static readonly int MATE_TEX    = 0x8;
+        public static readonly int MATE_ALL    = 0xf;
 
         private static readonly Settings settings = Settings.Instance;
         public string filepath;
@@ -274,7 +274,11 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             }
         }
         
-        public bool Write(ACCMaterial target, string mateText, int apply=MATE_ALL) {
+        public bool Write(ACCMaterial target, string mateText) {
+            return Write(target, mateText, MATE_ALL);
+        }
+
+        public bool Write(ACCMaterial target, string mateText, int apply) {
             using (var sr = new StringReader(mateText)) {
                 var outUtil = FileUtilEx.Instance;
                 

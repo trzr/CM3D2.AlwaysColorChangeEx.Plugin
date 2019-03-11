@@ -29,6 +29,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             UnityEngine.Debug.Log(sb);
 #endif
         }
+        public static void Debug(Func<string> func) {
+#if DEBUG
+            var formatedMsg = func();
+            var sb = CreateMessage(formatedMsg, "[DEBUG]");
+            UnityEngine.Debug.Log(sb);
+#endif
+        }
 
         public static string LogF(string format, params object[] message) {
             var sb = string.Format(format, message);
@@ -62,6 +69,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
                 if (t is Exception) sb.Append(' ');
                 sb.Append(t);
             }
+            return sb;
+        }
+        private static StringBuilder CreateMessage(string message, string prefix=null) {
+            var sb = new StringBuilder();
+            if (prefix != null) sb.Append(prefix);
+            sb.Append(AlwaysColorChangeEx.PluginName).Append(':');
+            sb.Append(message);
             return sb;
         }
     }

@@ -71,7 +71,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             return false;
         }
 
-        private const int BUFFER_SIZE = 8192;
+        private static readonly int BUFFER_SIZE = 8192;
         // 外部DLL依存
         // 一旦バイト配列にロードすることなくStreamオブジェクトとして参照可能とする
         public Stream GetStream(string filename) {
@@ -170,7 +170,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
 
             // arc内のファイルがロードできない場合の回避策: Sybaris 0410向け対策. 一括読み込み
             using (var reader = new BinaryReader(new MemoryStream(Instance.LoadInternal(infile), false), Encoding.UTF8)) {
-                var header = reader.ReadString(); // hader
+                var header = reader.ReadString(); // header
                 if (header == FileConst.HEAD_MENU) {
                     return WriteMenuFile(reader, header, outfilepath, res);
                 }
@@ -236,7 +236,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
             writer.Write(count);  // num (bone_count)
             for(var i=0; i< count; i++) {
                 writer.Write(reader.ReadString()); // ボーン名
-                writer.Write(reader.ReadByte());   // フラグ(_SCL_追加の有無等)
+                writer.Write(reader.ReadByte());   // フラグ (_SCL_追加の有無等)
             }
 
             for(var i=0; i< count; i++) {
@@ -434,7 +434,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Util {
 
             // シェーダで設定されるプロパティ数が一致しない場合、不足propを追記
             
-            if (shaderType.KeyCount() != writed.Count()) {
+            if (shaderType.KeyCount() != writed.Count) {
                 foreach (var texProp in shaderType.texProps) {
                     if (writed.Contains(texProp.key)) continue;
 

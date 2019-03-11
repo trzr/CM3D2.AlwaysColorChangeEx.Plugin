@@ -7,10 +7,7 @@ using UnityEngine;
 
 namespace CM3D2.AlwaysColorChangeEx.Plugin {
     public sealed class Settings {
-        private static readonly Settings INSTANCE = new Settings();
-        public static Settings Instance {
-            get { return INSTANCE; }
-        }
+        public static readonly Settings Instance = new Settings();
 
         public KeyCode  toggleKey = KeyCode.F12;
         public EventModifiers toggleModifiers = EventModifiers.None;
@@ -136,7 +133,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
 
         public bool SSWithoutUI = false;
 
-        private const int MAX_SCENES = 256;
+        private static readonly int MAX_SCENES = 256;
         public List<int> enableScenes;
         public List<int> disableScenes;
         public List<int> enableOHScenes;
@@ -284,7 +281,13 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 output = v;
             }
         }
-        const float VERF_VALUE = 12.3f;
+        static void Get(string numString, ref int output) {
+            int v;
+            if (int.TryParse(numString, out v)) {
+                output = v;
+            }
+        }
+        static readonly float VERF_VALUE = 12.3f;
         static void GetFormat(string format, ref string output) {
             if (format == null) return;
 

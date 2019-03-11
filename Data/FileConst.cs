@@ -7,23 +7,23 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
     /// </summary>
     public static class FileConst {
         #region Constants
-        public const string HEAD_MENU  = "CM3D2_MENU";
-        public const string HEAD_MOD   = "CM3D2_MOD";
-        public const string HEAD_MODEL = "CM3D2_MESH";
-        public const string HEAD_MATE  = "CM3D2_MATERIAL";
-        public const string HEAD_TEX   = "CM3D2_TEX";
-        public const string HEAD_PMAT  = "CM3D2_PMATERIAL";
+        public static readonly string HEAD_MENU  = "CM3D2_MENU";
+        public static readonly string HEAD_MOD   = "CM3D2_MOD";
+        public static readonly string HEAD_MODEL = "CM3D2_MESH";
+        public static readonly string HEAD_MATE  = "CM3D2_MATERIAL";
+        public static readonly string HEAD_TEX   = "CM3D2_TEX";
+        public static readonly string HEAD_PMAT  = "CM3D2_PMATERIAL";
 
-        public const string RET = "《改行》";
+        public static readonly string RET = "《改行》";
 
-        public const string EXT_MOD      = ".mod";
-        public const string EXT_MENU     = ".menu";
-        public const string EXT_MATERIAL = ".mate";
-        public const string EXT_PMAT     = ".pmat";
-        public const string EXT_MODEL    = ".model";
-        public const string EXT_TEXTURE  = ".tex";
-        public const string EXT_TXT      = ".txt";
-        public const string EXT_JSON     = ".json";
+        public static readonly string EXT_MOD      = ".mod";
+        public static readonly string EXT_MENU     = ".menu";
+        public static readonly string EXT_MATERIAL = ".mate";
+        public static readonly string EXT_PMAT     = ".pmat";
+        public static readonly string EXT_MODEL    = ".model";
+        public static readonly string EXT_TEXTURE  = ".tex";
+        public static readonly string EXT_TXT      = ".txt";
+        public static readonly string EXT_JSON     = ".json";
 
         #endregion
         private static readonly char [] INVALID_FILENAMECHARS = Path.GetInvalidFileNameChars();

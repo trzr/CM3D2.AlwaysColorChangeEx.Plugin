@@ -391,7 +391,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 OutputMax.Value  = OutMaxRange.Max;
             }
 
-            private const float THRESHOLD = 0.01f;
+            private static readonly float THRESHOLD = 0.01f;
             // 初期値から変更されたかを判定する
             public bool HasNotChanged() {
                 return ( Hue.Value       < THRESHOLD &&

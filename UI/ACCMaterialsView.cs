@@ -182,8 +182,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.UI {
                             if (includeTex)    pasteFlag |= MateHandler.MATE_TEX;
                             if (includeShader) pasteFlag |= MateHandler.MATE_SHADER;
                             if (includeOthers) pasteFlag |= MateHandler.MATE_COLOR | MateHandler.MATE_FLOAT;
-                            LogUtil.DebugF("material pasting from cp... tex={0}, shader={1}, others={2}", includeTex,
-                                includeShader, includeOthers);
+                            LogUtil.DebugF("material pasting from cp... tex={0}, shader={1}, others={2}",
+                                includeTex, includeShader, includeOthers);
                             MateHandler.Instance.Write(edited, clipHandler.mateText, pasteFlag);
                         } catch (Exception e) {
                             LogUtil.Error("failed to import mateText", e);
