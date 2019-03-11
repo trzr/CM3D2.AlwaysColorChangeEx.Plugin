@@ -64,6 +64,17 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         public string floatVal2Fmt    = "F3";
         public string floatVal3Fmt    = "F3";
 
+
+        // for TexAnimator feature
+        public bool enableTexAnim;
+        public string namePostfix = "_anim";
+        public string namePostfixWithExt = "_anim.tex";
+
+        public int animeFPS = 30;
+        public int detectRate = 60;
+        public bool backScale;
+        public float defaultFrameSecond    = 1f/30;
+
         public float[] shininessRange() {
             return new[] {shininessMin, shininessMax,};
         }
@@ -253,6 +264,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             listStr = string.Empty;
             Get(getValue("DisableOHScenes"),  ref listStr);
             if (listStr.Length > 0) ParseList(listStr, ref disableOHScenes);
+
+            Get(getValue("TextureScaleRestore"),  ref backScale);
+            Get(getValue("EnableTexAnimator"),  ref enableTexAnim);
+            Get(getValue("AnimeFPS"), ref animeFPS);
+            Get(getValue("DetectRate"), ref detectRate);
+            defaultFrameSecond = 1f / animeFPS;
         }
 
         static void ParseList(string valString, ref List<int> ret) {

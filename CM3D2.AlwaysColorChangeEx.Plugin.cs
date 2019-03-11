@@ -4,12 +4,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityInjector;
 using UnityInjector.Attributes;
 using CM3D2.AlwaysColorChangeEx.Plugin.Data;
+using CM3D2.AlwaysColorChangeEx.Plugin.TexAnim;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI;
 using CM3D2.AlwaysColorChangeEx.Plugin.UI.Helper;
 using CM3D2.AlwaysColorChangeEx.Plugin.Util;
@@ -114,6 +114,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
         private readonly IntervalCounter changeCounter = new IntervalCounter(15);
         // ゲーム上の表示データの再ロード間隔
         private readonly IntervalCounter refreshCounter = new IntervalCounter(60);
+        private readonly MaidChangeDetector changeDetector = new MaidChangeDetector();
+        private readonly AnimTargetDetector animDetector = new AnimTargetDetector();
         private Vector2 scrollViewPosition = Vector2.zero;
         // 表示名切り替え
         private bool nameSwitched;
@@ -204,6 +206,8 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             views.Add(partsColorView);
 
             uiParams.Add(UpdateUIParams);
+
+            if (settings.enableTexAnim) changeDetector.Add(animDetector.ChangeMenu);
         }
 
         private void UpdateUIParams(UIParams uParams) {
@@ -250,6 +254,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
             foreach (var view in views) {
                 view.Clear();
             }
+            changeDetector.Clear();
 
             if ( !checker.IsTarget(level) ) {
                 if (!isActive) return;
@@ -279,6 +284,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin {
                 LogUtil.Debug("Initialized ", initialized);
                 if (!initialized) return;
             }
+            if (settings.enableTexAnim) changeDetector.Detect(bUseStockMaid);
 
             if (InputModifierKey() && Input.GetKeyDown(settings.toggleKey)) {
                 SetMenu( (menuType == MenuType.None)? MenuType.Main : MenuType.None );
