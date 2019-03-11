@@ -80,11 +80,10 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             
             var propEmpty = new ShaderPropFloat[0];
             var propL     = new []{ShaderPropType.Shininess, };
-            var propLC1   = new []{ShaderPropType.Shininess, ShaderPropType.Cutout};
+            var propLC1   = new []{ShaderPropType.Shininess, ShaderPropType.Cutoff};
             var propTL    = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, };
             var propTLZ   = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.ZTest, ShaderPropType.ZTest2, ShaderPropType.ZTest2Alpha};
-            var propTLC1  = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.Cutout, };
-            var propTLC2  = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.Cutoff, };
+            var propTLC1  = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.Cutoff };
             var propTLO   = new []{ShaderPropType.Shininess, ShaderPropType.OutlineWidth, ShaderPropType.RimPower, ShaderPropType.RimShift, };
             var propTLH   = new []{ShaderPropType.Shininess, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.HiRate, ShaderPropType.HiPow};
             var propTLHO  = new []{ShaderPropType.Shininess, ShaderPropType.OutlineWidth, ShaderPropType.RimPower, ShaderPropType.RimShift, ShaderPropType.HiRate, ShaderPropType.HiPow};
