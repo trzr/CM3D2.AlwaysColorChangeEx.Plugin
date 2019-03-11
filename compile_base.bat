@@ -78,7 +78,7 @@
 @rem @set CSC=%windir%\Microsoft.NET\Framework\v3.5\csc
 @set CSC=%windir%\Microsoft.NET\Framework\v4.0.30319\csc
 
-@%CSC% %OPTS% /out:%OUT_NAME% *.cs /recurse:Data\*.cs /recurse:Util\*.cs /recurse:UI\*.cs /recurse:Render\*.cs %POST_OPTS%
+@%CSC% %OPTS% /out:%OUT_NAME% *.cs /recurse:Data\*.cs /recurse:Util\*.cs /recurse:UI\*.cs /recurse:Render\*.cs /recurse:TexAnim\*.cs %POST_OPTS%
 @rem MOVE /Y  %OUT_NAME% %UI_DIR%
 @if exist %OUT_NAME% @echo. %OUT_NAME%ÇèoóÕÇµÇ‹ÇµÇΩ
 
