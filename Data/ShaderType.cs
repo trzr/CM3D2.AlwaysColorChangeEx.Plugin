@@ -101,7 +101,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             count = 0;
             shaders = new[] {
                 new ShaderType("CM3D2/Toony_Lighted", "トゥーン",                          texType1,  colTL,   propTL ),
-                new ShaderType("CM3D2/Toony_Lighted_Trans", "トゥーン 透過",              texType1a, colTLa,  propTLC2, true ),
+                new ShaderType("CM3D2/Toony_Lighted_Trans", "トゥーン 透過",              texType1a, colTLa,  propTLC1, true ),
                 new ShaderType("CM3D2/Toony_Lighted_Trans_NoZ", "トゥーン 透過 NoZ",      texType1a, colTLa,  propTL,  true ),
 #if COM3D2
                 new ShaderType("CM3D2/Toony_Lighted_Trans_NoZTest", "トゥーン 透過 NoZTest",      texType1a, colTLa,  propTLZ,  true ),
@@ -136,13 +136,14 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.Data {
             // STANDARD = shaders[SHADER_TYPE_STANDARD];
             SHADER_TYPE_CM3D2_MAX = shaders.Length - 1;
 
-            shaderMap = new Dictionary<string, ShaderType>(shaders.Length);
+            shaderMap = new Dictionary<string, ShaderType>(shaders.Length + 2);
             foreach (var s in shaders) {
                 shaderMap[s.name] = s;
             };
             shaderMap["Legacy Shaders/Transparent/Diffuse"] = shaderMap["Transparent/Diffuse"];
             shaderMap["Legacy Shaders/Diffuse"] = shaderMap["Diffuse"];
-            shader2Map = new Dictionary<string, string>(shaders.Length);
+
+            shader2Map = new Dictionary<string, string>(shaders.Length+1);
             foreach (var s in shaders) {
                 shader2Map[s.name] = s.name.Replace("/", "__");
             };
