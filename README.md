@@ -17,9 +17,9 @@ UnityInjectorが導入済みであること
 
 | env    | version | plugin version    |
 | -------| ------- | ----------------- |
-| CM3D2  | 1.58    | ? - 0.3.1.3       |
-| COM3D2 | 1.21.1  | ? - 0.3.1.3       |
-|        | 1.23    | 0.3.1.4-          |
+| CM3D2  | 1.58    |  - 0.3.1.3        |
+| COM3D2 | 1.21.1  |  - 0.3.1.3        |
+|        | 1.23-   | 0.3.1.4-          |
 
   - 前提プラグイン：UnityInjector/Sybaris  
 
@@ -107,6 +107,9 @@ NAME_KEYはcompile.bat (or compile_cm3d2.bat)内で指定
     以下の条件を満たすボーンのみ表示されます。  
      * 子ボーンを有する
      * ボーン名が___で始まらない
+* **[Texアニメーション][tex_Anime]**
+  テクスチャのパラパラアニメ、スクロールアニメ化を行います。 (0.3.2.0～)
+
 
 ## ■ 使用方法
 ##### ◇メニュー操作
@@ -153,6 +156,7 @@ iniファイルの詳細は[wiki][wiki_ini]を参照
 [menu_Export]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#menu%E3%82%A8%E3%82%AF%E3%82%B9%E3%83%9D%E3%83%BC%E3%83%88
 [mate_Change]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E3%83%9E%E3%83%86%E3%83%AA%E3%82%A2%E3%83%AB%E6%83%85%E5%A0%B1%E5%A4%89%E6%9B%B4
 [tex_Change]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E#%E3%83%86%E3%82%AF%E3%82%B9%E3%83%81%E3%83%A3%E5%A4%89%E6%9B%B4
+[tex_Anime]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/TexAnimator
 [wiki_ini]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/ini%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB
 [desc_1]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/%E7%94%BB%E9%9D%A2%E8%AA%AC%E6%98%8E
 [issue]:https://github.com/trzr/CM3D2.AlwaysColorChangeEx.Plugin/wiki/Known-Issue
