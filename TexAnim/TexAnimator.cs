@@ -11,12 +11,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.TexAnim {
         #region MonoBehaviour Methods
 
         void Start() {
-            LogUtil.Debug("Start TexAnimator object");
+            // LogUtil.Debug("Start TexAnimator object");
             if (!targets.Any()) ParseMaterials();
         }
 
         void OnDestroy() {
-            LogUtil.Debug("OnDestroy TexAnimator object");
+            // LogUtil.Debug("OnDestroy TexAnimator object");
 
             Clear();
         }
@@ -24,7 +24,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.TexAnim {
         // void FixedUpdate() {}
         void Update() {
             foreach (var target in targets) {
-                target.UpdateTex(Time.deltaTime);
+                target.Animate(Time.deltaTime);
             }
         }
         #endregion
@@ -88,13 +88,12 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.TexAnim {
         }
 
         public void RemoveTarget(int matNo) {
-            LogUtil.Debug("RemoveTarget:", matNo);
+            // LogUtil.Debug("RemoveTarget:", matNo);
 
             var toRemove = GetTarget(matNo);
             if (toRemove != null) {
                 toRemove.Deactivate();
                 targets.Remove(toRemove);
-                LogUtil.Debug("Removed");
             }
         }
 

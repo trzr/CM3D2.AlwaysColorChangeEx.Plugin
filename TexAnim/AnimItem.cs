@@ -13,7 +13,7 @@ namespace CM3D2.AlwaysColorChangeEx.Plugin.TexAnim {
             this.texes = texes;
         }
 
-        public void UpdateTex(float deltaTime) {
+        public void Animate(float deltaTime) {
             if (material == null) return;
 
             for (var i=0; i<texes.Length; i++) {
